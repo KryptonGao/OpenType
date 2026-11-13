@@ -1,0 +1,144 @@
+import SwiftUI
+
+struct OverlayView: View {
+    let coordinator: DictationSessionCoordinator
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                statusIcon
+                Text(statusTitle)
+                    .font(.headline)
+                    .lineLimit(2)
+                Spacer(minLength: 0)
+                trailingControl
+            }
+
+            if showsWaveform {
+                WaveformView(levels: coordinator.levelHistory, color: statusColor)
+                    .frame(height: 26)
+            }
+
+            if showsTranscript {
+                Text("\(Text(coordinator.solidText).foregroundStyle(.primary))\(Text(coordinator.stashText).foregroundStyle(.secondary))")
+                    .font(.body)
+                    .lineLimit(4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !coordinator.pendingText.isEmpty, showsPendingText {
+                Text(coordinator.pendingText)
+                    .font(.body)
+                    .textSelection(.enabled)
+                    .lineLimit(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                HStack {
+                    Button("复制文本") { coordinator.copyPendingText() }
+                        .buttonStyle(.borderedProminent)
+                    Button("关闭") { coordinator.cancelSession() }
+                    Spacer()
+                    Text("按 Esc 关闭").font(.caption).foregroundStyle(.secondary)
+                }
+                .controlSize(.small)
+            } else if case .error = coordinator.state {
+                HStack {
+                    Spacer()
+                    Button("关闭") { coordinator.cancelSession() }.controlSize(.small)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(width: 420)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.separator.opacity(0.5)))
+        .padding(8) // room for the window shadow
+    }
+
+    // MARK: Derived state
+
+    @ViewBuilder private var statusIcon: some View {
+        switch coordinator.state {
+        case .connecting, .finalizing, .processing, .inserting:
+            ProgressView().controlSize(.small)
+        case .success:
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+        case .manualCopy:
+            Image(systemName: "doc.on.clipboard").foregroundStyle(.orange)
+        case .error:
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+        case .recording:
+            Image(systemName: "mic.fill").foregroundStyle(.red)
+        case .idle:
+            Image(systemName: "mic").foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder private var trailingControl: some View {
+        if coordinator.state == .recording || coordinator.state == .connecting, coordinator.sessionMode == .toggle {
+            Button("完成") { coordinator.stopRecording() }
+                .controlSize(.small)
+                .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var showsWaveform: Bool {
+        coordinator.state == .recording || coordinator.state == .connecting
+    }
+
+    private var showsTranscript: Bool {
+        switch coordinator.state {
+        case .recording, .connecting, .finalizing, .processing: !(coordinator.solidText + coordinator.stashText).isEmpty
+        default: false
+        }
+    }
+
+    private var showsPendingText: Bool {
+        switch coordinator.state {
+        case .manualCopy, .error: true
+        default: false
+        }
+    }
+
+    private var statusColor: Color {
+        coordinator.state == .recording ? .red : .secondary
+    }
+
+    private var statusTitle: String {
+        switch coordinator.state {
+        case .idle: "待机"
+        case .connecting: "正在连接…"
+        case .recording: coordinator.sessionMode == .hold ? "正在聆听…（松开结束）" : "正在聆听…"
+        case .finalizing: "正在收尾…"
+        case .processing: "正在整理文本…"
+        case .inserting: "正在插入…"
+        case .success(let note): note.map { "已插入 · \($0)" } ?? "已插入"
+        case .manualCopy(let reason): "未自动插入：\(reason)"
+        case .error(let message): message
+        }
+    }
+}
+
+private struct WaveformView: View {
+    let levels: [Float]
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let count = levels.count
+            let spacing: CGFloat = 3
+            let barWidth = max(2, (proxy.size.width - spacing * CGFloat(count - 1)) / CGFloat(count))
+            HStack(alignment: .center, spacing: spacing) {
+                ForEach(levels.indices, id: \.self) { index in
+                    Capsule()
+                        .fill(color.opacity(0.85))
+                        .frame(width: barWidth, height: max(3, CGFloat(levels[index]) * proxy.size.height))
+                }
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .animation(.linear(duration: 0.08), value: levels)
+    }
+}
