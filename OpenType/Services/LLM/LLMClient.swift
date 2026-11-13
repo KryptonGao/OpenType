@@ -107,7 +107,7 @@ enum LLMRequestBuilder {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let userPrompt = TextProcessor.userPrompt(transcript: transcript)
-        let body: [String: Any]
+        var body: [String: Any]
         switch profile.format {
         case .openAIResponses:
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -135,6 +135,13 @@ enum LLMRequestBuilder {
                 "system": systemPrompt,
                 "messages": [["role": "user", "content": userPrompt]]
             ]
+        }
+        if let effort = profile.reasoningEffort.apiValue(for: profile.format) {
+            switch profile.format {
+            case .openAIResponses: body["reasoning"] = ["effort": effort]
+            case .openAIChatCompletions: body["reasoning_effort"] = effort
+            case .anthropicMessages: body["output_config"] = ["effort": effort]
+            }
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request

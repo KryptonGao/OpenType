@@ -205,6 +205,11 @@ private struct AIProcessingSettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 TextField("Model ID", text: profile.modelID)
                     .autocorrectionDisabled()
+                Picker("推理强度（effort）", selection: profile.reasoningEffort) {
+                    ForEach(ReasoningEffort.allCases) { Text($0.displayName).tag($0) }
+                }
+                Text("仅对支持推理参数的模型有效；选「默认」时不发送该参数。不支持该参数的模型可能返回错误，请改回「默认」。Anthropic 格式下「最低」按 low 发送。")
+                    .font(.caption).foregroundStyle(.secondary)
                 SecretField(
                     title: "API Key",
                     account: CredentialAccount.llmProfile(profile.wrappedValue.id),

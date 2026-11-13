@@ -142,6 +142,35 @@ struct LLMAdapterTests {
         #expect(throws: LLMError.self) { try LLMRequestBuilder.endpoint(format: .openAIResponses, baseURL: "https://user:pw@api.openai.com/v1") }
     }
 
+    @Test func reasoningEffortIsOmittedByDefault() throws {
+        for format in LLMAPIFormat.allCases {
+            let request = try LLMRequestBuilder.makeRequest(profile: profile(format), apiKey: "k", transcript: "t", systemPrompt: "S")
+            let json = try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any])
+            #expect(json["reasoning"] == nil && json["reasoning_effort"] == nil && json["output_config"] == nil)
+        }
+    }
+
+    @Test func reasoningEffortMapsPerFormat() throws {
+        func json(_ format: LLMAPIFormat, _ effort: ReasoningEffort) throws -> [String: Any] {
+            var p = profile(format)
+            p.reasoningEffort = effort
+            let request = try LLMRequestBuilder.makeRequest(profile: p, apiKey: "k", transcript: "t", systemPrompt: "S")
+            return try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any])
+        }
+        #expect((try json(.openAIResponses, .low)["reasoning"] as? [String: String]) == ["effort": "low"])
+        #expect(try json(.openAIChatCompletions, .high)["reasoning_effort"] as? String == "high")
+        #expect(try json(.openAIChatCompletions, .minimal)["reasoning_effort"] as? String == "minimal")
+        #expect((try json(.anthropicMessages, .medium)["output_config"] as? [String: String]) == ["effort": "medium"])
+        #expect((try json(.anthropicMessages, .minimal)["output_config"] as? [String: String]) == ["effort": "low"])
+    }
+
+    @Test func legacyProfileWithoutEffortDecodes() throws {
+        var legacy = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(LLMProfile.makeDefault())) as? [String: Any])
+        legacy.removeValue(forKey: "reasoningEffort")
+        let decoded = try JSONDecoder().decode(LLMProfile.self, from: JSONSerialization.data(withJSONObject: legacy))
+        #expect(decoded.reasoningEffort == .automatic)
+    }
+
     @Test func openAIResponsesRequestAndParsing() async throws {
         let box = MockTransport.CaptureBox()
         let body = #"{"output":[{"type":"reasoning","summary":[]},{"type":"message","content":[{"type":"output_text","text":"你好，世界。"}]}]}"#
