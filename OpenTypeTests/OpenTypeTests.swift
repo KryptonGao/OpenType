@@ -576,6 +576,7 @@ private struct Harness {
     let inserter: FakeInserter
     let permissions: FakePermissions
     let settings: SettingsStore
+    let history = HistoryStore()
     let credentials = InMemoryCredentialStore()
 
     init(asr: @escaping @Sendable () -> FakeASR, llm: Result<String, LLMError> = .success("整理后的文字。"),
@@ -595,7 +596,7 @@ private struct Harness {
         if let profile = settings.activeProfile { try? credentials.save("llm-key", account: CredentialAccount.llmProfile(profile.id)) }
         self.coordinator = DictationSessionCoordinator(
             settingsStore: settings, credentialStore: credentials, permissions: PermissionManager(),
-            audio: audio, permissionChecker: permissions,
+            historyStore: history, audio: audio, permissionChecker: permissions,
             makeASR: { _ in asr() }, makeLLM: { _, _ in FakeLLM(result: llm, recorder: recorder) },
             inserter: inserter, overlay: nil, playsSounds: false
         )
@@ -640,6 +641,39 @@ struct CoordinatorTests {
         await harness.wait { if case .success = c.state { true } else { false } }
         if case .success(let note) = c.state { #expect(note == nil) } else { Issue.record("expected success, got \(c.state)") }
         #expect(c.currentSessionID == nil)
+    }
+
+    @Test func finishedSessionIsRecordedInHistory() async {
+        let harness = Harness(asr: {
+            FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "嗯你好世界")])
+        })
+        let c = harness.coordinator
+        c.beginSession(mode: .hold)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.history.records.count == 1 }
+        let record = harness.history.records.first
+        #expect(record?.finalText == "整理后的文字。")
+        #expect(record?.rawText == "嗯你好世界")
+        #expect(record?.kind == .dictation)
+        #expect(record?.delivery == .inserted)
+        #expect(record?.wordCount == 6)
+        #expect(record?.model == harness.settings.activeProfile?.modelID)
+    }
+
+    @Test func historyKeepsOnlyCountersWhenTextSavingIsOff() async {
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好世界")]) },
+            configure: { $0.saveHistoryText = false }
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .hold)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.history.records.count == 1 }
+        #expect(harness.history.records.first?.finalText == nil)
+        #expect(harness.history.records.first?.rawText == nil)
+        #expect(harness.history.records.first?.wordCount == 6)
     }
 
     @Test func hotkeyPressTogglesRecording() async {
@@ -1536,5 +1570,120 @@ struct SecurityTests {
 
     @Test func redactionRemovesSecrets() {
         #expect(Diagnostics.redact("Bearer sk-abcdef123 failed", secrets: ["sk-abcdef123"]) == "Bearer *** failed")
+    }
+}
+
+// MARK: - History, statistics and token usage
+
+struct TextMetricsTests {
+    @Test func countsCJKCharactersAndLatinWords() {
+        #expect(TextMetrics.wordCount("你好，世界！") == 4)
+        #expect(TextMetrics.wordCount("Hello, world 42") == 3)
+        #expect(TextMetrics.wordCount("用 Swift 写 App") == 4)
+        #expect(TextMetrics.wordCount("") == 0)
+    }
+}
+
+struct TokenUsageParsingTests {
+    @Test func readsUsageFromEachFormat() {
+        let chat = Data(#"{"usage":{"prompt_tokens":120,"completion_tokens":30,"total_tokens":150}}"#.utf8)
+        #expect(LLMResponseParser.extractUsage(format: .openAIChatCompletions, data: chat) == TokenUsage(inputTokens: 120, outputTokens: 30))
+        let responses = Data(#"{"usage":{"input_tokens":50,"output_tokens":7}}"#.utf8)
+        #expect(LLMResponseParser.extractUsage(format: .openAIResponses, data: responses) == TokenUsage(inputTokens: 50, outputTokens: 7))
+        let anthropic = Data(#"{"usage":{"input_tokens":10,"cache_read_input_tokens":90,"output_tokens":4}}"#.utf8)
+        #expect(LLMResponseParser.extractUsage(format: .anthropicMessages, data: anthropic) == TokenUsage(inputTokens: 100, outputTokens: 4))
+        #expect(LLMResponseParser.extractUsage(format: .openAIChatCompletions, data: Data("{}".utf8)).isEmpty)
+    }
+
+    @Test func providerReportsUsage() async throws {
+        let body = #"{"choices":[{"message":{"content":"你好。"}}],"usage":{"prompt_tokens":11,"completion_tokens":3}}"#
+        let provider = HTTPLLMProvider(profile: LLMProfile.makeDefault(), apiKey: "k", transport: MockTransport(status: 200, body: body))
+        let output = try await provider.processWithUsage(transcript: "你好", systemPrompt: "p")
+        #expect(output.text == "你好。")
+        #expect(output.usage == TokenUsage(inputTokens: 11, outputTokens: 3))
+    }
+
+    @Test func streamAccumulatorKeepsUsageFromFinalChunk() {
+        var accumulator = ChatStreamAccumulator()
+        _ = accumulator.consume(line: #"data: {"choices":[{"delta":{"content":"好"}}]}"#)
+        _ = accumulator.consume(line: #"data: {"choices":[],"usage":{"prompt_tokens":40,"completion_tokens":9}}"#)
+        #expect(accumulator.text == "好")
+        #expect(accumulator.usage == TokenUsage(inputTokens: 40, outputTokens: 9))
+    }
+}
+
+struct UsageStatsTests {
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }
+
+    private func record(daysAgo: Int, now: Date, words: Int, seconds: Double, input: Int = 0, output: Int = 0, model: String? = nil) -> SessionRecord {
+        SessionRecord(
+            date: calendar.date(byAdding: .day, value: -daysAgo, to: now)!, kind: .dictation, rawText: nil, finalText: nil,
+            wordCount: words, recordingSeconds: seconds, usage: TokenUsage(inputTokens: input, outputTokens: output),
+            model: model, translationLabel: nil, delivery: .inserted
+        )
+    }
+
+    @Test func summarizesRangeTodayAndAllTime() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let records = [
+            record(daysAgo: 0, now: now, words: 100, seconds: 30, input: 200, output: 50, model: "m1"),
+            record(daysAgo: 2, now: now, words: 60, seconds: 30, input: 100, output: 20, model: "m1"),
+            record(daysAgo: 20, now: now, words: 40, seconds: 60, input: 10, output: 5, model: "m2"),
+            record(daysAgo: 1, now: now, words: 10, seconds: 5) // raw mode: no LLM call
+        ]
+        let stats = UsageStats.summarize(records, days: 7, now: now, calendar: calendar)
+        #expect(stats.today.sessions == 1)
+        #expect(stats.range.sessions == 3)
+        #expect(stats.range.words == 170)
+        #expect(stats.range.usage == TokenUsage(inputTokens: 300, outputTokens: 70))
+        #expect(stats.range.llmCalls == 2)
+        #expect(stats.allTime.sessions == 4)
+        #expect(stats.allTime.usage.total == 385)
+        #expect(stats.days.count == 7)
+        #expect(stats.days.last?.totals.words == 100)
+        #expect(stats.models.map(\.model) == ["m1"])
+        #expect(UsageStats.summarize(records, days: 30, now: now, calendar: calendar).models.map(\.model) == ["m1", "m2"])
+        #expect(stats.range.wordsPerMinute == 170 / (65.0 / 60))
+    }
+}
+
+@MainActor
+struct HistoryStoreTests {
+    private func sample(_ text: String) -> SessionRecord {
+        SessionRecord(date: .now, kind: .dictation, rawText: text, finalText: text, wordCount: 2, recordingSeconds: 3,
+                      usage: .zero, model: nil, translationLabel: nil, delivery: .inserted)
+    }
+
+    @Test func persistsAndReloads() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("opentype-\(UUID().uuidString)/history.json")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = HistoryStore(fileURL: url)
+        store.add(sample("第一条"))
+        store.add(sample("第二条"))
+        for _ in 0..<200 where !FileManager.default.fileExists(atPath: url.path) { try await Task.sleep(for: .milliseconds(10)) }
+        try await Task.sleep(for: .milliseconds(100))
+        let reloaded = HistoryStore(fileURL: url)
+        #expect(reloaded.records.map(\.finalText) == ["第二条", "第一条"])
+    }
+
+    @Test func clearTextsKeepsCounters() {
+        let store = HistoryStore()
+        store.add(sample("内容"))
+        store.clearTexts()
+        #expect(store.records.count == 1)
+        #expect(store.records[0].finalText == nil)
+        #expect(store.records[0].wordCount == 2)
+        store.clearAll()
+        #expect(store.records.isEmpty)
+    }
+
+    @Test func capsRecordCount() {
+        let store = HistoryStore()
+        for _ in 0..<(HistoryStore.maxRecords + 5) { store.add(sample("x")) }
+        #expect(store.records.count == HistoryStore.maxRecords)
     }
 }

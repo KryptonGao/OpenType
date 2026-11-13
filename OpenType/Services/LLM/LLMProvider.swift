@@ -115,8 +115,16 @@ extension LLMProfile {
     }
 }
 
+/// A model answer together with the tokens the request consumed (zero when the API did not report usage).
+struct LLMOutput: Equatable, Sendable {
+    var text: String
+    var usage = TokenUsage.zero
+}
+
 protocol LLMProvider: Sendable {
     func process(transcript: String, systemPrompt: String) async throws -> String
+    /// Same as `process`, but also reports token usage. Providers that cannot report it get the default below.
+    func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput
     /// Same as above, but with DeepSeek's web-search tool declared. `onProgress` reports each search / page read live;
     /// the result carries the final tally.
     func processWithWebSearch(
@@ -157,9 +165,14 @@ enum WebSearchLevel: String, Sendable, CaseIterable {
 struct WebSearchOutput: Equatable, Sendable {
     var text: String
     var progress: WebSearchProgress
+    var usage = TokenUsage.zero
 }
 
 extension LLMProvider {
+    func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput {
+        LLMOutput(text: try await process(transcript: transcript, systemPrompt: systemPrompt))
+    }
+
     func processWithWebSearch(
         transcript: String,
         systemPrompt: String,
@@ -270,9 +283,18 @@ final class TextProcessor: Sendable {
         basePrompt: String,
         provider: (any LLMProvider)?
     ) async throws -> String {
-        guard level != .raw, let provider else { return transcript }
+        try await processWithUsage(transcript: transcript, level: level, basePrompt: basePrompt, provider: provider).text
+    }
+
+    func processWithUsage(
+        transcript: String,
+        level: ProcessingLevel,
+        basePrompt: String,
+        provider: (any LLMProvider)?
+    ) async throws -> LLMOutput {
+        guard level != .raw, let provider else { return LLMOutput(text: transcript) }
         let prompt = Self.systemPrompt(base: basePrompt, level: level)
-        return try await provider.process(transcript: transcript, systemPrompt: prompt)
+        return try await provider.processWithUsage(transcript: transcript, systemPrompt: prompt)
     }
 
     static func systemPrompt(base: String, level: ProcessingLevel) -> String {

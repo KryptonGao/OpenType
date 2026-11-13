@@ -32,7 +32,8 @@
 - **ASR 与 LLM 解耦**：ASR 可选阿里云百炼 `qwen3-asr-flash-realtime`（实时流式）或 DeepSeek（录完后整段上传）；LLM 内置 OpenAI Responses、OpenAI Chat Completions、Anthropic Messages 三种协议适配器，兼容第三方 OpenAI 兼容服务；支持多 Profile、三档处理等级（原始 / 标准 / 深度整理）。
 - **失败不丢字**：LLM 失败或超时可自动回退为 ASR 原文；ASR 断线时保留已识别内容供复制；`Esc` 随时取消，取消时不会插入任何文字。
 - **三级插入**：Accessibility 直写 → 模拟粘贴（自动备份并恢复剪贴板）→ 悬浮窗手动复制。不会向密码框、安全输入模式或已切换的应用写入，也不会自动回车或提交。
-- **隐私优先**：API Key 只存 macOS Keychain；默认不保存音频和识别记录；日志不含语音与文字内容。
+- **正式主界面**：原生 SwiftUI 三标签窗口——首页（输入统计与 Token 用量）、历史（可搜索、复制、删除）、设置。
+- **隐私优先**：API Key 只存 macOS Keychain；不保存音频；识别文字只存在本机历史中（可随时关闭或清空）；日志不含语音与文字内容。
 
 ## 工作流程
 
@@ -136,7 +137,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 - 录音会发送到你选择的语音识别服务（阿里云百炼实时流式，或 DeepSeek 录完后整段上传）；转写文本会发送到你配置的 LLM 服务。除此之外没有任何其他网络请求。
 - API Key 仅保存在 Keychain，界面只显示「已保存」，不会读回；不会写入 `UserDefaults`、日志或错误提示。
 - 只接受校验证书的 HTTPS / WSS；Workspace ID 经过格式校验，密钥只会发往由它生成的阿里云域名或你明确填写的自定义 `wss://` 地址。
-- 默认不落盘原始音频和识别记录。诊断日志默认关闭，开启后也只记录各阶段耗时。
+- 不落盘原始音频。识别和整理后的文字默认保存在本机 `~/Library/Application Support/OpenType/history.json`（不上传），可在「历史」页关闭保存或清空；首页统计只用次数、字数、时长和 Token 数。诊断日志默认关闭，开启后也只记录各阶段耗时。
 
 ## 开发
 
@@ -177,7 +178,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -destination 'platform=m
 ## 路线图
 
 - 自定义词典 / 热词、多 Prompt 预设
-- 可选的本地历史记录、应用级规则
+- 应用级规则
 - 更多语音模型 / 本地 ASR、多语言界面
 - 全场景兼容性验证（Safari / Chrome / VS Code / Electron / IM / 全屏 / 多屏 / 输入法切换）与 Developer ID 签名、公证
 

@@ -273,6 +273,8 @@ final class SettingsStore {
     }
 
     // MARK: Privacy
+    /// Keep the recognised and final text of each session in the local history. Off: only counters are kept.
+    var saveHistoryText: Bool { didSet { defaults.set(saveHistoryText, forKey: Keys.saveHistoryText) } }
     var diagnosticsEnabled: Bool {
         didSet {
             defaults.set(diagnosticsEnabled, forKey: Keys.diagnosticsEnabled)
@@ -346,6 +348,7 @@ final class SettingsStore {
         helpMeSayWebSearchEnabled = bool(Keys.helpMeSayWebSearchEnabled, false)
         helpMeSayWebSearchEagerness = min(100, max(0, defaults.object(forKey: Keys.helpMeSayWebSearchEagerness) as? Int ?? 80))
 
+        saveHistoryText = bool(Keys.saveHistoryText, true)
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
         Diagnostics.isEnabled = diagnosticsEnabled
     }
@@ -460,6 +463,7 @@ final class SettingsStore {
         static let helpMeSayPrompt = "opentype.helpMeSayPrompt"
         static let helpMeSayWebSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
         static let helpMeSayWebSearchEagerness = "opentype.helpMeSayWebSearchEagerness"
+        static let saveHistoryText = "opentype.saveHistoryText"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }
 }

@@ -199,6 +199,7 @@ enum LLMRequestBuilder {
                 body["tools"] = [["type": webSearchToolName]]
                 if webSearch.usesThinking { body["thinking"] = ["type": "enabled"] }
                 body["stream"] = true // progress events (`server_tool_event`) only exist in the stream
+                body["stream_options"] = ["include_usage": true] // the final chunk then carries the token counts
             case .anthropicMessages:
                 body["tools"] = [["type": webSearchToolName, "name": webSearchToolName]]
                 if webSearch.usesThinking { body["thinking"] = ["type": "enabled"] }
@@ -245,6 +246,29 @@ enum LLMResponseParser {
         let cleaned = clean(text)
         guard !cleaned.isEmpty else { throw LLMError.emptyOutput }
         return cleaned
+    }
+
+    /// Token counts from a response body; zero when the API did not report them.
+    static func extractUsage(format: LLMAPIFormat, data: Data) -> TokenUsage {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return .zero }
+        return usage(format: format, root: root)
+    }
+
+    static func usage(format: LLMAPIFormat, root: [String: Any]) -> TokenUsage {
+        guard let usage = root["usage"] as? [String: Any] else { return .zero }
+        func int(_ key: String) -> Int { (usage[key] as? NSNumber)?.intValue ?? 0 }
+        switch format {
+        case .openAIChatCompletions:
+            return TokenUsage(inputTokens: int("prompt_tokens"), outputTokens: int("completion_tokens"))
+        case .openAIResponses:
+            return TokenUsage(inputTokens: int("input_tokens"), outputTokens: int("output_tokens"))
+        case .anthropicMessages:
+            // Cached prompt tokens are reported separately from `input_tokens`; they are still input.
+            return TokenUsage(
+                inputTokens: int("input_tokens") + int("cache_creation_input_tokens") + int("cache_read_input_tokens"),
+                outputTokens: int("output_tokens")
+            )
+        }
     }
 
     /// How many server-side tool calls (searches, page opens, link reads) the model made, per DeepSeek's response formats.
@@ -310,6 +334,8 @@ struct ChatStreamAccumulator {
     private(set) var errorMessage: String?
     /// Total calls in the final `server_tool_calls`, if the response carried it.
     private(set) var finalCallCount: Int?
+    /// From the last chunk that reported `usage` (requested through `stream_options.include_usage`).
+    private(set) var usage = TokenUsage.zero
 
     /// Feeds one line; returns `true` when `progress` changed.
     mutating func consume(line raw: String) -> Bool {
@@ -325,6 +351,8 @@ struct ChatStreamAccumulator {
             errorMessage = (error["message"] as? String) ?? "流式响应出错"
             return false
         }
+        let reported = LLMResponseParser.usage(format: .openAIChatCompletions, root: root)
+        if !reported.isEmpty { usage = reported }
         guard let choice = (root["choices"] as? [[String: Any]])?.first else { return false }
         if let message = choice["message"] as? [String: Any] { // not streamed
             if let content = message["content"] as? String { text = content }
@@ -371,6 +399,11 @@ struct HTTPLLMProvider: LLMProvider {
         try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: nil).text
     }
 
+    func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput {
+        let output = try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: nil)
+        return LLMOutput(text: output.text, usage: output.usage)
+    }
+
     func processWithWebSearch(
         transcript: String,
         systemPrompt: String,
@@ -400,7 +433,7 @@ struct HTTPLLMProvider: LLMProvider {
         guard !text.isEmpty else { throw LLMError.emptyOutput }
         let progress = accumulator.finalProgress
         Diagnostics.log("web search calls=\(progress.calls) results=\(progress.results) pages=\(progress.pages)")
-        return WebSearchOutput(text: text, progress: progress)
+        return WebSearchOutput(text: text, progress: progress, usage: accumulator.usage)
     }
 
     private func send(transcript: String, systemPrompt: String, webSearch: WebSearchLevel?) async throws -> WebSearchOutput {
@@ -417,6 +450,9 @@ struct HTTPLLMProvider: LLMProvider {
         if webSearch != nil { Diagnostics.log("web search tool calls=\(calls)") }
         var progress = WebSearchProgress()
         progress.searches = calls
-        return WebSearchOutput(text: text, progress: progress)
+        return WebSearchOutput(
+            text: text, progress: progress,
+            usage: LLMResponseParser.extractUsage(format: profile.format, data: data)
+        )
     }
 }

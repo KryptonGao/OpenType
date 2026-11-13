@@ -44,6 +44,7 @@ final class DictationSessionCoordinator {
     @ObservationIgnored let hotkeyManager: HotkeyManager
     @ObservationIgnored let translationHotkeyManager: HotkeyManager
     @ObservationIgnored let permissions: PermissionManager
+    @ObservationIgnored let historyStore: HistoryStore
     @ObservationIgnored private let audio: any AudioCapturing
     @ObservationIgnored private let permissionChecker: any PermissionChecking
     @ObservationIgnored private let makeASR: (ASRConfig) -> any ASRService
@@ -74,6 +75,7 @@ final class DictationSessionCoordinator {
         hotkeyManager: HotkeyManager = HotkeyManager(),
         translationHotkeyManager: HotkeyManager = HotkeyManager(),
         permissions: PermissionManager = PermissionManager(),
+        historyStore: HistoryStore = HistoryStore(), // in memory unless the app passes a file-backed one
         audio: any AudioCapturing = AudioCaptureService(),
         permissionChecker: (any PermissionChecking)? = nil,
         makeASR: @escaping (ASRConfig) -> any ASRService = { config in
@@ -93,6 +95,7 @@ final class DictationSessionCoordinator {
         self.hotkeyManager = hotkeyManager
         self.translationHotkeyManager = translationHotkeyManager
         self.permissions = permissions
+        self.historyStore = historyStore
         self.audio = audio
         self.permissionChecker = permissionChecker ?? permissions
         self.makeASR = makeASR
@@ -428,19 +431,23 @@ final class DictationSessionCoordinator {
         // 7. LLM post-processing (with fallback to raw text), or translation
         state = .processing
         var finalText = rawText
+        var usage = TokenUsage.zero
+        var modelName: String?
         var notes: [String] = []
         if let interruptionNote { notes.append(interruptionNote) }
         if timedOut { notes.append("语音识别收尾超时，已使用当前识别内容") }
         if let target = translationTarget { // language and region are locked from here on (state is .processing)
             let region = translationRegion
             do {
-                let (provider, _) = try resolveProvider()
-                let output = try await provider.process(
+                let (provider, profile) = try resolveProvider()
+                let output = try await provider.processWithUsage(
                     transcript: rawText,
                     systemPrompt: TextProcessor.translationSystemPrompt(target: target, region: region)
                 )
                 guard isCurrent(id) else { return }
-                finalText = output
+                finalText = output.text
+                usage = output.usage
+                modelName = profile.modelID
             } catch is CancellationError {
                 return
             } catch {
@@ -454,7 +461,15 @@ final class DictationSessionCoordinator {
             do {
                 let level = settingsStore.helpMeSayWebSearchLevel // nil: off (switch off or 0 %)
                 // With web search the request goes to DeepSeek with its own key, independent of the active Profile.
-                let provider = level != nil ? try resolveWebSearchProvider() : try resolveProvider().0
+                let provider: any LLMProvider
+                var profileModel: String?
+                if level != nil {
+                    provider = try resolveWebSearchProvider()
+                } else {
+                    let resolved = try resolveProvider()
+                    provider = resolved.0
+                    profileModel = resolved.1.modelID
+                }
                 var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
                 if let level { prompt += "\n" + TextProcessor.webSearchAddendum(for: level) }
                 if let level {
@@ -468,11 +483,15 @@ final class DictationSessionCoordinator {
                     webSearchStatus = nil
                     guard isCurrent(id) else { return }
                     finalText = result.text
+                    usage = result.usage
+                    modelName = LLMProfile.deepSeekWebSearchModel
                     notes.append(result.progress.madeAnyCall ? "已联网搜索：\(result.progress.summary)" : "模型未联网搜索")
                 } else {
-                    let output = try await provider.process(transcript: rawText, systemPrompt: prompt)
+                    let output = try await provider.processWithUsage(transcript: rawText, systemPrompt: prompt)
                     guard isCurrent(id) else { return }
-                    finalText = output
+                    finalText = output.text
+                    usage = output.usage
+                    modelName = profileModel
                 }
             } catch is CancellationError {
                 return
@@ -488,14 +507,16 @@ final class DictationSessionCoordinator {
         } else {
             do {
                 if let (provider, profile) = try resolveLLM() {
-                    let output = try await textProcessor.process(
+                    let output = try await textProcessor.processWithUsage(
                         transcript: rawText,
                         level: settingsStore.processingLevel,
                         basePrompt: profile.systemPrompt,
                         provider: provider
                     )
                     guard isCurrent(id) else { return }
-                    finalText = output
+                    finalText = output.text
+                    usage = output.usage
+                    modelName = profile.modelID
                 }
             } catch is CancellationError {
                 return
@@ -513,7 +534,9 @@ final class DictationSessionCoordinator {
         timings.processedAt = .now
 
         // 8. Insert
+        let record = makeRecord(rawText: rawText, finalText: finalText, usage: usage, model: modelName)
         guard settingsStore.autoInsertEnabled else {
+            history(record, delivery: .manualCopy)
             return showManualCopy(id, text: finalText, reason: "已关闭自动插入", notes: notes)
         }
         state = .inserting
@@ -522,10 +545,41 @@ final class DictationSessionCoordinator {
         timings.insertedAt = .now
         switch outcome {
         case .insertedViaAccessibility, .insertedViaPasteboard:
+            history(record, delivery: .inserted)
             showSuccess(id, notes: notes)
         case .requiresManualCopy(let reason):
+            history(record, delivery: .manualCopy)
             showManualCopy(id, text: finalText, reason: reason, notes: notes)
         }
+    }
+
+    // MARK: - History
+
+    private func makeRecord(rawText: String, finalText: String, usage: TokenUsage, model: String?) -> SessionRecord {
+        let keepText = settingsStore.saveHistoryText
+        var seconds = 0.0
+        if let start = timings.captureStartedAt, let end = timings.releasedAt {
+            seconds = Double((end - start) / .milliseconds(1)) / 1000
+        }
+        let kind: SessionKind = translationTarget != nil ? .translation : (isHelpMeSay ? .helpMeSay : .dictation)
+        return SessionRecord(
+            date: .now,
+            kind: kind,
+            rawText: keepText ? rawText : nil,
+            finalText: keepText ? finalText : nil,
+            wordCount: TextMetrics.wordCount(finalText),
+            recordingSeconds: max(seconds, 0),
+            usage: usage,
+            model: model,
+            translationLabel: translationTarget.map { $0.displayName(region: translationRegion) },
+            delivery: .inserted
+        )
+    }
+
+    private func history(_ record: SessionRecord, delivery: SessionRecord.Delivery) {
+        var record = record
+        record.delivery = delivery
+        historyStore.add(record)
     }
 
     // MARK: - Event handling (all validated against the session ID)

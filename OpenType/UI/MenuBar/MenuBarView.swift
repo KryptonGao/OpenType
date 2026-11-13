@@ -2,7 +2,8 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Bindable var coordinator: DictationSessionCoordinator
-    @Environment(\.openSettings) private var openSettings
+    let router: MainWindowRouter
+    @Environment(\.openWindow) private var openWindow
 
     private var permissions: PermissionManager { coordinator.permissions }
 
@@ -43,15 +44,20 @@ struct MenuBarView: View {
 
         Divider()
 
-        Button("设置…") {
-            NSApp.activate(ignoringOtherApps: true)
-            openSettings()
-        }
+        Button("打开主界面") { show(.home) }
+        Button("历史记录") { show(.history) }
+        Button("设置…") { show(.settings) }
         .keyboardShortcut(",", modifiers: .command)
 
         Button("退出 OpenType") { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
             .onAppear { permissions.refresh() }
+    }
+
+    private func show(_ tab: MainTab) {
+        router.tab = tab
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: MainWindow.id)
     }
 
     private func permissionRow(_ name: String, _ status: PermissionStatus) -> some View {

@@ -1,30 +1,49 @@
 import SwiftUI
 
+/// Settings tab of the main window: a segmented switcher over the individual settings pages.
 struct SettingsView: View {
     let coordinator: DictationSessionCoordinator
+    @State private var page: Page = .general
+
+    private enum Page: String, CaseIterable, Identifiable {
+        case general, speech, ai, translation, helpMeSay, privacy
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .general: "通用"
+            case .speech: "语音识别"
+            case .ai: "AI 处理"
+            case .translation: "翻译"
+            case .helpMeSay: "帮我说"
+            case .privacy: "隐私与权限"
+            }
+        }
+    }
 
     var body: some View {
-        TabView {
-            GeneralSettingsTab(coordinator: coordinator)
-                .tabItem { Label("通用", systemImage: "gearshape") }
+        VStack(spacing: 0) {
+            Picker("设置分类", selection: $page) {
+                ForEach(Page.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
 
-            SpeechRecognitionSettingsTab(coordinator: coordinator)
-                .tabItem { Label("语音识别", systemImage: "waveform") }
-
-            AIProcessingSettingsTab(coordinator: coordinator)
-                .tabItem { Label("AI 处理", systemImage: "sparkles") }
-
-            TranslationSettingsTab(coordinator: coordinator)
-                .tabItem { Label("翻译", systemImage: "character.bubble") }
-
-            HelpMeSaySettingsTab(coordinator: coordinator)
-                .tabItem { Label("帮我说", systemImage: "wand.and.stars") }
-
-            PrivacyPermissionsSettingsTab(coordinator: coordinator)
-                .tabItem { Label("隐私与权限", systemImage: "hand.raised") }
+            Group {
+                switch page {
+                case .general: GeneralSettingsTab(coordinator: coordinator)
+                case .speech: SpeechRecognitionSettingsTab(coordinator: coordinator)
+                case .ai: AIProcessingSettingsTab(coordinator: coordinator)
+                case .translation: TranslationSettingsTab(coordinator: coordinator)
+                case .helpMeSay: HelpMeSaySettingsTab(coordinator: coordinator)
+                case .privacy: PrivacyPermissionsSettingsTab(coordinator: coordinator)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 600, height: 560)
-        .padding()
     }
 }
 
@@ -501,7 +520,7 @@ private struct PrivacyPermissionsSettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }
             Section("隐私") {
-                Text("默认不将原始音频或识别记录写入磁盘；临时内容随会话结束释放。")
+                Text("不会保存原始音频。识别和整理后的文字默认保存在本机「历史」中（不上传），可在历史页关闭或清空；统计只记录次数、字数、时长和 Token 数。")
                 Text("语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 仅存于 Keychain。")
                     .foregroundStyle(.secondary)
                 Toggle("启用诊断日志（仅记录阶段耗时，不含语音与文字内容）", isOn: $settingsStore.diagnosticsEnabled)

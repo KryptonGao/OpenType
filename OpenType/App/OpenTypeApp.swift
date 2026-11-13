@@ -4,23 +4,31 @@ import SwiftUI
 @MainActor
 enum AppContainer {
     static let overlay = OverlayPanelController()
-    static let coordinator = DictationSessionCoordinator(overlay: overlay)
+    static let historyStore = HistoryStore(fileURL: HistoryStore.defaultFileURL)
+    static let coordinator = DictationSessionCoordinator(historyStore: historyStore, overlay: overlay)
+    static let router = MainWindowRouter()
+}
+
+enum MainWindow {
+    static let id = "main"
 }
 
 @main
 struct OpenTypeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let coordinator = AppContainer.coordinator
+    private let router = AppContainer.router
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(coordinator: coordinator)
+            MenuBarView(coordinator: coordinator, router: router)
         } label: {
             Image(menuBarIcon)
         }
 
-        Settings {
-            SettingsView(coordinator: coordinator)
+        Window("OpenType", id: MainWindow.id) {
+            MainWindowView(coordinator: coordinator, router: router)
                 .onChange(of: coordinator.settingsStore.showDockIcon) { _, newValue in
                     appDelegate.updateDockVisibility(showDockIcon: newValue)
                 }
@@ -30,6 +38,17 @@ struct OpenTypeApp: App {
                 .onChange(of: coordinator.settingsStore.translationHotkey) { _, _ in
                     coordinator.applyHotkeySettings()
                 }
+        }
+        .defaultSize(width: 880, height: 680)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("设置…") {
+                    router.tab = .settings
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: MainWindow.id)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 
