@@ -253,6 +253,10 @@ final class SettingsStore {
     /// Custom system prompt for help-me-say; blank falls back to `TextProcessor.defaultHelpMeSayPrompt`.
     var helpMeSayPrompt: String { didSet { defaults.set(helpMeSayPrompt, forKey: Keys.helpMeSayPrompt) } }
 
+    /// Lets the model search the web (DeepSeek's server-side `deepseek_web_search`) to enrich the result.
+    /// Only takes effect when the active profile points at DeepSeek's API.
+    var helpMeSayWebSearchEnabled: Bool { didSet { defaults.set(helpMeSayWebSearchEnabled, forKey: Keys.helpMeSayWebSearchEnabled) } }
+
     // MARK: Privacy
     var diagnosticsEnabled: Bool {
         didSet {
@@ -322,6 +326,8 @@ final class SettingsStore {
 
         helpMeSayEnabled = bool(Keys.helpMeSayEnabled, true)
         helpMeSayPrompt = defaults.string(forKey: Keys.helpMeSayPrompt) ?? TextProcessor.defaultHelpMeSayPrompt
+
+        helpMeSayWebSearchEnabled = bool(Keys.helpMeSayWebSearchEnabled, false)
 
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
         Diagnostics.isEnabled = diagnosticsEnabled
@@ -434,6 +440,7 @@ final class SettingsStore {
         static let translationHotkey = "opentype.translationHotkey"
         static let helpMeSayEnabled = "opentype.helpMeSayEnabled"
         static let helpMeSayPrompt = "opentype.helpMeSayPrompt"
+        static let helpMeSayWebSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }
 }

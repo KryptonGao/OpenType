@@ -39,9 +39,11 @@ struct URLSessionTransport: HTTPTransport {
     let timeout: TimeInterval
 
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        // The request's own timeout wins (web-search requests are given longer than the profile default).
+        let limit = max(timeout, request.timeoutInterval)
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = timeout
-        configuration.timeoutIntervalForResource = timeout
+        configuration.timeoutIntervalForRequest = limit
+        configuration.timeoutIntervalForResource = limit
         configuration.urlCache = nil
         let session = URLSession(configuration: configuration)
         defer { session.finishTasksAndInvalidate() }
@@ -68,6 +70,9 @@ struct URLSessionTransport: HTTPTransport {
 enum LLMRequestBuilder {
     static let anthropicVersion = "2023-06-01"
     static let anthropicMaxTokens = 4096
+    static let webSearchToolName = "deepseek_web_search"
+    /// Searching adds server-side round trips, so such requests get at least this long regardless of the profile timeout.
+    static let webSearchMinTimeout: TimeInterval = 60
 
     /// Normalises a user supplied Base URL and appends the endpoint path exactly once.
     static func endpoint(format: LLMAPIFormat, baseURL: String) throws -> URL {
@@ -96,14 +101,16 @@ enum LLMRequestBuilder {
         profile: LLMProfile,
         apiKey: String,
         transcript: String,
-        systemPrompt: String
+        systemPrompt: String,
+        webSearch: Bool = false
     ) throws -> URLRequest {
         guard !profile.modelID.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw LLMError.invalidConfig("未填写 Model ID")
         }
         var request = URLRequest(url: try endpoint(format: profile.format, baseURL: profile.baseURL))
         request.httpMethod = "POST"
-        request.timeoutInterval = profile.timeout
+        let searching = webSearch && profile.supportsDeepSeekWebSearch
+        request.timeoutInterval = searching ? max(profile.timeout, webSearchMinTimeout) : profile.timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let userPrompt = TextProcessor.userPrompt(transcript: transcript)
@@ -141,6 +148,13 @@ enum LLMRequestBuilder {
             case .openAIResponses: body["reasoning"] = ["effort": effort]
             case .openAIChatCompletions: body["reasoning_effort"] = effort
             case .anthropicMessages: body["output_config"] = ["effort": effort]
+            }
+        }
+        if searching {
+            // DeepSeek runs the search / page reading server-side: declaring the tool is all the client does.
+            switch profile.format {
+            case .openAIResponses, .openAIChatCompletions: body["tools"] = [["type": webSearchToolName]]
+            case .anthropicMessages: body["tools"] = [["type": webSearchToolName, "name": webSearchToolName]]
             }
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -240,9 +254,13 @@ struct HTTPLLMProvider: LLMProvider {
     }
 
     func process(transcript: String, systemPrompt: String) async throws -> String {
+        try await process(transcript: transcript, systemPrompt: systemPrompt, webSearch: false)
+    }
+
+    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String {
         guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
         let request = try LLMRequestBuilder.makeRequest(
-            profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt
+            profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt, webSearch: webSearch
         )
         let (data, response) = try await transport.send(request)
         guard (200..<300).contains(response.statusCode) else {

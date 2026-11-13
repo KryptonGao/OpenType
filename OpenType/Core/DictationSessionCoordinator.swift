@@ -450,11 +450,11 @@ final class DictationSessionCoordinator {
         } else if isHelpMeSay {
             // Always needs the LLM (like translation), regardless of the cleanup switches.
             do {
-                let (provider, _) = try resolveProvider()
-                let output = try await provider.process(
-                    transcript: rawText,
-                    systemPrompt: TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
-                )
+                let (provider, profile) = try resolveProvider()
+                let webSearch = settingsStore.helpMeSayWebSearchEnabled && profile.supportsDeepSeekWebSearch
+                var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
+                if webSearch { prompt += "\n" + TextProcessor.webSearchAddendum }
+                let output = try await provider.process(transcript: rawText, systemPrompt: prompt, webSearch: webSearch)
                 guard isCurrent(id) else { return }
                 finalText = output
             } catch is CancellationError {

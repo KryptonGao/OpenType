@@ -236,6 +236,37 @@ struct LLMAdapterTests {
         #expect(try json(.openAIChatCompletions, "  ")["reasoning_effort"] == nil)
     }
 
+    @Test func webSearchDeclaresDeepSeekToolPerFormat() throws {
+        func json(_ format: LLMAPIFormat, base: String, search: Bool = true) throws -> (URLRequest, [String: Any]) {
+            let request = try LLMRequestBuilder.makeRequest(
+                profile: profile(format, base: base), apiKey: "k", transcript: "t", systemPrompt: "S", webSearch: search
+            )
+            return (request, try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any]))
+        }
+        let (chatRequest, chat) = try json(.openAIChatCompletions, base: "https://api.deepseek.com")
+        #expect(chatRequest.url?.absoluteString == "https://api.deepseek.com/chat/completions")
+        #expect((chat["tools"] as? [[String: String]]) == [["type": "deepseek_web_search"]])
+        #expect(chatRequest.timeoutInterval >= 60) // default profile timeout is 15 s
+        let (_, responses) = try json(.openAIResponses, base: "https://api.deepseek.com")
+        #expect((responses["tools"] as? [[String: String]]) == [["type": "deepseek_web_search"]])
+        let (_, anthropic) = try json(.anthropicMessages, base: "https://api.deepseek.com/anthropic/v1")
+        #expect((anthropic["tools"] as? [[String: String]]) == [["type": "deepseek_web_search", "name": "deepseek_web_search"]])
+
+        // Off, or not a DeepSeek endpoint: no tools and the profile's own timeout.
+        let (offRequest, off) = try json(.openAIChatCompletions, base: "https://api.deepseek.com", search: false)
+        #expect(off["tools"] == nil && offRequest.timeoutInterval == 15)
+        let (otherRequest, other) = try json(.openAIChatCompletions, base: "https://api.openai.com/v1")
+        #expect(other["tools"] == nil && otherRequest.timeoutInterval == 15)
+        #expect(!profile(.openAIChatCompletions, base: "https://api.deepseek.com.evil.example/v1").supportsDeepSeekWebSearch)
+    }
+
+    @Test func webSearchResponseParsingIgnoresToolBlocks() throws {
+        let anthropic = #"{"content":[{"type":"thinking","thinking":"x"},{"type":"server_tool_use","id":"srvtoolu_1","name":"deepseek_web_search","input":{}},{"type":"web_search_tool_result","tool_use_id":"srvtoolu_1","content":[]},{"type":"text","text":"成品。","citations":[]}]}"#
+        #expect(try LLMResponseParser.extractText(format: .anthropicMessages, data: Data(anthropic.utf8)) == "成品。")
+        let chat = #"{"choices":[{"message":{"content":"成品。","server_tool_calls":[{"index":0,"calls":[]}]}}]}"#
+        #expect(try LLMResponseParser.extractText(format: .openAIChatCompletions, data: Data(chat.utf8)) == "成品。")
+    }
+
     @Test func legacyProfileWithoutEffortDecodes() throws {
         var legacy = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(LLMProfile.makeDefault())) as? [String: Any])
         legacy.removeValue(forKey: "reasoningEffort")
@@ -435,14 +466,21 @@ private final class PromptRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [(transcript: String, prompt: String)] = []
     var calls: [(transcript: String, prompt: String)] { lock.withLock { storage } }
-    func record(_ transcript: String, _ prompt: String) { lock.withLock { storage.append((transcript, prompt)) } }
+    private var searchStorage: [Bool] = []
+    var webSearchFlags: [Bool] { lock.withLock { searchStorage } }
+    func record(_ transcript: String, _ prompt: String, webSearch: Bool = false) {
+        lock.withLock { storage.append((transcript, prompt)); searchStorage.append(webSearch) }
+    }
 }
 
 private struct FakeLLM: LLMProvider {
     var result: Result<String, LLMError>
     var recorder: PromptRecorder?
     func process(transcript: String, systemPrompt: String) async throws -> String {
-        recorder?.record(transcript, systemPrompt)
+        try await process(transcript: transcript, systemPrompt: systemPrompt, webSearch: false)
+    }
+    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String {
+        recorder?.record(transcript, systemPrompt, webSearch: webSearch)
         return try result.get()
     }
 }
@@ -907,6 +945,36 @@ struct CoordinatorTests {
         #expect(recorder.calls.first?.prompt == "自定义提示")
     }
 
+    @Test func helpMeSayWebSearchOnlyForDeepSeekWhenEnabled() async {
+        func run(enabled: Bool, deepSeek: Bool) async -> (flags: [Bool], prompt: String?) {
+            let recorder = PromptRecorder()
+            let harness = Harness(
+                asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
+                recorder: recorder,
+                configure: { settings in
+                    settings.helpMeSayWebSearchEnabled = enabled
+                    if deepSeek, var profile = settings.activeProfile {
+                        profile.baseURL = "https://api.deepseek.com"
+                        settings.updateProfile(profile)
+                    }
+                }
+            )
+            let c = harness.coordinator
+            c.toggleHelpMeSayFromMenu()
+            await harness.wait { c.state == .recording }
+            c.toggleHelpMeSayFromMenu()
+            await harness.wait { harness.inserter.inserted.count == 1 }
+            return (recorder.webSearchFlags, recorder.calls.first?.prompt)
+        }
+        let on = await run(enabled: true, deepSeek: true)
+        #expect(on.flags == [true])
+        #expect(on.prompt?.contains(TextProcessor.webSearchAddendum) == true)
+        let off = await run(enabled: false, deepSeek: true)
+        #expect(off.flags == [false] && off.prompt == TextProcessor.defaultHelpMeSayPrompt)
+        let notDeepSeek = await run(enabled: true, deepSeek: false)
+        #expect(notDeepSeek.flags == [false] && notDeepSeek.prompt == TextProcessor.defaultHelpMeSayPrompt)
+    }
+
     @Test func helpMeSayFailureFallsBackOrKeepsRawText() async {
         let fallback = Harness(
             asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
@@ -1294,10 +1362,13 @@ struct SettingsStoreTests {
         let defaults = UserDefaults(suiteName: suite)!
         let s = SettingsStore(defaults: defaults)
         #expect(s.helpMeSayEnabled)
+        #expect(!s.helpMeSayWebSearchEnabled) // opt-in
         #expect(s.helpMeSayPrompt == TextProcessor.defaultHelpMeSayPrompt)
         s.helpMeSayEnabled = false
+        s.helpMeSayWebSearchEnabled = true
         s.helpMeSayPrompt = "自定义"
         let reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.helpMeSayWebSearchEnabled)
         #expect(!reloaded.helpMeSayEnabled)
         #expect(reloaded.helpMeSayPrompt == "自定义")
         #expect(TextProcessor.helpMeSaySystemPrompt(custom: "  \n ") == TextProcessor.defaultHelpMeSayPrompt)

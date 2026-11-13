@@ -66,6 +66,14 @@ struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
         return value.isEmpty ? nil : value
     }
 
+    /// DeepSeek's server-side web tools (`deepseek_web_search`) exist only on DeepSeek's own API host.
+    var supportsDeepSeekWebSearch: Bool {
+        guard let host = URLComponents(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines))?.host?.lowercased() else {
+            return false
+        }
+        return host == "api.deepseek.com"
+    }
+
     static func makeDefault() -> LLMProfile {
         LLMProfile(
             name: "默认配置",
@@ -100,6 +108,14 @@ extension LLMProfile {
 
 protocol LLMProvider: Sendable {
     func process(transcript: String, systemPrompt: String) async throws -> String
+    /// Same as above, optionally letting the model search the web (DeepSeek profiles only; ignored elsewhere).
+    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String
+}
+
+extension LLMProvider {
+    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String {
+        try await process(transcript: transcript, systemPrompt: systemPrompt)
+    }
 }
 
 /// Coordinates post-processing of raw ASR transcripts via the selected LLMProvider.
@@ -142,6 +158,11 @@ final class TextProcessor: Sendable {
         let trimmed = custom.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? defaultHelpMeSayPrompt : trimmed
     }
+
+    /// Appended to the help-me-say prompt when the model may search the web.
+    static let webSearchAddendum = """
+    联网搜索（可选）：你可以使用联网搜索工具。只有当内容涉及需要查证或较新的事实（如产品或软件的版本与功能、报错信息、新闻事件、专业术语、人物或机构等）时才搜索，并把查到的可靠信息融入成品，让它更准确、更完整（例如把提问写得带上相关版本与背景、改用准确的术语）；不需要查证的内容不要搜索。搜索得到的事实必须准确，查不到或不确定的不要写；不要在成品里加入引用标记、链接或来源说明，除非用户原话要求。仍然不回答其中的问题，只负责把话说好。
+    """
 
     static func userPrompt(transcript: String) -> String {
         "请整理以下语音识别文本：\n\n```\n\(transcript)\n```"

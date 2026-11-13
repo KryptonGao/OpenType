@@ -382,6 +382,17 @@ private struct HelpMeSaySettingsTab: View {
                 Text("例：说「跟老师说我明天发烧了想请一天假」，会得到一段完整、礼貌的请假消息；说「帮我问下这个报错怎么解决」，会被整理成问题明确、条件完整的提问。")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("联网搜索") {
+                Toggle("允许模型联网搜索并读取网页", isOn: $settingsStore.helpMeSayWebSearchEnabled)
+                Text("开启后，「帮我说」会让 DeepSeek 在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品，让内容更准确、更丰富。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会增加耗时（请求超时至少 60 秒），并按 DeepSeek 联网工具的价格另外计费。普通听写与翻译不受影响。")
+                    .font(.caption).foregroundStyle(.secondary)
+                if settingsStore.helpMeSayWebSearchEnabled, settingsStore.activeProfile?.supportsDeepSeekWebSearch != true {
+                    Label("当前选中的 Profile 不是 DeepSeek（Base URL 需为 api.deepseek.com），联网搜索不会生效。", systemImage: "exclamationmark.triangle")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+                Text("使用方式：在「AI 处理」中选择或新建 Profile，Base URL 填 https://api.deepseek.com，协议选 OpenAI Chat Completions（或 Anthropic Messages 并填 https://api.deepseek.com/anthropic/v1），Model ID 填 deepseek-flash。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("System Prompt") {
                 TextEditor(text: $settingsStore.helpMeSayPrompt)
                     .font(.callout)
