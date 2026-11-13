@@ -25,6 +25,7 @@ struct OpenTypeApp: App {
             MenuBarView(coordinator: coordinator, router: router)
         } label: {
             Image(menuBarIcon)
+                .onAppear { appDelegate.openMainWindow = { openWindow(id: MainWindow.id) } }
         }
 
         Window("OpenType", id: MainWindow.id) {
