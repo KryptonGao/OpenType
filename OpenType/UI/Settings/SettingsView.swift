@@ -367,7 +367,7 @@ private struct TranslationSettingsTab: View {
                 Text("巴西与葡萄牙的葡萄牙语、台湾与港澳的繁体中文，用词和写法并不相同。翻译成这两种语言时，会明确要求模型使用这里选的地区用语；悬浮窗里也可以临时切换。")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Section("翻译快捷键（按一下开始，再按一下结束）") {
+            Section("翻译快捷键（按一下开始，再按一下结束；长按为「翻译帮我说」）") {
                 HotkeyRecorderRow(
                     title: "翻译快捷键",
                     hotkey: $settingsStore.translationHotkey,
@@ -376,7 +376,7 @@ private struct TranslationSettingsTab: View {
                     conflict: { $0 == settingsStore.hotkey ? "与听写快捷键相同，请换一个" : nil },
                     coordinator: coordinator
                 )
-                Text("说出一段话，结束后会先整理再翻译成目标语言并插入。也可以从菜单栏的「开始语音翻译」触发。")
+                Text("说出一段话，结束后会先整理再翻译成目标语言并插入。也可以从菜单栏的「开始语音翻译」触发。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
@@ -419,15 +419,17 @@ private struct HelpMeSaySettingsTab: View {
         @Bindable var settingsStore = settingsStore
         Form {
             Section("帮我说") {
-                Toggle("长按听写快捷键触发「帮我说」", isOn: $settingsStore.helpMeSayEnabled)
+                Toggle("长按快捷键触发「帮我说」/「翻译帮我说」", isOn: $settingsStore.helpMeSayEnabled)
                 Text("按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。也可以从菜单栏的「开始帮我说」触发（按一次开始，再按一次结束）。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。也可以从菜单栏的「开始翻译帮我说」触发。")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("例：说「跟老师说我明天发烧了想请一天假」，会得到一段完整、礼貌的请假消息；说「帮我问下这个报错怎么解决」，会被整理成问题明确、条件完整的提问。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("联网搜索（DeepSeek）") {
                 Toggle("允许模型联网搜索并读取网页", isOn: $settingsStore.helpMeSayWebSearchEnabled)
-                Text("开启后，「帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与翻译不受影响。")
+                Text("开启后，「帮我说」与「翻译帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与普通翻译不受影响。")
                     .font(.caption).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
@@ -471,7 +473,7 @@ private struct HelpMeSaySettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
-                Text("「帮我说」由「AI 处理」中当前选中的 Profile 完成（开启上面的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。")
+                Text("「帮我说」与「翻译帮我说」由「AI 处理」中当前选中的 Profile 完成（开启上面的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

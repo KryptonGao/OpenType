@@ -21,10 +21,17 @@ struct MenuBarView: View {
         }
         .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
 
-        Button(recording && coordinator.sessionMode == .toggle && coordinator.isHelpMeSay
+        Button(recording && coordinator.sessionMode == .toggle && coordinator.isHelpMeSay && coordinator.translationTarget == nil
                ? "结束帮我说"
                : "开始帮我说（长按听写快捷键）") {
             coordinator.toggleHelpMeSayFromMenu()
+        }
+        .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
+
+        Button(recording && coordinator.sessionMode == .toggle && coordinator.isHelpMeSay && coordinator.translationTarget != nil
+               ? "结束翻译帮我说"
+               : "开始翻译帮我说（→ \(coordinator.settingsStore.translationLabel)，长按翻译快捷键）") {
+            coordinator.toggleTranslatedHelpMeSayFromMenu()
         }
         .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
 

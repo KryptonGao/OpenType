@@ -1115,6 +1115,96 @@ struct CoordinatorTests {
         if case .error(let message) = noKey.state { #expect(message.contains("联网搜索")) } else { Issue.record("expected error") }
     }
 
+    @Test func holdingTranslationHotkeyUpgradesToTranslatedHelpMeSay() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "跟房东说水管漏水要修")]) },
+            llm: .success("Hi, the pipe is leaking."), recorder: recorder,
+            configure: { $0.translationTargetLanguage = .english; $0.processingLevel = .raw; $0.llmEnabled = false }
+        )
+        let c = harness.coordinator
+        c.handleTranslationHotkeyPress() // key down: starts a plain translation session
+        #expect(!c.isHelpMeSay && c.translationTarget == .english)
+        #expect(c.handleTranslationHotkeyLongPress() == true)
+        #expect(c.isHelpMeSay && c.translationTarget == .english && c.sessionMode == .hold)
+        #expect(c.helpMeSayName == "翻译帮我说")
+        await harness.wait { c.state == .recording }
+        c.handleHotkeyRelease()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["Hi, the pipe is leaking."])
+        let prompt = recorder.calls.first?.prompt ?? ""
+        #expect(prompt.hasPrefix(TextProcessor.defaultHelpMeSayPrompt))
+        #expect(prompt.contains(TextProcessor.helpMeSayTranslationAddendum(target: .english)))
+        #expect(harness.history.records.first?.kind == .helpMeSay)
+        #expect(harness.history.records.first?.translationLabel == TranslationLanguage.english.displayName)
+    }
+
+    @Test func translationShortTapStaysPlainTranslation() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) }, recorder: recorder
+        )
+        let c = harness.coordinator
+        c.handleTranslationHotkeyPress()
+        c.handleHotkeyRelease() // released before the threshold
+        #expect(!c.isHelpMeSay && c.sessionMode == .toggle)
+        await harness.wait { c.state == .recording }
+        c.handleTranslationHotkeyPress()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(recorder.calls.first?.prompt == TextProcessor.translationSystemPrompt(target: .english))
+    }
+
+    @Test func modifierOnlyTranslationLongPressStartsTranslatedHelpMeSayItself() async {
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) }, llm: .success("Hello")
+        )
+        let c = harness.coordinator
+        #expect(c.handleTranslationHotkeyLongPress() == true) // idle: the long press begins the session
+        #expect(c.isHelpMeSay && c.translationTarget != nil && c.state == .connecting)
+        await harness.wait { c.state == .recording }
+        c.handleHotkeyRelease()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["Hello"])
+    }
+
+    @Test func translatedHelpMeSayHonoursPopupLanguageRegionAndWebSearch() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
+            llm: .success("Olá"), recorder: recorder,
+            configure: { $0.helpMeSayWebSearchEnabled = true }
+        )
+        try? harness.credentials.save("search-key", account: CredentialAccount.deepseekWebSearchAPIKey)
+        let c = harness.coordinator
+        c.toggleTranslatedHelpMeSayFromMenu()
+        await harness.wait { c.state == .recording }
+        c.setTranslationTarget(.portuguese)
+        c.setTranslationRegion(.portugal)
+        c.toggleTranslatedHelpMeSayFromMenu()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(recorder.webSearchFlags == [true]) // web search / page reading are available as in plain help-me-say
+        let prompt = recorder.calls.first?.prompt ?? ""
+        #expect(prompt.contains(TextProcessor.helpMeSayTranslationAddendum(target: .portuguese, region: .portugal)))
+        #expect(prompt.contains(TextProcessor.webSearchAddendum(for: .aggressive)))
+        #expect(prompt.contains("autocarro"))
+    }
+
+    @Test func translatedHelpMeSayFailureNeverInsertsUntranslatedText() async {
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
+            llm: .failure(.timeout) // fallbackToRawOnLLMFailure defaults to on, but must not apply here
+        )
+        let c = harness.coordinator
+        c.toggleTranslatedHelpMeSayFromMenu()
+        await harness.wait { c.state == .recording }
+        c.toggleTranslatedHelpMeSayFromMenu()
+        await harness.wait { if case .error = c.state { true } else { false } }
+        guard case .error(let message) = c.state else { Issue.record("expected error, got \(c.state)"); return }
+        #expect(message.contains("翻译帮我说"))
+        #expect(c.pendingText == "原话")
+        #expect(harness.inserter.inserted.isEmpty)
+    }
+
     @Test func helpMeSayFailureFallsBackOrKeepsRawText() async {
         let fallback = Harness(
             asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },

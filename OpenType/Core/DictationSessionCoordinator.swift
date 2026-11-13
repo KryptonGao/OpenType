@@ -33,6 +33,7 @@ final class DictationSessionCoordinator {
     /// Regional variant of `translationTarget` (e.g. Brazil vs. Portugal); `nil` for languages without variants.
     private(set) var translationRegion: TranslationRegion?
     /// `true` while the current session is "help me say": the speech is turned into a polished, elaborated message.
+    /// Combined with `translationTarget` it is "translate help me say": the finished message is written in that language.
     private(set) var isHelpMeSay = false
     /// Live line while the model searches the web during "help me say" (e.g. "正在搜索「…」 · 已搜到 8 条结果").
     private(set) var webSearchStatus: String?
@@ -123,12 +124,17 @@ final class DictationSessionCoordinator {
         hotkeyManager.onLongPress = { [weak self] in self?.handleHotkeyLongPress() ?? false }
         hotkeyManager.onRelease = { [weak self] in self?.handleHotkeyRelease() }
         // Second shortcut: same tap-to-toggle behaviour, but the session translates the speech.
+        // Holding it is "translate help me say" (push-to-talk, like holding the dictation shortcut).
         translationHotkeyManager.hotkey = settingsStore.translationHotkey ?? .defaultTranslation
         translationHotkeyManager.isEnabled = { [weak self] in
             guard let self, let shortcut = settingsStore.translationHotkey else { return false }
             return !settingsStore.hotkeysPaused && !isRecordingHotkey && shortcut != settingsStore.hotkey
         }
         translationHotkeyManager.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
+        translationHotkeyManager.onLongPress = { [weak self] in self?.handleTranslationHotkeyLongPress() ?? false }
+        translationHotkeyManager.onRelease = { [weak self] in self?.handleHotkeyRelease() }
+        translationHotkeyManager.onCancel = { [weak self] in self?.cancelSession() }
+        translationHotkeyManager.shouldInterceptEscape = { [weak self] in (self?.state ?? .idle) != .idle }
         hotkeyActive = hotkeyManager.startListening()
         translationHotkeyManager.startListening()
         // Permissions can be granted at any time: keep the status fresh and (re)try the event tap.
@@ -159,20 +165,24 @@ final class DictationSessionCoordinator {
     /// Chord shortcuts already started a session on key-down, so it is upgraded in place; modifier-only
     /// shortcuts only report a press on release, so there a long press starts the session itself.
     /// Returns whether the hold was claimed (the matching release then ends the recording).
-    func handleHotkeyLongPress() -> Bool {
+    func handleHotkeyLongPress() -> Bool { upgradeToHelpMeSay(translating: false) }
+
+    /// The translation shortcut was held: the same, but the finished message is written in the target language.
+    func handleTranslationHotkeyLongPress() -> Bool { upgradeToHelpMeSay(translating: true) }
+
+    private func upgradeToHelpMeSay(translating: Bool) -> Bool {
         guard settingsStore.helpMeSayEnabled else { return false }
         if let id = holdCandidateID, id == currentSessionID, state == .connecting || state == .recording, !isHelpMeSay {
+            // The key press started this session itself, so its translation target already matches the shortcut.
             isHelpMeSay = true
             helpMeSayHolding = true
             sessionMode = .hold
-            translationTarget = nil
-            translationRegion = nil
             playSound("Tink")
-            Diagnostics.log("session \(id.uuidString.prefix(8)) upgraded to help-me-say")
+            Diagnostics.log("session \(id.uuidString.prefix(8)) upgraded to help-me-say translate=\(translating)")
             return true
         }
         if !state.isBusy {
-            beginSession(mode: .hold, helpMeSay: true)
+            beginSession(mode: .hold, translating: translating, helpMeSay: true)
             helpMeSayHolding = state == .connecting
             return helpMeSayHolding
         }
@@ -192,7 +202,9 @@ final class DictationSessionCoordinator {
         if state == .connecting || state == .recording {
             stopRecording()
         } else {
+            let canStart = !state.isBusy
             beginSession(mode: .toggle, translating: true)
+            holdCandidateID = canStart ? currentSessionID : nil
         }
     }
 
@@ -229,6 +241,15 @@ final class DictationSessionCoordinator {
             stopRecording()
         } else {
             beginSession(mode: .toggle, helpMeSay: true)
+        }
+    }
+
+    /// Menu entry point for "translate help me say" (for when holding a key is inconvenient).
+    func toggleTranslatedHelpMeSayFromMenu() {
+        if state == .connecting || state == .recording, sessionMode == .toggle {
+            stopRecording()
+        } else {
+            beginSession(mode: .toggle, translating: true, helpMeSay: true)
         }
     }
 
@@ -301,7 +322,7 @@ final class DictationSessionCoordinator {
         let id = UUID()
         currentSessionID = id
         sessionMode = mode
-        isHelpMeSay = helpMeSay && !translating
+        isHelpMeSay = helpMeSay
         helpMeSayHolding = false
         holdCandidateID = nil
         translationTarget = translating ? settingsStore.translationTargetLanguage : nil
@@ -436,27 +457,7 @@ final class DictationSessionCoordinator {
         var notes: [String] = []
         if let interruptionNote { notes.append(interruptionNote) }
         if timedOut { notes.append("语音识别收尾超时，已使用当前识别内容") }
-        if let target = translationTarget { // language and region are locked from here on (state is .processing)
-            let region = translationRegion
-            do {
-                let (provider, profile) = try resolveProvider()
-                let output = try await provider.processWithUsage(
-                    transcript: rawText,
-                    systemPrompt: TextProcessor.translationSystemPrompt(target: target, region: region)
-                )
-                guard isCurrent(id) else { return }
-                finalText = output.text
-                usage = output.usage
-                modelName = profile.modelID
-            } catch is CancellationError {
-                return
-            } catch {
-                guard isCurrent(id) else { return }
-                // Never insert untranslated text silently: keep the recognised text for manual copy instead.
-                let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
-                return fail(id, "翻译失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
-            }
-        } else if isHelpMeSay {
+        if isHelpMeSay {
             // Always needs the LLM (like translation), regardless of the cleanup switches.
             do {
                 let level = settingsStore.helpMeSayWebSearchLevel // nil: off (switch off or 0 %)
@@ -471,6 +472,9 @@ final class DictationSessionCoordinator {
                     profileModel = resolved.1.modelID
                 }
                 var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
+                if let target = translationTarget { // "translate help me say": language and region are locked from here on
+                    prompt += "\n" + TextProcessor.helpMeSayTranslationAddendum(target: target, region: translationRegion)
+                }
                 if let level { prompt += "\n" + TextProcessor.webSearchAddendum(for: level) }
                 if let level {
                     webSearchStatus = WebSearchProgress().statusText
@@ -498,11 +502,32 @@ final class DictationSessionCoordinator {
             } catch {
                 guard isCurrent(id) else { return }
                 let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
-                if settingsStore.fallbackToRawOnLLMFailure {
+                // Like plain translation, never insert untranslated text silently.
+                if settingsStore.fallbackToRawOnLLMFailure, translationTarget == nil {
                     notes.append("帮我说失败，已使用识别原文（\(reason)）")
                 } else {
-                    return fail(id, "帮我说失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
+                    return fail(id, "\(helpMeSayName)失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
                 }
+            }
+        } else if let target = translationTarget { // language and region are locked from here on (state is .processing)
+            let region = translationRegion
+            do {
+                let (provider, profile) = try resolveProvider()
+                let output = try await provider.processWithUsage(
+                    transcript: rawText,
+                    systemPrompt: TextProcessor.translationSystemPrompt(target: target, region: region)
+                )
+                guard isCurrent(id) else { return }
+                finalText = output.text
+                usage = output.usage
+                modelName = profile.modelID
+            } catch is CancellationError {
+                return
+            } catch {
+                guard isCurrent(id) else { return }
+                // Never insert untranslated text silently: keep the recognised text for manual copy instead.
+                let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
+                return fail(id, "翻译失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
             }
         } else {
             do {
@@ -561,7 +586,7 @@ final class DictationSessionCoordinator {
         if let start = timings.captureStartedAt, let end = timings.releasedAt {
             seconds = Double((end - start) / .milliseconds(1)) / 1000
         }
-        let kind: SessionKind = translationTarget != nil ? .translation : (isHelpMeSay ? .helpMeSay : .dictation)
+        let kind: SessionKind = isHelpMeSay ? .helpMeSay : (translationTarget != nil ? .translation : .dictation)
         return SessionRecord(
             date: .now,
             kind: kind,
@@ -694,6 +719,9 @@ final class DictationSessionCoordinator {
             cancelSession()
         }
     }
+
+    /// "帮我说", or "翻译帮我说" when the session also translates.
+    var helpMeSayName: String { translationTarget == nil ? "帮我说" : "翻译帮我说" }
 
     private func isCurrent(_ id: UUID) -> Bool { currentSessionID == id }
 

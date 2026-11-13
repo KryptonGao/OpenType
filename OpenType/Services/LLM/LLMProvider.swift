@@ -325,6 +325,16 @@ final class TextProcessor: Sendable {
         return trimmed.isEmpty ? defaultHelpMeSayPrompt : trimmed
     }
 
+    /// Appended to the help-me-say prompt for "translate help me say" (holding the translation shortcut): the same
+    /// understand-elaborate-polish job, but the finished message is written in the target language.
+    /// It overrides the default prompt's "keep the speaker's language" rule. `region` is ignored unless it belongs to `target`.
+    static func helpMeSayTranslationAddendum(target: TranslationLanguage, region: TranslationRegion? = nil) -> String {
+        let region = region.flatMap { target.regions.contains($0) ? $0 : nil }
+        let languageName = region?.promptName ?? target.promptName
+        let regionRule = region.map { "地区用语：\($0.promptRule)。" } ?? ""
+        return "翻译要求（优先于上面所有关于保持原话语言的规则）：用户是要把这段话说给使用 \(languageName) 的人，所以成品必须完整地用 \(languageName) 写成，而不是原话所用的语言。先按上面的规则弄清意图、细化、补全、理顺，再用自然、地道、符合目标语言书写习惯的 \(languageName) 写出来；保留数字、人名、产品名与专业术语；如果说话人说的本来就是 \(languageName)，不必再翻译。成品里不要夹杂原话语言的文字或说明，也不要附上译文以外的任何内容。\(regionRule)"
+    }
+
     /// Appended to the help-me-say prompt when the model may search the web; the level sets how readily it should.
     static func webSearchAddendum(for level: WebSearchLevel) -> String {
         let when: String
