@@ -122,8 +122,36 @@ protocol LLMProvider: Sendable {
     func processWithWebSearch(
         transcript: String,
         systemPrompt: String,
+        level: WebSearchLevel,
         onProgress: @escaping @Sendable (WebSearchProgress) -> Void
     ) async throws -> WebSearchOutput
+}
+
+/// How readily the model may search the web, derived from the 0–100 % "eagerness" setting (0 % means off, so no level).
+enum WebSearchLevel: String, Sendable, CaseIterable {
+    case conservative // 1–33 %
+    case balanced     // 34–66 %
+    case aggressive   // 67–100 %
+
+    init?(eagerness: Int) {
+        switch eagerness {
+        case ...0: return nil
+        case 1...33: self = .conservative
+        case 34...66: self = .balanced
+        default: self = .aggressive
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .conservative: "保守"
+        case .balanced: "适中"
+        case .aggressive: "积极"
+        }
+    }
+
+    /// Conservative runs without thinking mode (a single quick lookup); the others use DeepSeek's multi-step deep search.
+    var usesThinking: Bool { self != .conservative }
 }
 
 struct WebSearchOutput: Equatable, Sendable {
@@ -135,6 +163,7 @@ extension LLMProvider {
     func processWithWebSearch(
         transcript: String,
         systemPrompt: String,
+        level: WebSearchLevel,
         onProgress: @escaping @Sendable (WebSearchProgress) -> Void
     ) async throws -> WebSearchOutput {
         WebSearchOutput(text: try await process(transcript: transcript, systemPrompt: systemPrompt), progress: WebSearchProgress())
@@ -274,10 +303,19 @@ final class TextProcessor: Sendable {
         return trimmed.isEmpty ? defaultHelpMeSayPrompt : trimmed
     }
 
-    /// Appended to the help-me-say prompt when the model may search the web.
-    static let webSearchAddendum = """
-    联网搜索（已开启，请积极使用）：你有联网搜索和读取网页的工具。只要内容里出现具体的现实世界事实——公司、人物、职位或人事变动、产品与版本、新闻与事件、数据、地点、专业术语、报错信息、网址等——或者说话人表示记不清、不确定、想确认（如“是不是”“记不得”“确定一下”“查一下”），就必须先搜索核实，再动笔，不要凭记忆。只有整段话纯属个人日常事务、完全不涉及可查证的外部事实时才可以不搜。把查到的可靠事实（准确的人名、职位、日期、版本、术语等）自然融入成品，让它准确、具体、完整，但不要另写一篇回答；搜索没有结果或来源相互矛盾时，用不下结论的措辞，不要编造。成品里不要加入引用标记、链接或来源说明，除非用户原话要求。
-    """
+    /// Appended to the help-me-say prompt when the model may search the web; the level sets how readily it should.
+    static func webSearchAddendum(for level: WebSearchLevel) -> String {
+        let when: String
+        switch level {
+        case .conservative:
+            when = "联网搜索（保守）：你有联网搜索和读取网页的工具，但请谨慎使用：只有当说话人明确要求查证、确认或查询某个事实（如“查一下”“确定一下”“是不是”），或者内容离不开最新信息时才搜索，并尽量用一两次搜索解决；其余情况直接整理，不要搜索。"
+        case .balanced:
+            when = "联网搜索（适中）：你有联网搜索和读取网页的工具。当内容里有具体、可查证的现实事实（人物、公司、职位、产品与版本、新闻事件、数据、报错信息等）而你拿不准它是否准确，或者说话人表示记不清、想确认时，先搜索核实再动笔；常识性内容、个人日常事务和你很有把握的内容不要搜索。一般搜索几次就够。"
+        case .aggressive:
+            when = "联网搜索（积极）：你有联网搜索和读取网页的工具，请积极使用。只要内容里出现具体的现实世界事实——公司、人物、职位或人事变动、产品与版本、新闻与事件、数据、地点、专业术语、报错信息、网址等——或者说话人表示记不清、不确定、想确认（如“是不是”“记不得”“确定一下”“查一下”），就必须先搜索核实，再动笔，不要凭记忆。只有整段话纯属个人日常事务、完全不涉及可查证的外部事实时才可以不搜。"
+        }
+        return when + "把查到的可靠事实（准确的人名、职位、日期、版本、术语等）自然融入成品，让它准确、具体、完整，但不要另写一篇回答；搜索没有结果或来源相互矛盾时，用不下结论的措辞，不要编造。成品里不要加入引用标记、链接或来源说明，除非用户原话要求。"
+    }
 
     static func userPrompt(transcript: String) -> String {
         "请整理以下语音识别文本：\n\n```\n\(transcript)\n```"

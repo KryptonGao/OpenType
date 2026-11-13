@@ -237,7 +237,7 @@ struct LLMAdapterTests {
     }
 
     @Test func webSearchDeclaresDeepSeekToolPerFormat() throws {
-        func json(_ p: LLMProfile, search: Bool = true) throws -> (URLRequest, [String: Any]) {
+        func json(_ p: LLMProfile, search: WebSearchLevel? = .aggressive) throws -> (URLRequest, [String: Any]) {
             let request = try LLMRequestBuilder.makeRequest(profile: p, apiKey: "k", transcript: "t", systemPrompt: "S", webSearch: search)
             return (request, try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any]))
         }
@@ -256,8 +256,22 @@ struct LLMAdapterTests {
         let (_, anthropic) = try json(profile(.anthropicMessages))
         #expect((anthropic["tools"] as? [[String: String]]) == [["type": "deepseek_web_search", "name": "deepseek_web_search"]])
         // Off: no tools.
-        let plain = try json(fixed, search: false).1
+        let plain = try json(fixed, search: nil).1
         #expect(plain["tools"] == nil && plain["thinking"] == nil)
+        // Conservative level: tool declared, but no thinking mode (quick single lookup).
+        let quick = try json(fixed, search: .conservative).1
+        #expect(quick["tools"] != nil && quick["thinking"] == nil)
+        #expect(try json(fixed, search: .balanced).1["thinking"] != nil)
+    }
+
+    @Test func webSearchLevelMapsFromEagerness() {
+        #expect(WebSearchLevel(eagerness: 0) == nil)
+        #expect(WebSearchLevel(eagerness: -5) == nil)
+        #expect(WebSearchLevel(eagerness: 1) == .conservative && WebSearchLevel(eagerness: 33) == .conservative)
+        #expect(WebSearchLevel(eagerness: 34) == .balanced && WebSearchLevel(eagerness: 66) == .balanced)
+        #expect(WebSearchLevel(eagerness: 67) == .aggressive && WebSearchLevel(eagerness: 100) == .aggressive)
+        let prompts = Set(WebSearchLevel.allCases.map { TextProcessor.webSearchAddendum(for: $0) })
+        #expect(prompts.count == 3)
     }
 
     @Test func webSearchResponseParsingIgnoresToolBlocks() throws {
@@ -291,7 +305,7 @@ struct LLMAdapterTests {
         let box = MockTransport.CaptureBox()
         let provider = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
                                        transport: MockTransport(status: 200, body: sse, capture: box))
-        let output = try await provider.processWithWebSearch(transcript: "t", systemPrompt: "S") { seen.statuses.append($0.statusText) }
+        let output = try await provider.processWithWebSearch(transcript: "t", systemPrompt: "S", level: .aggressive) { seen.statuses.append($0.statusText) }
         #expect(output.text == "黄仁勋仍是英伟达 CEO。")
         #expect(output.progress.searches == 1 && output.progress.results == 3 && output.progress.pages == 1)
         #expect(output.progress.summary == "搜索 1 次，共 3 条结果，读取 1 个网页")
@@ -305,20 +319,20 @@ struct LLMAdapterTests {
         // Event shape not recognised, but the final server_tool_calls still tells us the model searched.
         let odd = #"data: {"choices":[{"delta":{"content":"好。","server_tool_calls":[{"index":0,"calls":[{},{}]}]},"finish_reason":"stop"}]}"#
         let provider = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k", transport: MockTransport(status: 200, body: odd))
-        let output = try await provider.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in }
+        let output = try await provider.processWithWebSearch(transcript: "t", systemPrompt: "S", level: .aggressive) { _ in }
         #expect(output.text == "好。" && output.progress.madeAnyCall && output.progress.searches == 2)
 
         let none = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
                                    transport: MockTransport(status: 200, body: #"data: {"choices":[{"delta":{"content":"没搜。"}}]}"#))
-        let plain = try await none.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in }
+        let plain = try await none.processWithWebSearch(transcript: "t", systemPrompt: "S", level: .aggressive) { _ in }
         #expect(!plain.progress.madeAnyCall)
 
         let failing = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
                                       transport: MockTransport(status: 401, body: #"{"error":{"message":"bad"}}"#))
-        await #expect(throws: LLMError.auth(401)) { try await failing.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in } }
+        await #expect(throws: LLMError.auth(401)) { try await failing.processWithWebSearch(transcript: "t", systemPrompt: "S", level: .aggressive) { _ in } }
         let midStream = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
                                         transport: MockTransport(status: 200, body: #"data: {"error":{"message":"boom"}}"#))
-        await #expect(throws: LLMError.server(200, "boom")) { try await midStream.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in } }
+        await #expect(throws: LLMError.server(200, "boom")) { try await midStream.processWithWebSearch(transcript: "t", systemPrompt: "S", level: .aggressive) { _ in } }
     }
 
     @Test func countsServerToolCalls() {
@@ -545,7 +559,8 @@ private struct FakeLLM: LLMProvider {
         return try result.get()
     }
     func processWithWebSearch(
-        transcript: String, systemPrompt: String, onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+        transcript: String, systemPrompt: String, level: WebSearchLevel,
+        onProgress: @escaping @Sendable (WebSearchProgress) -> Void
     ) async throws -> WebSearchOutput {
         recorder?.record(transcript, systemPrompt, webSearch: true)
         let progress = WebSearchProgress(searches: 2, results: 9, pages: 1)
@@ -1053,7 +1068,7 @@ struct CoordinatorTests {
         }
         let on = await run(enabled: true, withKey: true)
         #expect(on.flags == [true])
-        #expect(on.prompt?.contains(TextProcessor.webSearchAddendum) == true)
+        #expect(on.prompt?.contains(TextProcessor.webSearchAddendum(for: .aggressive)) == true)
         #expect(on.seen.keys == ["search-key"]) // not the active profile's key
         #expect(on.seen.profiles.first?.baseURL == "https://api.deepseek.com")
         #expect(on.seen.profiles.first?.modelID == "deepseek-flash")
@@ -1454,12 +1469,21 @@ struct SettingsStoreTests {
         let s = SettingsStore(defaults: defaults)
         #expect(s.helpMeSayEnabled)
         #expect(!s.helpMeSayWebSearchEnabled) // opt-in
+        #expect(s.helpMeSayWebSearchEagerness == 80 && s.helpMeSayWebSearchLevel == nil) // off until enabled
         #expect(s.helpMeSayPrompt == TextProcessor.defaultHelpMeSayPrompt)
         s.helpMeSayEnabled = false
         s.helpMeSayWebSearchEnabled = true
         s.helpMeSayPrompt = "自定义"
+        #expect(s.helpMeSayWebSearchLevel == .aggressive)
+        s.helpMeSayWebSearchEagerness = 40
+        #expect(s.helpMeSayWebSearchLevel == .balanced)
+        s.helpMeSayWebSearchEagerness = 0
+        #expect(s.helpMeSayWebSearchLevel == nil) // 0 % == off
+        s.helpMeSayWebSearchEagerness = 150
+        #expect(s.helpMeSayWebSearchEagerness == 100) // clamped
+        s.helpMeSayWebSearchEagerness = 25
         let reloaded = SettingsStore(defaults: defaults)
-        #expect(reloaded.helpMeSayWebSearchEnabled)
+        #expect(reloaded.helpMeSayWebSearchEnabled && reloaded.helpMeSayWebSearchEagerness == 25)
         #expect(!reloaded.helpMeSayEnabled)
         #expect(reloaded.helpMeSayPrompt == "自定义")
         #expect(TextProcessor.helpMeSaySystemPrompt(custom: "  \n ") == TextProcessor.defaultHelpMeSayPrompt)

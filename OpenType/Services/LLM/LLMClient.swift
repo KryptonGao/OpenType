@@ -140,7 +140,7 @@ enum LLMRequestBuilder {
         apiKey: String,
         transcript: String,
         systemPrompt: String,
-        webSearch: Bool = false
+        webSearch: WebSearchLevel? = nil
     ) throws -> URLRequest {
         guard !profile.modelID.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw LLMError.invalidConfig("未填写 Model ID")
@@ -187,21 +187,21 @@ enum LLMRequestBuilder {
             case .anthropicMessages: body["output_config"] = ["effort": effort]
             }
         }
-        if webSearch {
+        if let webSearch {
             // DeepSeek runs the search / page reading server-side: declaring the tool is all the client does.
             // Thinking mode turns on its multi-step "deep search" (search, open pages, find in page), which is far more
-            // willing to actually search than the non-thinking mode.
+            // willing to actually search than the non-thinking mode; the conservative level stays in the quick mode.
             switch profile.format {
             case .openAIResponses:
                 body["tools"] = [["type": webSearchToolName]]
-                if body["reasoning"] == nil { body["reasoning"] = ["effort": "high"] }
+                if webSearch.usesThinking, body["reasoning"] == nil { body["reasoning"] = ["effort": "high"] }
             case .openAIChatCompletions:
                 body["tools"] = [["type": webSearchToolName]]
-                body["thinking"] = ["type": "enabled"]
+                if webSearch.usesThinking { body["thinking"] = ["type": "enabled"] }
                 body["stream"] = true // progress events (`server_tool_event`) only exist in the stream
             case .anthropicMessages:
                 body["tools"] = [["type": webSearchToolName, "name": webSearchToolName]]
-                body["thinking"] = ["type": "enabled"]
+                if webSearch.usesThinking { body["thinking"] = ["type": "enabled"] }
             }
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -368,20 +368,21 @@ struct HTTPLLMProvider: LLMProvider {
     }
 
     func process(transcript: String, systemPrompt: String) async throws -> String {
-        try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: false).text
+        try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: nil).text
     }
 
     func processWithWebSearch(
         transcript: String,
         systemPrompt: String,
+        level: WebSearchLevel,
         onProgress: @escaping @Sendable (WebSearchProgress) -> Void
     ) async throws -> WebSearchOutput {
         guard profile.format == .openAIChatCompletions else {
-            return try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: true)
+            return try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: level)
         }
         guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
         let request = try LLMRequestBuilder.makeRequest(
-            profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt, webSearch: true
+            profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt, webSearch: level
         )
         var accumulator = ChatStreamAccumulator()
         onProgress(accumulator.progress)
@@ -402,7 +403,7 @@ struct HTTPLLMProvider: LLMProvider {
         return WebSearchOutput(text: text, progress: progress)
     }
 
-    private func send(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> WebSearchOutput {
+    private func send(transcript: String, systemPrompt: String, webSearch: WebSearchLevel?) async throws -> WebSearchOutput {
         guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
         let request = try LLMRequestBuilder.makeRequest(
             profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt, webSearch: webSearch
@@ -412,8 +413,8 @@ struct HTTPLLMProvider: LLMProvider {
             throw LLMResponseParser.mapFailure(status: response.statusCode, data: data, secrets: [apiKey])
         }
         let text = try LLMResponseParser.extractText(format: profile.format, data: data)
-        let calls = webSearch ? LLMResponseParser.serverToolCallCount(format: profile.format, data: data) : 0
-        if webSearch { Diagnostics.log("web search tool calls=\(calls)") }
+        let calls = webSearch != nil ? LLMResponseParser.serverToolCallCount(format: profile.format, data: data) : 0
+        if webSearch != nil { Diagnostics.log("web search tool calls=\(calls)") }
         var progress = WebSearchProgress()
         progress.searches = calls
         return WebSearchOutput(text: text, progress: progress)

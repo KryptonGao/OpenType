@@ -373,6 +373,12 @@ private struct HelpMeSaySettingsTab: View {
     @State private var testResult: TestResult = .idle
     private var settingsStore: SettingsStore { coordinator.settingsStore }
 
+    private var eagernessLabel: String {
+        let value = settingsStore.helpMeSayWebSearchEagerness
+        guard let level = WebSearchLevel(eagerness: value) else { return "\(value)%（不搜索）" }
+        return "\(value)%（\(level.displayName)）"
+    }
+
     private func testWebSearch() {
         testResult = .running
         Task {
@@ -400,6 +406,23 @@ private struct HelpMeSaySettingsTab: View {
             Section("联网搜索（DeepSeek）") {
                 Toggle("允许模型联网搜索并读取网页", isOn: $settingsStore.helpMeSayWebSearchEnabled)
                 Text("开启后，「帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与翻译不受影响。")
+                    .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text("搜索积极度")
+                        Spacer()
+                        Text(eagernessLabel).monospacedDigit().foregroundStyle(.secondary)
+                    }
+                    Slider(
+                        value: Binding(
+                            get: { Double(settingsStore.helpMeSayWebSearchEagerness) },
+                            set: { settingsStore.helpMeSayWebSearchEagerness = Int($0.rounded()) }
+                        ),
+                        in: 0...100, step: 5
+                    )
+                    .disabled(!settingsStore.helpMeSayWebSearchEnabled)
+                }
+                Text("0%：不搜索（等同关闭，仍用「AI 处理」的 Profile）；1–33% 保守：只在你明确要求查证时搜索，用快速模式；34–66% 适中：遇到拿不准的具体事实才搜索；67–100% 积极：凡涉及可查证的事实都会先搜索核实。保守档不开思考模式，更快更省；适中和积极档用多步深度搜索，更耗时。")
                     .font(.caption).foregroundStyle(.secondary)
                 SecretField(
                     title: "DeepSeek API Key",

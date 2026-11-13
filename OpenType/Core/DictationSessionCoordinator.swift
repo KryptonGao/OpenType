@@ -452,15 +452,15 @@ final class DictationSessionCoordinator {
         } else if isHelpMeSay {
             // Always needs the LLM (like translation), regardless of the cleanup switches.
             do {
-                let webSearch = settingsStore.helpMeSayWebSearchEnabled
+                let level = settingsStore.helpMeSayWebSearchLevel // nil: off (switch off or 0 %)
                 // With web search the request goes to DeepSeek with its own key, independent of the active Profile.
-                let provider = webSearch ? try resolveWebSearchProvider() : try resolveProvider().0
+                let provider = level != nil ? try resolveWebSearchProvider() : try resolveProvider().0
                 var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
-                if webSearch { prompt += "\n" + TextProcessor.webSearchAddendum }
-                if webSearch {
+                if let level { prompt += "\n" + TextProcessor.webSearchAddendum(for: level) }
+                if let level {
                     webSearchStatus = WebSearchProgress().statusText
                     let result = try await provider.processWithWebSearch(
-                        transcript: rawText, systemPrompt: prompt,
+                        transcript: rawText, systemPrompt: prompt, level: level,
                         onProgress: { [weak self] progress in
                             Task { @MainActor in self?.updateWebSearchStatus(progress, sessionID: id) }
                         }
@@ -701,6 +701,7 @@ final class DictationSessionCoordinator {
         try await resolveWebSearchProvider().processWithWebSearch(
             transcript: "嗯那个今天天气呃很好我们去公园",
             systemPrompt: TextProcessor.systemPrompt(base: "", level: .standard),
+            level: settingsStore.helpMeSayWebSearchLevel ?? .aggressive,
             onProgress: { _ in }
         ).text
     }

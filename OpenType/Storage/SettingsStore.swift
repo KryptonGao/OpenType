@@ -256,6 +256,19 @@ final class SettingsStore {
     /// Lets the model search the web (DeepSeek's server-side `deepseek_web_search`) to enrich the result.
     /// Only takes effect when the active profile points at DeepSeek's API.
     var helpMeSayWebSearchEnabled: Bool { didSet { defaults.set(helpMeSayWebSearchEnabled, forKey: Keys.helpMeSayWebSearchEnabled) } }
+    /// How readily the model searches, 0–100 %. 0 % is the same as switching web search off.
+    var helpMeSayWebSearchEagerness: Int {
+        didSet {
+            let clamped = min(100, max(0, helpMeSayWebSearchEagerness))
+            if clamped != helpMeSayWebSearchEagerness { helpMeSayWebSearchEagerness = clamped; return }
+            defaults.set(clamped, forKey: Keys.helpMeSayWebSearchEagerness)
+        }
+    }
+
+    /// The level to run with, or `nil` when web search is off (switch off or 0 %).
+    var helpMeSayWebSearchLevel: WebSearchLevel? {
+        helpMeSayWebSearchEnabled ? WebSearchLevel(eagerness: helpMeSayWebSearchEagerness) : nil
+    }
 
     // MARK: Privacy
     var diagnosticsEnabled: Bool {
@@ -328,6 +341,7 @@ final class SettingsStore {
         helpMeSayPrompt = defaults.string(forKey: Keys.helpMeSayPrompt) ?? TextProcessor.defaultHelpMeSayPrompt
 
         helpMeSayWebSearchEnabled = bool(Keys.helpMeSayWebSearchEnabled, false)
+        helpMeSayWebSearchEagerness = min(100, max(0, defaults.object(forKey: Keys.helpMeSayWebSearchEagerness) as? Int ?? 80))
 
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
         Diagnostics.isEnabled = diagnosticsEnabled
@@ -441,6 +455,7 @@ final class SettingsStore {
         static let helpMeSayEnabled = "opentype.helpMeSayEnabled"
         static let helpMeSayPrompt = "opentype.helpMeSayPrompt"
         static let helpMeSayWebSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
+        static let helpMeSayWebSearchEagerness = "opentype.helpMeSayWebSearchEagerness"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }
 }
