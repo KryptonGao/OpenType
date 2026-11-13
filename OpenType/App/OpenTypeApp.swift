@@ -16,7 +16,7 @@ struct OpenTypeApp: App {
         MenuBarExtra {
             MenuBarView(coordinator: coordinator)
         } label: {
-            Image(systemName: menuBarSymbol)
+            Image(menuBarIcon)
         }
 
         Settings {
@@ -33,11 +33,12 @@ struct OpenTypeApp: App {
         }
     }
 
-    private var menuBarSymbol: String {
+    /// Template images from the asset catalog (sources: Design/MenuBar*.svg).
+    private var menuBarIcon: String {
         switch coordinator.state {
-        case .recording: "waveform.circle.fill"
-        case .connecting, .finalizing, .processing, .inserting: "ellipsis.circle"
-        default: coordinator.settingsStore.hotkeysPaused ? "mic.slash" : "mic.fill"
+        case .recording: "MenuBarRecording"
+        case .connecting, .finalizing, .processing, .inserting: "MenuBarBusy"
+        default: coordinator.settingsStore.hotkeysPaused ? "MenuBarPaused" : "MenuBarIdle"
         }
     }
 }

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>OpenType App Icon</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#63A4FF"/>
+      <stop offset="0.55" stop-color="#3A6BF0"/>
+      <stop offset="1" stop-color="#2A3FC9"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.28"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="caret" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#FFB547"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0B1B5E" flood-opacity="0.35"/>
+    </filter>
+    <filter id="glyphShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#0B1B5E" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle tile (Apple macOS template: 824pt body inside 1024 canvas) -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)" filter="url(#shadow)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#sheen)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" fill="none" stroke="#fff" stroke-opacity="0.22" stroke-width="3"/>
+
+  <!-- Voice waveform that resolves into a text caret -->
+  <g filter="url(#glyphShadow)">
+    <g fill="#fff">
+      <rect x="204" y="447" width="46" height="130" rx="23" transform="translate(0 -0)" />
+      <rect x="299" y="387" width="46" height="250" rx="23"/>
+      <rect x="394" y="327" width="46" height="370" rx="23"/>
+      <rect x="584" y="357" width="46" height="310" rx="23"/>
+      <rect x="679" y="412" width="46" height="200" rx="23"/>
+      <rect x="774" y="462" width="46" height="100" rx="23"/>
+    </g>
+    <!-- I-beam caret: the "type" in OpenType -->
+    <g fill="url(#caret)">
+      <rect x="489" y="262" width="46" height="500" rx="23"/>
+      <rect x="447" y="262" width="130" height="44" rx="22"/>
+      <rect x="447" y="718" width="130" height="44" rx="22"/>
+    </g>
+  </g>
+</svg>
