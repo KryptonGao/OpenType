@@ -2,7 +2,7 @@ import ApplicationServices
 import CoreGraphics
 import Foundation
 
-/// Global hold-to-talk monitor based on a CoreGraphics event tap.
+/// Global hotkey monitor based on a CoreGraphics event tap.
 /// Needs Accessibility / Input Monitoring permission. Does not work while Secure Event Input is on.
 @MainActor
 final class HotkeyManager {
@@ -23,10 +23,10 @@ final class HotkeyManager {
     private var swallowKeyUp = false
 
     private var suppressedUntilModifiersChange = false
-    private var pendingPress: Task<Void, Never>?
-    /// Modifier-only shortcuts wait this long (without another key going down) before starting,
-    /// so ordinary chords such as ⌘C never start a dictation. Set to 0 for immediate start.
-    var modifierOnlyDelay: TimeInterval = 0.2
+    /// Modifier-only shortcuts (fn, right ⌥, ⌃⌥ …) fire as a "tap" when the modifier is released,
+    /// and only if no other key / mouse button went down while it was held. That keeps ordinary chords
+    /// such as ⌘C or ⌥-click from triggering dictation, while a quick tap works instantly.
+    private var pendingTap = false
     private static let escapeKeyCode = HotkeyConfig.escapeKeyCode
 
     /// Modifiers that take part in matching. `fn` is only compared when the shortcut itself uses it,
@@ -44,7 +44,10 @@ final class HotkeyManager {
         let mask: CGEventMask =
             (1 << CGEventType.keyDown.rawValue) |
             (1 << CGEventType.keyUp.rawValue) |
-            (1 << CGEventType.flagsChanged.rawValue)
+            (1 << CGEventType.flagsChanged.rawValue) |
+            (1 << CGEventType.leftMouseDown.rawValue) |
+            (1 << CGEventType.rightMouseDown.rawValue) |
+            (1 << CGEventType.otherMouseDown.rawValue)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -70,7 +73,7 @@ final class HotkeyManager {
         tap = nil
         runLoopSource = nil
         isListening = false
-        cancelPendingPress()
+        pendingTap = false
         releaseIfHeld()
     }
 
@@ -83,7 +86,12 @@ final class HotkeyManager {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            pendingTap = false
             releaseIfHeld() // we may have missed the key-up: never leave a session stuck
+            return false
+
+        case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+            abortPendingTap() // e.g. ⌥-click: the modifier is part of another gesture
             return false
 
         case .keyDown:
@@ -97,21 +105,13 @@ final class HotkeyManager {
             }
             if keyCode == Self.escapeKeyCode, shouldInterceptEscape() {
                 isHeld = false
+                pendingTap = false
                 suppressedUntilModifiersChange = true
                 onCancel?()
                 return true
             }
             // Modifier-only shortcut used as part of another chord (e.g. ⌃⌥ + key): abort, don't interfere.
-            if hotkey.keyCode == nil {
-                if pendingPress != nil {
-                    cancelPendingPress()
-                    suppressedUntilModifiersChange = true
-                } else if isHeld {
-                    isHeld = false
-                    suppressedUntilModifiersChange = true
-                    onCancel?()
-                }
-            }
+            if hotkey.keyCode == nil { abortPendingTap() }
             return false
 
         case .keyUp:
@@ -141,6 +141,8 @@ final class HotkeyManager {
                     }
                 } else if !down {
                     endModifierOnlyPress()
+                } else {
+                    abortPendingTap() // another modifier joined: not a plain tap
                 }
                 return false
             }
@@ -149,6 +151,8 @@ final class HotkeyManager {
                 suppressedUntilModifiersChange = false
             } else if modifiers == required {
                 beginModifierOnlyPress()
+            } else {
+                abortPendingTap() // an extra modifier joined: not a plain tap
             }
             return false
 
@@ -158,30 +162,23 @@ final class HotkeyManager {
     }
 
     private func beginModifierOnlyPress() {
-        guard !isHeld, pendingPress == nil, !suppressedUntilModifiersChange, isEnabled() else { return }
-        if modifierOnlyDelay <= 0 {
-            isHeld = true
-            onPress?()
-            return
-        }
-        pendingPress = Task { [weak self, delay = modifierOnlyDelay] in
-            try? await Task.sleep(for: .seconds(delay))
-            guard !Task.isCancelled, let self else { return }
-            pendingPress = nil
-            guard !isHeld, isEnabled() else { return }
-            isHeld = true
-            onPress?()
-        }
+        guard !pendingTap, !suppressedUntilModifiersChange, isEnabled() else { return }
+        pendingTap = true
     }
 
+    /// The modifier went up: if nothing interrupted the press, it counts as one tap of the shortcut.
     private func endModifierOnlyPress() {
-        cancelPendingPress()
-        releaseIfHeld()
+        guard pendingTap else { return }
+        pendingTap = false
+        guard isEnabled() else { return }
+        onPress?()
+        onRelease?()
     }
 
-    private func cancelPendingPress() {
-        pendingPress?.cancel()
-        pendingPress = nil
+    private func abortPendingTap() {
+        guard pendingTap else { return }
+        pendingTap = false
+        suppressedUntilModifiersChange = true
     }
 
     private func releaseIfHeld() {

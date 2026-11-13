@@ -49,10 +49,10 @@ private struct GeneralSettingsTab: View {
                 if let launchError { Text(launchError).font(.caption).foregroundStyle(.red) }
                 Toggle("在 Dock 中显示图标", isOn: $settingsStore.showDockIcon)
             }
-            Section("快捷键（按住说话）") {
+            Section("快捷键（按一下开始，再按一下结束）") {
                 HotkeyRecorderRow(settingsStore: settingsStore, coordinator: coordinator)
                 Toggle("暂停全局快捷键", isOn: $settingsStore.hotkeysPaused)
-                Text("按住快捷键说话，松开后自动整理并插入；说话过程中按 Esc 可取消。")
+                Text("短按快捷键开始说话，再短按一次结束，随后自动整理并插入；说话过程中按 Esc 可取消。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("悬浮窗与反馈") {
@@ -119,7 +119,7 @@ private struct SpeechRecognitionSettingsTab: View {
                     Stepper("静音时长：\(settingsStore.asrSilenceDurationMS) ms",
                             value: $settingsStore.asrSilenceDurationMS, in: 200...2000, step: 100)
                 } else {
-                    Text("手动模式在松开快捷键时发送 commit，建议单次录音不超过 60 秒。")
+                    Text("手动模式在结束录音时发送 commit，建议单次录音不超过 60 秒。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }

@@ -9,8 +9,8 @@ protocol OverlayPresenting: AnyObject {
 }
 
 enum SessionMode: Sendable {
-    case hold    // global hotkey: press & hold
-    case toggle  // menu / overlay button: start, then stop explicitly
+    case hold    // press & hold (currently unused by the hotkey, which toggles)
+    case toggle  // global hotkey / menu / overlay button: start, then stop explicitly
 }
 
 /// Orchestrates hotkey → audio → ASR → LLM → insertion (PRD §2 / §8).
@@ -25,7 +25,7 @@ final class DictationSessionCoordinator {
     private(set) var levelHistory: [Float] = Array(repeating: 0, count: 28)
     /// Text kept for manual copy (manual-copy result, or recovered text after a failure).
     private(set) var pendingText: String = ""
-    private(set) var sessionMode: SessionMode = .hold
+    private(set) var sessionMode: SessionMode = .toggle
     private(set) var hotkeyActive = false
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
     var isRecordingHotkey = false
@@ -92,11 +92,8 @@ final class DictationSessionCoordinator {
             return !settingsStore.hotkeysPaused && !isRecordingHotkey
         }
         hotkeyManager.shouldInterceptEscape = { [weak self] in (self?.state ?? .idle) != .idle }
-        hotkeyManager.onPress = { [weak self] in self?.beginSession(mode: .hold) }
-        hotkeyManager.onRelease = { [weak self] in
-            guard let self, sessionMode == .hold else { return }
-            stopRecording()
-        }
+        // Tap-to-toggle: the first press starts dictation, the next press ends it. Key release is ignored.
+        hotkeyManager.onPress = { [weak self] in self?.handleHotkeyPress() }
         hotkeyManager.onCancel = { [weak self] in self?.cancelSession() }
         hotkeyActive = hotkeyManager.startListening()
         // Permissions can be granted at any time: keep the status fresh and (re)try the event tap.
@@ -108,6 +105,15 @@ final class DictationSessionCoordinator {
                 permissions.refresh()
                 if !hotkeyActive, hotkeyManager.startListening() { hotkeyActive = true }
             }
+        }
+    }
+
+    /// Global hotkey press: starts a session when idle, ends the recording when one is running.
+    func handleHotkeyPress() {
+        if state == .connecting || state == .recording {
+            stopRecording()
+        } else {
+            beginSession(mode: .toggle)
         }
     }
 
@@ -128,7 +134,7 @@ final class DictationSessionCoordinator {
         }
     }
 
-    /// Stops capturing and moves on to finalisation (key released / "完成" pressed).
+    /// Stops capturing and moves on to finalisation (hotkey pressed again / "完成" pressed).
     func stopRecording() {
         guard currentSessionID != nil, state == .connecting || state == .recording else { return }
         stopRequested = true
@@ -223,7 +229,7 @@ final class DictationSessionCoordinator {
             return fail(id, "无法启动麦克风：\(error.localizedDescription)")
         }
         timings.captureStartedAt = .now
-        if stopRequested { audio.stop() } // released while the permission prompt / startup was in flight
+        if stopRequested { audio.stop() } // stop requested while the permission prompt / startup was in flight
 
         // 3. Connect ASR (session.update → session.updated)
         let asr = makeASR(config)
@@ -242,7 +248,7 @@ final class DictationSessionCoordinator {
         timings.connectedAt = .now
         if state == .connecting { state = .recording }
 
-        // 4. Stream audio until the capture stream ends (hotkey released / stop requested).
+        // 4. Stream audio until the capture stream ends (stop requested).
         var sentBytes = 0
         for await chunk in chunks {
             guard isCurrent(id) else { return }

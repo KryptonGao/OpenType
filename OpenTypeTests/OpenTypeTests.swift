@@ -408,6 +408,20 @@ struct CoordinatorTests {
         #expect(c.currentSessionID == nil)
     }
 
+    @Test func hotkeyPressTogglesRecording() async {
+        let harness = Harness(asr: {
+            FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")])
+        })
+        let c = harness.coordinator
+        c.handleHotkeyPress() // first press starts
+        #expect(c.state == .connecting)
+        await harness.wait { c.state == .recording }
+        #expect(c.state == .recording)
+        c.handleHotkeyPress() // second press stops and inserts
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted.count == 1)
+    }
+
     @Test func llmFailureFallsBackToRawText() async {
         let harness = Harness(
             asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原始文本")]) },
@@ -666,7 +680,7 @@ struct HotkeyConfigTests {
         #expect(HotkeyConfig.default.displayName == "⌃⌥ Space")
         #expect(HotkeyConfig(keyCode: 122, modifiers: []).displayName == "F1")
         #expect(HotkeyConfig(keyCode: nil, modifiers: .maskSecondaryFn).displayName == "fn（仅修饰键）")
-        #expect(HotkeyConfig(keyCode: nil, modifiers: .maskAlternate, modifierKeyCode: 61).displayName == "右 ⌥ 键（单独按住）")
+        #expect(HotkeyConfig(keyCode: nil, modifiers: .maskAlternate, modifierKeyCode: 61).displayName == "右 ⌥ 键（单独按下）")
     }
 
     @Test func codableRoundTrip() throws {
@@ -682,33 +696,29 @@ struct CustomHotkeyTests {
         let m = HotkeyManager()
         var press = 0, release = 0, cancel = 0
         m.onPress = { press += 1 }; m.onRelease = { release += 1 }; m.onCancel = { cancel += 1 }
-        m.modifierOnlyDelay = 0
 
         m.hotkey = HotkeyConfig(keyCode: 2, modifiers: [.maskCommand, .maskShift]) // ⇧⌘D
         #expect(m.handle(type: .keyDown, keyCode: 2, flags: [.maskCommand, .maskShift], isAutoRepeat: false))
         _ = m.handle(type: .keyUp, keyCode: 2, flags: [.maskCommand, .maskShift], isAutoRepeat: false)
         #expect(press == 1 && release == 1)
 
-        m.hotkey = HotkeyConfig(keyCode: nil, modifiers: .maskSecondaryFn) // hold fn
+        m.hotkey = HotkeyConfig(keyCode: nil, modifiers: .maskSecondaryFn) // tap fn
         _ = m.handle(type: .flagsChanged, keyCode: 63, flags: .maskSecondaryFn, isAutoRepeat: false)
-        #expect(press == 2)
+        #expect(press == 1) // still only the chord's press: fn going down alone triggers nothing yet
         _ = m.handle(type: .flagsChanged, keyCode: 63, flags: [], isAutoRepeat: false)
-        #expect(release == 2)
+        #expect(press == 2 && release == 2)
 
-        // fn + another key (e.g. fn+F1 / arrow) aborts instead of dictating
+        // fn + another key (e.g. fn+F1 / arrow) is a different gesture: no tap
         _ = m.handle(type: .flagsChanged, keyCode: 63, flags: .maskSecondaryFn, isAutoRepeat: false)
-        #expect(press == 3)
         #expect(!m.handle(type: .keyDown, keyCode: 123, flags: .maskSecondaryFn, isAutoRepeat: false))
-        #expect(cancel == 1)
         _ = m.handle(type: .flagsChanged, keyCode: 63, flags: [], isAutoRepeat: false)
-        #expect(release == 2) // no extra release after abort
+        #expect(press == 2 && release == 2 && cancel == 0)
     }
 
     @Test func singleSidedModifierOnlyReactsToThatKey() {
         let m = HotkeyManager()
         var press = 0, release = 0
         m.onPress = { press += 1 }; m.onRelease = { release += 1 }
-        m.modifierOnlyDelay = 0
         m.hotkey = HotkeyConfig(keyCode: nil, modifiers: .maskAlternate, modifierKeyCode: 61) // right ⌥
         let leftDown = CGEventFlags(rawValue: CGEventFlags.maskAlternate.rawValue | 0x20)
         let rightDown = CGEventFlags(rawValue: CGEventFlags.maskAlternate.rawValue | 0x40)
@@ -717,9 +727,9 @@ struct CustomHotkeyTests {
         #expect(press == 0)
         _ = m.handle(type: .flagsChanged, keyCode: 58, flags: [], isAutoRepeat: false)
         _ = m.handle(type: .flagsChanged, keyCode: 61, flags: rightDown, isAutoRepeat: false)
-        #expect(press == 1)
+        #expect(press == 0) // fires on release, as one tap
         _ = m.handle(type: .flagsChanged, keyCode: 61, flags: [], isAutoRepeat: false)
-        #expect(release == 1)
+        #expect(press == 1 && release == 1)
     }
 
     @Test func plainSingleKeyShortcut() {
@@ -732,21 +742,25 @@ struct CustomHotkeyTests {
         #expect(press == 1 && release == 1)
     }
 
-    @Test func modifierOnlyDelayIgnoresOrdinaryChords() async {
+    @Test func modifierOnlyTapIgnoresOrdinaryChordsAndClicks() {
         let m = HotkeyManager()
         var press = 0
         m.onPress = { press += 1 }
-        m.modifierOnlyDelay = 0.05
         m.hotkey = HotkeyConfig(keyCode: nil, modifiers: .maskCommand)
-        // ⌘C: the key arrives within the delay → never starts
+        // ⌘C: another key arrives while ⌘ is down → not a tap
         _ = m.handle(type: .flagsChanged, keyCode: 55, flags: .maskCommand, isAutoRepeat: false)
         _ = m.handle(type: .keyDown, keyCode: 8, flags: .maskCommand, isAutoRepeat: false)
-        try? await Task.sleep(for: .milliseconds(150))
+        _ = m.handle(type: .flagsChanged, keyCode: 55, flags: [], isAutoRepeat: false)
+        #expect(press == 0)
+        // ⌘-click
+        _ = m.handle(type: .flagsChanged, keyCode: 55, flags: .maskCommand, isAutoRepeat: false)
+        _ = m.handle(type: .leftMouseDown, keyCode: 0, flags: .maskCommand, isAutoRepeat: false)
+        _ = m.handle(type: .flagsChanged, keyCode: 55, flags: [], isAutoRepeat: false)
+        #expect(press == 0)
+        // a plain tap, however brief, fires once on release
+        _ = m.handle(type: .flagsChanged, keyCode: 55, flags: .maskCommand, isAutoRepeat: false)
         #expect(press == 0)
         _ = m.handle(type: .flagsChanged, keyCode: 55, flags: [], isAutoRepeat: false)
-        // a real hold starts after the delay
-        _ = m.handle(type: .flagsChanged, keyCode: 55, flags: .maskCommand, isAutoRepeat: false)
-        try? await Task.sleep(for: .milliseconds(150))
         #expect(press == 1)
     }
 

@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// A user-defined hold-to-talk shortcut.
+/// A user-defined tap-to-toggle dictation shortcut.
 /// - `keyCode != nil`: a normal chord (modifiers + key), e.g. ⌃⌥Space or F5.
 /// - `keyCode == nil`: modifier-only, e.g. hold `fn`, a single (left/right) ⌥ or ⌃⌥ together.
 /// Any single key is allowed (Esc is reserved for cancelling).
@@ -60,7 +60,7 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
             }
             return nil
         }
-        return "仅修饰键的快捷键需持续按住约 0.2 秒、期间没有按其它键才会开始录音（避免和 ⌘C 等组合键冲突）。"
+        return "仅修饰键的快捷键在松开时触发（轻点即可），按住期间若按了其它键或鼠标则不触发（避免和 ⌘C 等组合键冲突）。"
     }
 
     var displayName: String {
@@ -72,7 +72,7 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
         if modifiers.contains(.maskCommand) { text += "⌘" }
         guard let keyCode else {
             if let modifierKeyCode, let name = Self.modifierKeys[modifierKeyCode]?.name {
-                return modifierKeyCode == 63 ? "fn（仅修饰键）" : "\(name) 键（单独按住）"
+                return modifierKeyCode == 63 ? "fn（仅修饰键）" : "\(name) 键（单独按下）"
             }
             return text.trimmingCharacters(in: .whitespaces) + "（仅修饰键）"
         }

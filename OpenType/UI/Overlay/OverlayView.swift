@@ -110,7 +110,7 @@ struct OverlayView: View {
         switch coordinator.state {
         case .idle: "待机"
         case .connecting: "正在连接…"
-        case .recording: coordinator.sessionMode == .hold ? "正在聆听…（松开结束）" : "正在聆听…"
+        case .recording: coordinator.sessionMode == .hold ? "正在聆听…（松开结束）" : "正在聆听…（再按一次结束）"
         case .finalizing: "正在收尾…"
         case .processing: "正在整理文本…"
         case .inserting: "正在插入…"
