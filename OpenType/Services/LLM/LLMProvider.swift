@@ -66,12 +66,21 @@ struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
         return value.isEmpty ? nil : value
     }
 
-    /// DeepSeek's server-side web tools (`deepseek_web_search`) exist only on DeepSeek's own API host.
-    var supportsDeepSeekWebSearch: Bool {
-        guard let host = URLComponents(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines))?.host?.lowercased() else {
-            return false
-        }
-        return host == "api.deepseek.com"
+    /// Fixed configuration for web-search-enabled "help me say": DeepSeek's server-side `deepseek_web_search` tool
+    /// only exists on DeepSeek's own API, so endpoint and model are not user-configurable.
+    /// The API key is stored separately (`CredentialAccount.deepseekWebSearchAPIKey`).
+    static let deepSeekWebSearchBaseURL = "https://api.deepseek.com"
+    static let deepSeekWebSearchModel = "deepseek-flash"
+
+    static func makeDeepSeekWebSearch() -> LLMProfile {
+        LLMProfile(
+            name: "DeepSeek 联网搜索",
+            format: .openAIChatCompletions,
+            baseURL: deepSeekWebSearchBaseURL,
+            modelID: deepSeekWebSearchModel,
+            systemPrompt: "",
+            timeout: 60 // searching adds server-side round trips
+        )
     }
 
     static func makeDefault() -> LLMProfile {

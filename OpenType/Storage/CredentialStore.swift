@@ -21,6 +21,7 @@ extension CredentialStoring {
 enum CredentialAccount {
     static let bailianAPIKey = "bailian_api_key"
     static let deepseekASRAPIKey = "deepseek_asr_api_key"
+    static let deepseekWebSearchAPIKey = "deepseek_web_search_api_key"
     static func llmProfile(_ id: UUID) -> String { "llm_profile_\(id.uuidString)" }
 }
 

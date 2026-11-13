@@ -370,7 +370,22 @@ private struct TranslationSettingsTab: View {
 
 private struct HelpMeSaySettingsTab: View {
     let coordinator: DictationSessionCoordinator
+    @State private var testResult: TestResult = .idle
     private var settingsStore: SettingsStore { coordinator.settingsStore }
+
+    private func testWebSearch() {
+        testResult = .running
+        Task {
+            do {
+                let output = try await coordinator.testWebSearchConnection()
+                testResult = .success("连接成功，示例输出：\(output)")
+            } catch let error as LLMError {
+                testResult = .failure(error.userMessage)
+            } catch {
+                testResult = .failure(error.localizedDescription)
+            }
+        }
+    }
 
     var body: some View {
         @Bindable var settingsStore = settingsStore
@@ -382,15 +397,21 @@ private struct HelpMeSaySettingsTab: View {
                 Text("例：说「跟老师说我明天发烧了想请一天假」，会得到一段完整、礼貌的请假消息；说「帮我问下这个报错怎么解决」，会被整理成问题明确、条件完整的提问。")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Section("联网搜索") {
+            Section("联网搜索（DeepSeek）") {
                 Toggle("允许模型联网搜索并读取网页", isOn: $settingsStore.helpMeSayWebSearchEnabled)
-                Text("开启后，「帮我说」会让 DeepSeek 在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品，让内容更准确、更丰富。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会增加耗时（请求超时至少 60 秒），并按 DeepSeek 联网工具的价格另外计费。普通听写与翻译不受影响。")
+                Text("开启后，「帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会增加耗时（超时 60 秒），并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与翻译不受影响。")
                     .font(.caption).foregroundStyle(.secondary)
-                if settingsStore.helpMeSayWebSearchEnabled, settingsStore.activeProfile?.supportsDeepSeekWebSearch != true {
-                    Label("当前选中的 Profile 不是 DeepSeek（Base URL 需为 api.deepseek.com），联网搜索不会生效。", systemImage: "exclamationmark.triangle")
-                        .font(.caption).foregroundStyle(.orange)
+                SecretField(
+                    title: "DeepSeek API Key",
+                    account: CredentialAccount.deepseekWebSearchAPIKey,
+                    credentials: coordinator.credentialStore
+                )
+                HStack {
+                    Button("测试连接") { testWebSearch() }
+                        .disabled(testResult == .running)
+                    TestResultView(result: testResult)
                 }
-                Text("使用方式：在「AI 处理」中选择或新建 Profile，Base URL 填 https://api.deepseek.com，协议选 OpenAI Chat Completions（或 Anthropic Messages 并填 https://api.deepseek.com/anthropic/v1），Model ID 填 deepseek-flash。")
+                Text("此 Key 单独保存在 Keychain，与语音识别、AI 处理的 Key 互不影响。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("System Prompt") {
@@ -405,7 +426,7 @@ private struct HelpMeSaySettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
-                Text("「帮我说」由「AI 处理」中当前选中的 Profile 完成，需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。")
+                Text("「帮我说」由「AI 处理」中当前选中的 Profile 完成（开启上面的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

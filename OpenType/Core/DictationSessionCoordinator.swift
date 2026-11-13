@@ -450,8 +450,9 @@ final class DictationSessionCoordinator {
         } else if isHelpMeSay {
             // Always needs the LLM (like translation), regardless of the cleanup switches.
             do {
-                let (provider, profile) = try resolveProvider()
-                let webSearch = settingsStore.helpMeSayWebSearchEnabled && profile.supportsDeepSeekWebSearch
+                let webSearch = settingsStore.helpMeSayWebSearchEnabled
+                // With web search the request goes to DeepSeek with its own key, independent of the active Profile.
+                let provider = webSearch ? try resolveWebSearchProvider() : try resolveProvider().0
                 var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
                 if webSearch { prompt += "\n" + TextProcessor.webSearchAddendum }
                 let output = try await provider.process(transcript: rawText, systemPrompt: prompt, webSearch: webSearch)
@@ -658,6 +659,14 @@ final class DictationSessionCoordinator {
         return (makeLLM(profile, key), profile)
     }
 
+    /// Fixed DeepSeek endpoint / model with the dedicated web-search API key.
+    private func resolveWebSearchProvider() throws -> any LLMProvider {
+        guard let key = try? credentialStore.load(account: CredentialAccount.deepseekWebSearchAPIKey), !key.isEmpty else {
+            throw LLMError.invalidConfig("未填写联网搜索的 DeepSeek API Key")
+        }
+        return makeLLM(LLMProfile.makeDeepSeekWebSearch(), key)
+    }
+
     // MARK: - Connection tests (Settings)
 
     func testASRConnection() async throws {
@@ -665,6 +674,15 @@ final class DictationSessionCoordinator {
     }
 
     /// Sends a tiny sample through the profile's adapter. Distinguishes auth / model / network / format errors.
+    /// Sends a tiny request to DeepSeek with the web-search tool declared, using the dedicated key.
+    func testWebSearchConnection() async throws -> String {
+        try await resolveWebSearchProvider().process(
+            transcript: "嗯那个今天天气呃很好我们去公园",
+            systemPrompt: TextProcessor.systemPrompt(base: "", level: .standard),
+            webSearch: true
+        )
+    }
+
     func testLLMConnection(profile: LLMProfile) async throws -> String {
         guard let key = try? credentialStore.load(account: CredentialAccount.llmProfile(profile.id)), !key.isEmpty else {
             throw LLMError.missingAPIKey

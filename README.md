@@ -7,7 +7,7 @@
 ## 特性
 
 - **按一下开始、再按一下结束**：全局快捷键，完全自定义——单个按键、组合键、单个修饰键（区分左右，如右 ⌥）或 `fn` 均可。
-- **帮我说**：按住听写快捷键不放（约 0.45 秒后进入），按住说话、松开结束。模型不只是纠错，还会弄清你想表达的意思，把它细化、补全、理顺后再插入；提问类内容会被整理成目标、条件、期望都清楚的问题。提示词可在设置里自定义。使用 DeepSeek Profile 时还可开启**联网搜索**：由模型自行决定是否搜索网络，把查到的资料融入成品。
+- **帮我说**：按住听写快捷键不放（约 0.45 秒后进入），按住说话、松开结束。模型不只是纠错，还会弄清你想表达的意思，把它细化、补全、理顺后再插入；提问类内容会被整理成目标、条件、期望都清楚的问题。提示词可在设置里自定义。还可开启**联网搜索**（DeepSeek，使用单独的 API Key）：由模型自行决定是否搜索网络，把查到的资料融入成品。
 - **语音翻译**：独立的翻译快捷键（默认 `⌃⌥ T`），说完后先整理再翻译成目标语言，支持 15 种语言；悬浮窗里可临时切换语言，葡萄牙语（巴西 / 葡萄牙）与繁体中文（台湾 / 港澳）可选地区用语。
 - **不抢焦点**：悬浮窗为非激活式 `NSPanel`，实时显示音量波形和识别文字（已确认文字 + 浅色的未稳定部分）。
 - **ASR**：`AVAudioEngine` 采集，16 kHz / 单声道 / PCM16。可选阿里云百炼 `qwen3-asr-flash-realtime`（实时流式）或 DeepSeek（录完后整段上传）。
@@ -86,7 +86,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 - 仅修饰键的快捷键（如 fn、右 ⌥）在「松开」时才触发一次，且按住期间没有按其他键或鼠标，避免和 `⌘C`、`⌥` + 点击这类操作冲突；轻点一下即可。
 - 不带修饰键的普通字符键会被快捷键独占，建议搭配修饰键；`F1–F20` 不受影响。
 - `Esc` 保留为取消键。
-- 「帮我说」的联网搜索仅支持 DeepSeek：在「设置 → 帮我说」中开启后，请求会声明 DeepSeek 服务端的 `deepseek_web_search` 工具（搜索与网页读取均在 DeepSeek 服务端完成，客户端无需循环调用），Profile 的 Base URL 必须是 `api.deepseek.com`（Chat Completions / Responses 用 `https://api.deepseek.com`，Anthropic Messages 用 `https://api.deepseek.com/anthropic/v1`），Model ID 填 `deepseek-flash`。搜索请求的超时至少 60 秒，并按 DeepSeek 联网工具的价格另外计费；默认关闭。
+- 「帮我说」的联网搜索仅支持 DeepSeek，且使用独立的 API Key：在「设置 → 帮我说」中开启并填入 DeepSeek Key 后，「帮我说」不再使用「AI 处理」选中的 Profile，而是固定请求 `https://api.deepseek.com/chat/completions`、模型 `deepseek-flash`，并声明 DeepSeek 服务端的 `deepseek_web_search` 工具（搜索与网页读取均在 DeepSeek 服务端完成，客户端无需循环调用，是否搜索由模型决定）。超时固定 60 秒，按 DeepSeek 联网工具的价格另外计费；默认关闭；未填 Key 时会报错而不是悄悄换用别的模型。
 - 长按触发「帮我说」对组合键、单个按键和仅修饰键的快捷键都有效；翻译快捷键没有长按行为。
 - 想用 `fn` 的话，请先到「系统设置 → 键盘」把单按 fn 的系统动作改成「无操作」。
 

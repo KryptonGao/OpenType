@@ -237,27 +237,24 @@ struct LLMAdapterTests {
     }
 
     @Test func webSearchDeclaresDeepSeekToolPerFormat() throws {
-        func json(_ format: LLMAPIFormat, base: String, search: Bool = true) throws -> (URLRequest, [String: Any]) {
-            let request = try LLMRequestBuilder.makeRequest(
-                profile: profile(format, base: base), apiKey: "k", transcript: "t", systemPrompt: "S", webSearch: search
-            )
+        func json(_ p: LLMProfile, search: Bool = true) throws -> (URLRequest, [String: Any]) {
+            let request = try LLMRequestBuilder.makeRequest(profile: p, apiKey: "k", transcript: "t", systemPrompt: "S", webSearch: search)
             return (request, try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any]))
         }
-        let (chatRequest, chat) = try json(.openAIChatCompletions, base: "https://api.deepseek.com")
-        #expect(chatRequest.url?.absoluteString == "https://api.deepseek.com/chat/completions")
+        // The dedicated profile is fixed: DeepSeek host, deepseek-flash, 60 s.
+        let fixed = LLMProfile.makeDeepSeekWebSearch()
+        let (request, chat) = try json(fixed)
+        #expect(request.url?.absoluteString == "https://api.deepseek.com/chat/completions")
+        #expect(chat["model"] as? String == "deepseek-flash")
         #expect((chat["tools"] as? [[String: String]]) == [["type": "deepseek_web_search"]])
-        #expect(chatRequest.timeoutInterval >= 60) // default profile timeout is 15 s
-        let (_, responses) = try json(.openAIResponses, base: "https://api.deepseek.com")
+        #expect(request.timeoutInterval == 60)
+        // Other wire formats declare the tool the way DeepSeek documents it.
+        let (_, responses) = try json(profile(.openAIResponses))
         #expect((responses["tools"] as? [[String: String]]) == [["type": "deepseek_web_search"]])
-        let (_, anthropic) = try json(.anthropicMessages, base: "https://api.deepseek.com/anthropic/v1")
+        let (_, anthropic) = try json(profile(.anthropicMessages))
         #expect((anthropic["tools"] as? [[String: String]]) == [["type": "deepseek_web_search", "name": "deepseek_web_search"]])
-
-        // Off, or not a DeepSeek endpoint: no tools and the profile's own timeout.
-        let (offRequest, off) = try json(.openAIChatCompletions, base: "https://api.deepseek.com", search: false)
-        #expect(off["tools"] == nil && offRequest.timeoutInterval == 15)
-        let (otherRequest, other) = try json(.openAIChatCompletions, base: "https://api.openai.com/v1")
-        #expect(other["tools"] == nil && otherRequest.timeoutInterval == 15)
-        #expect(!profile(.openAIChatCompletions, base: "https://api.deepseek.com.evil.example/v1").supportsDeepSeekWebSearch)
+        // Off: no tools.
+        #expect(try json(fixed, search: false).1["tools"] == nil)
     }
 
     @Test func webSearchResponseParsingIgnoresToolBlocks() throws {
@@ -945,34 +942,56 @@ struct CoordinatorTests {
         #expect(recorder.calls.first?.prompt == "自定义提示")
     }
 
-    @Test func helpMeSayWebSearchOnlyForDeepSeekWhenEnabled() async {
-        func run(enabled: Bool, deepSeek: Bool) async -> (flags: [Bool], prompt: String?) {
+    @Test func helpMeSayWebSearchUsesFixedDeepSeekProfileAndOwnKey() async {
+        final class Seen: @unchecked Sendable { var profiles: [LLMProfile] = []; var keys: [String] = [] }
+        func run(enabled: Bool, withKey: Bool) async -> (flags: [Bool], prompt: String?, seen: Seen, state: DictationState) {
             let recorder = PromptRecorder()
-            let harness = Harness(
-                asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
-                recorder: recorder,
-                configure: { settings in
-                    settings.helpMeSayWebSearchEnabled = enabled
-                    if deepSeek, var profile = settings.activeProfile {
-                        profile.baseURL = "https://api.deepseek.com"
-                        settings.updateProfile(profile)
-                    }
-                }
+            let seen = Seen()
+            let suite = "opentype.tests.\(UUID().uuidString)"
+            let settings = SettingsStore(defaults: UserDefaults(suiteName: suite)!)
+            settings.asrWorkspaceID = "ws-test"
+            settings.soundFeedbackEnabled = false
+            settings.helpMeSayWebSearchEnabled = enabled
+            settings.fallbackToRawOnLLMFailure = false
+            let credentials = InMemoryCredentialStore()
+            try? credentials.save("asr-key", account: CredentialAccount.bailianAPIKey)
+            if let p = settings.activeProfile { try? credentials.save("profile-key", account: CredentialAccount.llmProfile(p.id)) }
+            if withKey { try? credentials.save("search-key", account: CredentialAccount.deepseekWebSearchAPIKey) }
+            let audio = FakeAudio(); audio.chunksToEmitOnStart = 5
+            let inserter = FakeInserter()
+            let c = DictationSessionCoordinator(
+                settingsStore: settings, credentialStore: credentials, permissions: PermissionManager(),
+                audio: audio, permissionChecker: FakePermissions(),
+                makeASR: { _ in FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
+                makeLLM: { profile, key in
+                    seen.profiles.append(profile); seen.keys.append(key)
+                    return FakeLLM(result: .success("成品"), recorder: recorder)
+                },
+                inserter: inserter, overlay: nil, playsSounds: false
             )
-            let c = harness.coordinator
             c.toggleHelpMeSayFromMenu()
-            await harness.wait { c.state == .recording }
+            for _ in 0..<100 where c.state != .recording { try? await Task.sleep(for: .milliseconds(30)) }
             c.toggleHelpMeSayFromMenu()
-            await harness.wait { harness.inserter.inserted.count == 1 }
-            return (recorder.webSearchFlags, recorder.calls.first?.prompt)
+            for _ in 0..<100 {
+                if inserter.inserted.count == 1 { break }
+                if case .error = c.state { break }
+                try? await Task.sleep(for: .milliseconds(30))
+            }
+            return (recorder.webSearchFlags, recorder.calls.first?.prompt, seen, c.state)
         }
-        let on = await run(enabled: true, deepSeek: true)
+        let on = await run(enabled: true, withKey: true)
         #expect(on.flags == [true])
         #expect(on.prompt?.contains(TextProcessor.webSearchAddendum) == true)
-        let off = await run(enabled: false, deepSeek: true)
+        #expect(on.seen.keys == ["search-key"]) // not the active profile's key
+        #expect(on.seen.profiles.first?.baseURL == "https://api.deepseek.com")
+        #expect(on.seen.profiles.first?.modelID == "deepseek-flash")
+        let off = await run(enabled: false, withKey: true)
         #expect(off.flags == [false] && off.prompt == TextProcessor.defaultHelpMeSayPrompt)
-        let notDeepSeek = await run(enabled: true, deepSeek: false)
-        #expect(notDeepSeek.flags == [false] && notDeepSeek.prompt == TextProcessor.defaultHelpMeSayPrompt)
+        #expect(off.seen.keys == ["profile-key"])
+        // Enabled without a key: fails (no silent fallback to another model) and nothing is sent.
+        let noKey = await run(enabled: true, withKey: false)
+        #expect(noKey.flags.isEmpty)
+        if case .error(let message) = noKey.state { #expect(message.contains("联网搜索")) } else { Issue.record("expected error") }
     }
 
     @Test func helpMeSayFailureFallsBackOrKeepsRawText() async {

@@ -39,11 +39,9 @@ struct URLSessionTransport: HTTPTransport {
     let timeout: TimeInterval
 
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        // The request's own timeout wins (web-search requests are given longer than the profile default).
-        let limit = max(timeout, request.timeoutInterval)
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = limit
-        configuration.timeoutIntervalForResource = limit
+        configuration.timeoutIntervalForRequest = timeout
+        configuration.timeoutIntervalForResource = timeout
         configuration.urlCache = nil
         let session = URLSession(configuration: configuration)
         defer { session.finishTasksAndInvalidate() }
@@ -71,8 +69,6 @@ enum LLMRequestBuilder {
     static let anthropicVersion = "2023-06-01"
     static let anthropicMaxTokens = 4096
     static let webSearchToolName = "deepseek_web_search"
-    /// Searching adds server-side round trips, so such requests get at least this long regardless of the profile timeout.
-    static let webSearchMinTimeout: TimeInterval = 60
 
     /// Normalises a user supplied Base URL and appends the endpoint path exactly once.
     static func endpoint(format: LLMAPIFormat, baseURL: String) throws -> URL {
@@ -109,8 +105,7 @@ enum LLMRequestBuilder {
         }
         var request = URLRequest(url: try endpoint(format: profile.format, baseURL: profile.baseURL))
         request.httpMethod = "POST"
-        let searching = webSearch && profile.supportsDeepSeekWebSearch
-        request.timeoutInterval = searching ? max(profile.timeout, webSearchMinTimeout) : profile.timeout
+        request.timeoutInterval = profile.timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let userPrompt = TextProcessor.userPrompt(transcript: transcript)
@@ -150,7 +145,7 @@ enum LLMRequestBuilder {
             case .anthropicMessages: body["output_config"] = ["effort": effort]
             }
         }
-        if searching {
+        if webSearch {
             // DeepSeek runs the search / page reading server-side: declaring the tool is all the client does.
             switch profile.format {
             case .openAIResponses, .openAIChatCompletions: body["tools"] = [["type": webSearchToolName]]
