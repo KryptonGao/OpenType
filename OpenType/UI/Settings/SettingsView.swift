@@ -14,6 +14,9 @@ struct SettingsView: View {
             AIProcessingSettingsTab(coordinator: coordinator)
                 .tabItem { Label("AI 处理", systemImage: "sparkles") }
 
+            TranslationSettingsTab(coordinator: coordinator)
+                .tabItem { Label("翻译", systemImage: "character.bubble") }
+
             PrivacyPermissionsSettingsTab(coordinator: coordinator)
                 .tabItem { Label("隐私与权限", systemImage: "hand.raised") }
         }
@@ -50,7 +53,13 @@ private struct GeneralSettingsTab: View {
                 Toggle("在 Dock 中显示图标", isOn: $settingsStore.showDockIcon)
             }
             Section("快捷键（按一下开始，再按一下结束）") {
-                HotkeyRecorderRow(settingsStore: settingsStore, coordinator: coordinator)
+                HotkeyRecorderRow(
+                    title: "全局快捷键",
+                    hotkey: Binding(get: { settingsStore.hotkey }, set: { settingsStore.hotkey = $0 ?? .default }),
+                    defaultHotkey: .default,
+                    conflict: { $0 == settingsStore.translationHotkey ? "与翻译快捷键相同，请换一个" : nil },
+                    coordinator: coordinator
+                )
                 Toggle("暂停全局快捷键", isOn: $settingsStore.hotkeysPaused)
                 Text("短按快捷键开始说话，再短按一次结束，随后自动整理并插入；说话过程中按 Esc 可取消。")
                     .font(.caption).foregroundStyle(.secondary)
@@ -298,6 +307,43 @@ private struct AIProcessingSettingsTab: View {
                 testResult = .failure(error.localizedDescription)
             }
         }
+    }
+}
+
+// MARK: - Translation
+
+private struct TranslationSettingsTab: View {
+    let coordinator: DictationSessionCoordinator
+    private var settingsStore: SettingsStore { coordinator.settingsStore }
+
+    var body: some View {
+        @Bindable var settingsStore = settingsStore
+        Form {
+            Section("默认翻译语言") {
+                Picker("翻译为", selection: $settingsStore.translationTargetLanguage) {
+                    ForEach(TranslationLanguage.allCases) { Text($0.displayName).tag($0) }
+                }
+                Text("开始翻译时，悬浮窗会预先选中这里的语言；你可以在悬浮窗里临时切换成其他语言（仅对当次生效，不会改动这里的默认值）。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("翻译快捷键（按一下开始，再按一下结束）") {
+                HotkeyRecorderRow(
+                    title: "翻译快捷键",
+                    hotkey: $settingsStore.translationHotkey,
+                    defaultHotkey: .defaultTranslation,
+                    allowsClear: true,
+                    conflict: { $0 == settingsStore.hotkey ? "与听写快捷键相同，请换一个" : nil },
+                    coordinator: coordinator
+                )
+                Text("说出一段话，结束后会先整理再翻译成目标语言并插入。也可以从菜单栏的「开始语音翻译」触发。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section {
+                Text("翻译由「AI 处理」中当前选中的 Profile 完成，需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，翻译仍会调用该模型。翻译失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 

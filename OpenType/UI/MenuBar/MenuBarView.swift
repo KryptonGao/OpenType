@@ -13,6 +13,13 @@ struct MenuBarView: View {
         }
         .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
 
+        Button(recording && coordinator.sessionMode == .toggle && coordinator.translationTarget != nil
+               ? "结束语音翻译"
+               : "开始语音翻译（→ \(coordinator.settingsStore.translationTargetLanguage.displayName)）") {
+            coordinator.toggleTranslationFromMenu()
+        }
+        .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
+
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
 
         Divider()

@@ -119,14 +119,20 @@ final class HotkeyRecorderModel {
 }
 
 struct HotkeyRecorderRow: View {
-    @Bindable var settingsStore: SettingsStore
+    let title: String
+    @Binding var hotkey: HotkeyConfig?
+    let defaultHotkey: HotkeyConfig
+    /// Shows a "清除" button (the shortcut may be unset).
+    var allowsClear = false
+    /// Returns a message when the captured shortcut collides with another one.
+    var conflict: (HotkeyConfig) -> String? = { _ in nil }
     let coordinator: DictationSessionCoordinator
     @State private var model = HotkeyRecorderModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("全局快捷键")
+                Text(title)
                 Spacer()
                 Button(action: { model.isRecording ? model.stop() : model.start() }) {
                     Text(buttonTitle)
@@ -134,22 +140,35 @@ struct HotkeyRecorderRow: View {
                         .foregroundStyle(model.isRecording ? Color.accentColor : Color.primary)
                 }
                 Button("恢复默认") {
-                    settingsStore.hotkey = .default
+                    hotkey = defaultHotkey
                     model.message = nil
                 }
-                .disabled(settingsStore.hotkey == .default)
+                .disabled(hotkey == defaultHotkey)
+                if allowsClear {
+                    Button("清除") {
+                        hotkey = nil
+                        model.message = nil
+                    }
+                    .disabled(hotkey == nil)
+                }
             }
             if let message = model.message {
                 Text(message).font(.caption).foregroundStyle(.red)
             } else if model.isRecording {
                 Text("请按下想要的按键或组合键（单个按键也可以）；只按一个修饰键（如右 ⌥、fn）后松开也可以。按 Esc 取消。")
                     .font(.caption).foregroundStyle(.secondary)
-            } else if let caution = settingsStore.hotkey.caution {
+            } else if let caution = hotkey?.caution {
                 Text(caution).font(.caption).foregroundStyle(.secondary)
             }
         }
         .onAppear {
-            model.onCapture = { settingsStore.hotkey = $0 }
+            model.onCapture = { config in
+                if let message = conflict(config) {
+                    model.message = message
+                } else {
+                    hotkey = config
+                }
+            }
             model.onRecordingChange = { coordinator.isRecordingHotkey = $0 }
         }
         .onDisappear { model.stop() }
@@ -159,6 +178,6 @@ struct HotkeyRecorderRow: View {
         if model.isRecording {
             return model.liveModifiers.isEmpty ? "请按下快捷键…" : HotkeyConfig.describe(modifiers: model.liveModifiers) + " …"
         }
-        return settingsStore.hotkey.displayName
+        return hotkey?.displayName ?? "未设置"
     }
 }

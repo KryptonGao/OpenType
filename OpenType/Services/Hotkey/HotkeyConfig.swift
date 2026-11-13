@@ -33,6 +33,9 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
 
     static let `default` = HotkeyConfig(keyCode: 49, modifiers: [.maskControl, .maskAlternate])
 
+    /// ⌃⌥T — default shortcut for voice translation.
+    static let defaultTranslation = HotkeyConfig(keyCode: 17, modifiers: [.maskControl, .maskAlternate])
+
     static let escapeKeyCode: Int64 = 53
     static let classicModifiers: CGEventFlags = [.maskControl, .maskAlternate, .maskShift, .maskCommand]
     static let allModifiers: CGEventFlags = classicModifiers.union(.maskSecondaryFn)

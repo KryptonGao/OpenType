@@ -86,6 +86,69 @@ enum ASRLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
     var apiValue: String? { self == .auto ? nil : rawValue }
 }
 
+/// Target languages for voice translation.
+enum TranslationLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
+    case english = "en"
+    case simplifiedChinese = "zh-Hans"
+    case traditionalChinese = "zh-Hant"
+    case japanese = "ja"
+    case korean = "ko"
+    case french = "fr"
+    case german = "de"
+    case spanish = "es"
+    case portuguese = "pt"
+    case italian = "it"
+    case russian = "ru"
+    case arabic = "ar"
+    case thai = "th"
+    case vietnamese = "vi"
+    case indonesian = "id"
+
+    var id: String { rawValue }
+
+    /// Name in the language itself (shown in menus).
+    var displayName: String {
+        switch self {
+        case .english: "English"
+        case .simplifiedChinese: "简体中文"
+        case .traditionalChinese: "繁體中文"
+        case .japanese: "日本語"
+        case .korean: "한국어"
+        case .french: "Français"
+        case .german: "Deutsch"
+        case .spanish: "Español"
+        case .portuguese: "Português"
+        case .italian: "Italiano"
+        case .russian: "Русский"
+        case .arabic: "العربية"
+        case .thai: "ไทย"
+        case .vietnamese: "Tiếng Việt"
+        case .indonesian: "Bahasa Indonesia"
+        }
+    }
+
+    /// Name used inside the translation prompt.
+    var promptName: String {
+        switch self {
+        case .english: "English（英语）"
+        case .simplifiedChinese: "Simplified Chinese（简体中文）"
+        case .traditionalChinese: "Traditional Chinese（繁體中文）"
+        case .japanese: "Japanese（日语）"
+        case .korean: "Korean（韩语）"
+        case .french: "French（法语）"
+        case .german: "German（德语）"
+        case .spanish: "Spanish（西班牙语）"
+        case .portuguese: "Portuguese（葡萄牙语）"
+        case .italian: "Italian（意大利语）"
+        case .russian: "Russian（俄语）"
+        case .arabic: "Arabic（阿拉伯语）"
+        case .thai: "Thai（泰语）"
+        case .vietnamese: "Vietnamese（越南语）"
+        case .indonesian: "Indonesian（印尼语）"
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class SettingsStore {
@@ -116,6 +179,12 @@ final class SettingsStore {
     var processingLevel: ProcessingLevel { didSet { defaults.set(processingLevel.rawValue, forKey: Keys.processingLevel) } }
     var llmProfiles: [LLMProfile] { didSet { persistProfiles() } }
     var activeProfileID: UUID? { didSet { defaults.set(activeProfileID?.uuidString, forKey: Keys.activeProfileID) } }
+
+    // MARK: Translation
+    /// Language pre-selected in the translation popup (can be changed per session there).
+    var translationTargetLanguage: TranslationLanguage { didSet { defaults.set(translationTargetLanguage.rawValue, forKey: Keys.translationTargetLanguage) } }
+    /// Tap-to-toggle shortcut that starts a translation session. `nil` = no shortcut (menu only).
+    var translationHotkey: HotkeyConfig? { didSet { persistTranslationHotkey() } }
 
     // MARK: Privacy
     var diagnosticsEnabled: Bool {
@@ -169,6 +238,20 @@ final class SettingsStore {
         let storedActive = defaults.string(forKey: Keys.activeProfileID).flatMap(UUID.init(uuidString:))
         activeProfileID = profiles.contains(where: { $0.id == storedActive }) ? storedActive : profiles.first?.id
 
+        translationTargetLanguage = raw(Keys.translationTargetLanguage, .english)
+        if let data = defaults.data(forKey: Keys.translationHotkey) {
+            // Empty data means the user explicitly cleared the shortcut.
+            if data.isEmpty {
+                translationHotkey = nil
+            } else if let stored = try? JSONDecoder().decode(HotkeyConfig.self, from: data), stored.validation == .ok {
+                translationHotkey = stored
+            } else {
+                translationHotkey = .defaultTranslation
+            }
+        } else {
+            translationHotkey = .defaultTranslation
+        }
+
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
         Diagnostics.isEnabled = diagnosticsEnabled
     }
@@ -221,6 +304,14 @@ final class SettingsStore {
         if let data = try? JSONEncoder().encode(hotkey) { defaults.set(data, forKey: Keys.hotkey) }
     }
 
+    private func persistTranslationHotkey() {
+        if let translationHotkey, let data = try? JSONEncoder().encode(translationHotkey) {
+            defaults.set(data, forKey: Keys.translationHotkey)
+        } else {
+            defaults.set(Data(), forKey: Keys.translationHotkey)
+        }
+    }
+
     private func persistProfiles() {
         if let data = try? JSONEncoder().encode(llmProfiles) {
             defaults.set(data, forKey: Keys.llmProfiles)
@@ -247,6 +338,8 @@ final class SettingsStore {
         static let processingLevel = "opentype.processingLevel"
         static let llmProfiles = "opentype.llmProfiles"
         static let activeProfileID = "opentype.activeProfileID"
+        static let translationTargetLanguage = "opentype.translationTargetLanguage"
+        static let translationHotkey = "opentype.translationHotkey"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }
 }

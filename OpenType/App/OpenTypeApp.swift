@@ -27,6 +27,9 @@ struct OpenTypeApp: App {
                 .onChange(of: coordinator.settingsStore.hotkey) { _, _ in
                     coordinator.applyHotkeySettings()
                 }
+                .onChange(of: coordinator.settingsStore.translationHotkey) { _, _ in
+                    coordinator.applyHotkeySettings()
+                }
         }
     }
 

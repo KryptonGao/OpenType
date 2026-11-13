@@ -27,12 +27,16 @@ final class DictationSessionCoordinator {
     private(set) var pendingText: String = ""
     private(set) var sessionMode: SessionMode = .toggle
     private(set) var hotkeyActive = false
+    /// Non-nil while the current session translates the dictation into this language.
+    /// Pre-set from Settings when the session starts; the overlay popup may change it until processing begins.
+    private(set) var translationTarget: TranslationLanguage?
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
     var isRecordingHotkey = false
 
     @ObservationIgnored let settingsStore: SettingsStore
     @ObservationIgnored let credentialStore: any CredentialStoring
     @ObservationIgnored let hotkeyManager: HotkeyManager
+    @ObservationIgnored let translationHotkeyManager: HotkeyManager
     @ObservationIgnored let permissions: PermissionManager
     @ObservationIgnored private let audio: any AudioCapturing
     @ObservationIgnored private let permissionChecker: any PermissionChecking
@@ -58,6 +62,7 @@ final class DictationSessionCoordinator {
         settingsStore: SettingsStore = SettingsStore(),
         credentialStore: any CredentialStoring = CredentialStore(),
         hotkeyManager: HotkeyManager = HotkeyManager(),
+        translationHotkeyManager: HotkeyManager = HotkeyManager(),
         permissions: PermissionManager = PermissionManager(),
         audio: any AudioCapturing = AudioCaptureService(),
         permissionChecker: (any PermissionChecking)? = nil,
@@ -76,6 +81,7 @@ final class DictationSessionCoordinator {
         self.settingsStore = settingsStore
         self.credentialStore = credentialStore
         self.hotkeyManager = hotkeyManager
+        self.translationHotkeyManager = translationHotkeyManager
         self.permissions = permissions
         self.audio = audio
         self.permissionChecker = permissionChecker ?? permissions
@@ -100,7 +106,15 @@ final class DictationSessionCoordinator {
         // Tap-to-toggle: the first press starts dictation, the next press ends it. Key release is ignored.
         hotkeyManager.onPress = { [weak self] in self?.handleHotkeyPress() }
         hotkeyManager.onCancel = { [weak self] in self?.cancelSession() }
+        // Second shortcut: same tap-to-toggle behaviour, but the session translates the speech.
+        translationHotkeyManager.hotkey = settingsStore.translationHotkey ?? .defaultTranslation
+        translationHotkeyManager.isEnabled = { [weak self] in
+            guard let self, let shortcut = settingsStore.translationHotkey else { return false }
+            return !settingsStore.hotkeysPaused && !isRecordingHotkey && shortcut != settingsStore.hotkey
+        }
+        translationHotkeyManager.onPress = { [weak self] in self?.handleTranslationHotkeyPress() }
         hotkeyActive = hotkeyManager.startListening()
+        translationHotkeyManager.startListening()
         // Permissions can be granted at any time: keep the status fresh and (re)try the event tap.
         hotkeyRetryTask?.cancel()
         hotkeyRetryTask = Task { [weak self] in
@@ -109,6 +123,7 @@ final class DictationSessionCoordinator {
                 guard let self else { return }
                 permissions.refresh()
                 if !hotkeyActive, hotkeyManager.startListening() { hotkeyActive = true }
+                translationHotkeyManager.startListening()
             }
         }
     }
@@ -122,8 +137,18 @@ final class DictationSessionCoordinator {
         }
     }
 
+    /// Translation shortcut: starts a translation session when idle, ends the recording when one is running.
+    func handleTranslationHotkeyPress() {
+        if state == .connecting || state == .recording {
+            stopRecording()
+        } else {
+            beginSession(mode: .toggle, translating: true)
+        }
+    }
+
     func applyHotkeySettings() {
         hotkeyManager.hotkey = settingsStore.hotkey
+        translationHotkeyManager.hotkey = settingsStore.translationHotkey ?? .defaultTranslation
     }
 
     // MARK: - Public controls
@@ -137,6 +162,25 @@ final class DictationSessionCoordinator {
         } else {
             beginSession(mode: .toggle)
         }
+    }
+
+    /// Menu entry point for voice translation: toggles recording like `toggleFromMenu`.
+    func toggleTranslationFromMenu() {
+        if state == .connecting || state == .recording, sessionMode == .toggle {
+            stopRecording()
+        } else {
+            beginSession(mode: .toggle, translating: true)
+        }
+    }
+
+    /// Switches the translation language from the overlay popup. Only possible until the LLM step starts.
+    func setTranslationTarget(_ language: TranslationLanguage) {
+        guard translationTarget != nil, canChangeTranslationTarget else { return }
+        translationTarget = language
+    }
+
+    var canChangeTranslationTarget: Bool {
+        translationTarget != nil && (state == .connecting || state == .recording || state == .finalizing)
     }
 
     /// Stops capturing and moves on to finalisation (hotkey pressed again / "完成" pressed).
@@ -158,6 +202,7 @@ final class DictationSessionCoordinator {
         audioLevel = 0
         pendingText = ""
         aggregator = TranscriptAggregator()
+        translationTarget = nil
         state = .idle
         overlay?.hide()
     }
@@ -179,12 +224,13 @@ final class DictationSessionCoordinator {
 
     // MARK: - Session start
 
-    func beginSession(mode: SessionMode) {
+    func beginSession(mode: SessionMode, translating: Bool = false) {
         guard !state.isBusy else { return }
         dismissTask?.cancel()
         let id = UUID()
         currentSessionID = id
         sessionMode = mode
+        translationTarget = translating ? settingsStore.translationTargetLanguage : nil
         aggregator = TranscriptAggregator()
         pendingText = ""
         audioLevel = 0
@@ -196,7 +242,7 @@ final class DictationSessionCoordinator {
         state = .connecting
         overlay?.show(coordinator: self)
         playSound("Tink")
-        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode)")
+        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode) translate=\(translating)")
         pipelineTask = Task { [weak self] in await self?.runPipeline(id) }
     }
 
@@ -307,32 +353,51 @@ final class DictationSessionCoordinator {
             return
         }
 
-        // 7. LLM post-processing (with fallback to raw text)
+        // 7. LLM post-processing (with fallback to raw text), or translation
         state = .processing
         var finalText = rawText
         var notes: [String] = []
         if let interruptionNote { notes.append(interruptionNote) }
         if timedOut { notes.append("语音识别收尾超时，已使用当前识别内容") }
-        do {
-            if let (provider, profile) = try resolveLLM() {
-                let output = try await textProcessor.process(
+        if let target = translationTarget { // the language is locked from here on (state is .processing)
+            do {
+                let (provider, _) = try resolveProvider()
+                let output = try await provider.process(
                     transcript: rawText,
-                    level: settingsStore.processingLevel,
-                    basePrompt: profile.systemPrompt,
-                    provider: provider
+                    systemPrompt: TextProcessor.translationSystemPrompt(target: target)
                 )
                 guard isCurrent(id) else { return }
                 finalText = output
+            } catch is CancellationError {
+                return
+            } catch {
+                guard isCurrent(id) else { return }
+                // Never insert untranslated text silently: keep the recognised text for manual copy instead.
+                let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
+                return fail(id, "翻译失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
             }
-        } catch is CancellationError {
-            return
-        } catch {
-            guard isCurrent(id) else { return }
-            let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
-            if settingsStore.fallbackToRawOnLLMFailure {
-                notes.append("AI 整理失败，已使用原文（\(reason)）")
-            } else {
-                return fail(id, "AI 整理失败：\(reason)", recoverableText: rawText)
+        } else {
+            do {
+                if let (provider, profile) = try resolveLLM() {
+                    let output = try await textProcessor.process(
+                        transcript: rawText,
+                        level: settingsStore.processingLevel,
+                        basePrompt: profile.systemPrompt,
+                        provider: provider
+                    )
+                    guard isCurrent(id) else { return }
+                    finalText = output
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard isCurrent(id) else { return }
+                let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
+                if settingsStore.fallbackToRawOnLLMFailure {
+                    notes.append("AI 整理失败，已使用原文（\(reason)）")
+                } else {
+                    return fail(id, "AI 整理失败：\(reason)", recoverableText: rawText)
+                }
             }
         }
         guard isCurrent(id) else { return }
@@ -489,6 +554,11 @@ final class DictationSessionCoordinator {
 
     private func resolveLLM() throws -> (any LLMProvider, LLMProfile)? {
         guard settingsStore.llmEnabled, settingsStore.processingLevel != .raw else { return nil }
+        return try resolveProvider()
+    }
+
+    /// The active profile's provider, regardless of the AI-processing switches (translation always needs the LLM).
+    private func resolveProvider() throws -> (any LLMProvider, LLMProfile) {
         guard let profile = settingsStore.activeProfile else { throw LLMError.invalidConfig("未配置 AI 处理 Profile") }
         guard let key = try? credentialStore.load(account: CredentialAccount.llmProfile(profile.id)), !key.isEmpty else {
             throw LLMError.missingAPIKey

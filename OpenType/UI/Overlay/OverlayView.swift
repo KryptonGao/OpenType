@@ -14,6 +14,10 @@ struct OverlayView: View {
                 trailingControl
             }
 
+            if let target = coordinator.translationTarget {
+                translationPicker(target)
+            }
+
             if showsWaveform {
                 WaveformView(levels: coordinator.levelHistory, color: statusColor)
                     .frame(height: 26)
@@ -55,6 +59,34 @@ struct OverlayView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.separator.opacity(0.5)))
         .padding(8) // room for the window shadow
+    }
+
+    /// Popup row: translation target language, pre-selected from Settings and changeable until processing starts.
+    private func translationPicker(_ target: TranslationLanguage) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "character.bubble").foregroundStyle(.secondary)
+            Text("翻译为").foregroundStyle(.secondary)
+            Menu {
+                ForEach(TranslationLanguage.allCases) { language in
+                    Button {
+                        coordinator.setTranslationTarget(language)
+                    } label: {
+                        if language == target {
+                            Label(language.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(language.displayName)
+                        }
+                    }
+                }
+            } label: {
+                Text(target.displayName)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(!coordinator.canChangeTranslationTarget)
+            Spacer(minLength: 0)
+        }
+        .font(.callout)
     }
 
     // MARK: Derived state
@@ -112,7 +144,7 @@ struct OverlayView: View {
         case .connecting: "正在连接…"
         case .recording: coordinator.sessionMode == .hold ? "正在聆听…（松开结束）" : "正在聆听…（再按一次结束）"
         case .finalizing: "正在收尾…"
-        case .processing: "正在整理文本…"
+        case .processing: coordinator.translationTarget == nil ? "正在整理文本…" : "正在翻译…"
         case .inserting: "正在插入…"
         case .success(let note): note.map { "已插入 · \($0)" } ?? "已插入"
         case .manualCopy(let reason): "未自动插入：\(reason)"

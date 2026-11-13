@@ -431,9 +431,20 @@ private final class FakePermissions: PermissionChecking {
     func ensureMicrophone() async -> Bool { granted }
 }
 
+private final class PromptRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [(transcript: String, prompt: String)] = []
+    var calls: [(transcript: String, prompt: String)] { lock.withLock { storage } }
+    func record(_ transcript: String, _ prompt: String) { lock.withLock { storage.append((transcript, prompt)) } }
+}
+
 private struct FakeLLM: LLMProvider {
     var result: Result<String, LLMError>
-    func process(transcript: String, systemPrompt: String) async throws -> String { try result.get() }
+    var recorder: PromptRecorder?
+    func process(transcript: String, systemPrompt: String) async throws -> String {
+        recorder?.record(transcript, systemPrompt)
+        return try result.get()
+    }
 }
 
 @MainActor
@@ -446,7 +457,7 @@ private struct Harness {
     let credentials = InMemoryCredentialStore()
 
     init(asr: @escaping @Sendable () -> FakeASR, llm: Result<String, LLMError> = .success("整理后的文字。"),
-         configure: (SettingsStore) -> Void = { _ in }) {
+         recorder: PromptRecorder? = nil, configure: (SettingsStore) -> Void = { _ in }) {
         let suite = "opentype.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         let settings = SettingsStore(defaults: defaults)
@@ -463,7 +474,7 @@ private struct Harness {
         self.coordinator = DictationSessionCoordinator(
             settingsStore: settings, credentialStore: credentials, permissions: PermissionManager(),
             audio: audio, permissionChecker: permissions,
-            makeASR: { _ in asr() }, makeLLM: { _, _ in FakeLLM(result: llm) },
+            makeASR: { _ in asr() }, makeLLM: { _, _ in FakeLLM(result: llm, recorder: recorder) },
             inserter: inserter, overlay: nil, playsSounds: false
         )
         self.audio = audio; self.inserter = inserter; self.permissions = permissions; self.settings = settings
@@ -693,6 +704,88 @@ struct CoordinatorTests {
         #expect(message.contains("麦克风"))
     }
 
+    @Test func translationSessionTranslatesToDefaultLanguage() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好世界")]) },
+            llm: .success("Hello world"), recorder: recorder,
+            configure: { $0.translationTargetLanguage = .japanese }
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle, translating: true)
+        #expect(c.translationTarget == .japanese) // pre-selected from Settings
+        await harness.wait { c.state == .recording }
+        #expect(c.canChangeTranslationTarget)
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["Hello world"])
+        let call = try? #require(recorder.calls.first)
+        #expect(call?.transcript == "你好世界")
+        #expect(call?.prompt == TextProcessor.translationSystemPrompt(target: .japanese))
+        #expect(harness.settings.translationTargetLanguage == .japanese)
+    }
+
+    @Test func translationLanguageCanBeSwitchedInPopup() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) },
+            recorder: recorder
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle, translating: true)
+        await harness.wait { c.state == .recording }
+        c.setTranslationTarget(.french)
+        #expect(c.translationTarget == .french)
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(recorder.calls.first?.prompt == TextProcessor.translationSystemPrompt(target: .french))
+        #expect(harness.settings.translationTargetLanguage == .english) // default stays untouched
+        c.setTranslationTarget(.german) // locked after processing
+        #expect(c.translationTarget == .french)
+    }
+
+    @Test func translationIgnoresRawModeAndLLMSwitch() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) },
+            llm: .success("Hello"), recorder: recorder,
+            configure: { $0.processingLevel = .raw; $0.llmEnabled = false }
+        )
+        let c = harness.coordinator
+        c.handleTranslationHotkeyPress()
+        await harness.wait { c.state == .recording }
+        c.handleTranslationHotkeyPress() // second press ends recording
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["Hello"])
+        #expect(recorder.calls.count == 1)
+    }
+
+    @Test func translationFailureNeverInsertsUntranslatedText() async {
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原始文本")]) },
+            llm: .failure(.timeout)
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle, translating: true)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { if case .error = c.state { true } else { false } }
+        guard case .error(let message) = c.state else { Issue.record("expected error, got \(c.state)"); return }
+        #expect(message.contains("翻译失败"))
+        #expect(c.pendingText == "原始文本")
+        #expect(harness.inserter.inserted.isEmpty)
+    }
+
+    @Test func dictationSessionHasNoTranslationTarget() async {
+        let harness = Harness(asr: { FakeASR() })
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle)
+        #expect(c.translationTarget == nil)
+        c.setTranslationTarget(.french) // ignored for plain dictation
+        #expect(c.translationTarget == nil)
+        c.cancelSession()
+    }
+
     @Test func newSessionAfterResultIsAllowed() async {
         let harness = Harness(asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "文本")]) })
         harness.inserter.outcome = .requiresManualCopy(reason: "x")
@@ -914,6 +1007,27 @@ struct SettingsStoreTests {
         #expect(!s.soundFeedbackEnabled)
         #expect(s.llmProfiles.count == 1)
         #expect(s.activeProfile != nil)
+    }
+
+    @Test func translationSettingsDefaultAndPersist() {
+        let (s, defaults) = makeStore()
+        #expect(s.translationTargetLanguage == .english)
+        #expect(s.translationHotkey == .defaultTranslation)
+        s.translationTargetLanguage = .korean
+        s.translationHotkey = nil // explicitly cleared must stay cleared
+        var reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.translationTargetLanguage == .korean)
+        #expect(reloaded.translationHotkey == nil)
+        let custom = HotkeyConfig(keyCode: 2, modifiers: [.maskCommand, .maskShift])
+        s.translationHotkey = custom
+        reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.translationHotkey == custom)
+    }
+
+    @Test func translationPromptNamesTargetLanguage() {
+        for language in TranslationLanguage.allCases {
+            #expect(TextProcessor.translationSystemPrompt(target: language).contains(language.promptName))
+        }
     }
 
     @Test func profilesPersistWithoutSecrets() throws {
