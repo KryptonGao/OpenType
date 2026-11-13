@@ -399,7 +399,7 @@ private struct HelpMeSaySettingsTab: View {
             }
             Section("联网搜索（DeepSeek）") {
                 Toggle("允许模型联网搜索并读取网页", isOn: $settingsStore.helpMeSayWebSearchEnabled)
-                Text("开启后，「帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会增加耗时（超时 60 秒），并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与翻译不受影响。")
+                Text("开启后，「帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 120 秒）；完成后悬浮窗会提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与翻译不受影响。")
                     .font(.caption).foregroundStyle(.secondary)
                 SecretField(
                     title: "DeepSeek API Key",

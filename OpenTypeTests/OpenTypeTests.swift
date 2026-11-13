@@ -247,14 +247,16 @@ struct LLMAdapterTests {
         #expect(request.url?.absoluteString == "https://api.deepseek.com/chat/completions")
         #expect(chat["model"] as? String == "deepseek-flash")
         #expect((chat["tools"] as? [[String: String]]) == [["type": "deepseek_web_search"]])
-        #expect(request.timeoutInterval == 60)
+        #expect(request.timeoutInterval == 120)
+        #expect((chat["thinking"] as? [String: String]) == ["type": "enabled"]) // thinking => multi-step deep search
         // Other wire formats declare the tool the way DeepSeek documents it.
         let (_, responses) = try json(profile(.openAIResponses))
         #expect((responses["tools"] as? [[String: String]]) == [["type": "deepseek_web_search"]])
         let (_, anthropic) = try json(profile(.anthropicMessages))
         #expect((anthropic["tools"] as? [[String: String]]) == [["type": "deepseek_web_search", "name": "deepseek_web_search"]])
         // Off: no tools.
-        #expect(try json(fixed, search: false).1["tools"] == nil)
+        let plain = try json(fixed, search: false).1
+        #expect(plain["tools"] == nil && plain["thinking"] == nil)
     }
 
     @Test func webSearchResponseParsingIgnoresToolBlocks() throws {
@@ -262,6 +264,16 @@ struct LLMAdapterTests {
         #expect(try LLMResponseParser.extractText(format: .anthropicMessages, data: Data(anthropic.utf8)) == "成品。")
         let chat = #"{"choices":[{"message":{"content":"成品。","server_tool_calls":[{"index":0,"calls":[]}]}}]}"#
         #expect(try LLMResponseParser.extractText(format: .openAIChatCompletions, data: Data(chat.utf8)) == "成品。")
+    }
+
+    @Test func countsServerToolCalls() {
+        let chat = #"{"choices":[{"message":{"content":"x","server_tool_calls":[{"index":0,"calls":[{"id":"a"},{"id":"b"}]},{"index":1,"calls":[{"id":"c"}]}]}}]}"#
+        #expect(LLMResponseParser.serverToolCallCount(format: .openAIChatCompletions, data: Data(chat.utf8)) == 3)
+        #expect(LLMResponseParser.serverToolCallCount(format: .openAIChatCompletions, data: Data(#"{"choices":[{"message":{"content":"x"}}]}"#.utf8)) == 0)
+        let anthropic = #"{"content":[{"type":"server_tool_use"},{"type":"web_search_tool_result"},{"type":"text","text":"x"}]}"#
+        #expect(LLMResponseParser.serverToolCallCount(format: .anthropicMessages, data: Data(anthropic.utf8)) == 1)
+        let responses = #"{"output":[{"type":"web_search_call"},{"type":"web_search_call"},{"type":"message","content":[]}]}"#
+        #expect(LLMResponseParser.serverToolCallCount(format: .openAIResponses, data: Data(responses.utf8)) == 2)
     }
 
     @Test func legacyProfileWithoutEffortDecodes() throws {
@@ -474,11 +486,12 @@ private struct FakeLLM: LLMProvider {
     var result: Result<String, LLMError>
     var recorder: PromptRecorder?
     func process(transcript: String, systemPrompt: String) async throws -> String {
-        try await process(transcript: transcript, systemPrompt: systemPrompt, webSearch: false)
-    }
-    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String {
-        recorder?.record(transcript, systemPrompt, webSearch: webSearch)
+        recorder?.record(transcript, systemPrompt)
         return try result.get()
+    }
+    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput {
+        recorder?.record(transcript, systemPrompt, webSearch: true)
+        return WebSearchOutput(text: try result.get(), toolCalls: 2)
     }
 }
 

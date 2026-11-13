@@ -79,7 +79,7 @@ struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
             baseURL: deepSeekWebSearchBaseURL,
             modelID: deepSeekWebSearchModel,
             systemPrompt: "",
-            timeout: 60 // searching adds server-side round trips
+            timeout: 120 // thinking + multi-step search / page reading takes a while
         )
     }
 
@@ -117,13 +117,19 @@ extension LLMProfile {
 
 protocol LLMProvider: Sendable {
     func process(transcript: String, systemPrompt: String) async throws -> String
-    /// Same as above, optionally letting the model search the web (DeepSeek profiles only; ignored elsewhere).
-    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String
+    /// Same as above, but with DeepSeek's web-search tool declared; also reports how many searches / page reads the model made.
+    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput
+}
+
+struct WebSearchOutput: Equatable, Sendable {
+    var text: String
+    /// Number of server-side tool calls (searches, page opens, link reads) the model made.
+    var toolCalls: Int
 }
 
 extension LLMProvider {
-    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String {
-        try await process(transcript: transcript, systemPrompt: systemPrompt)
+    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput {
+        WebSearchOutput(text: try await process(transcript: transcript, systemPrompt: systemPrompt), toolCalls: 0)
     }
 }
 
@@ -170,7 +176,7 @@ final class TextProcessor: Sendable {
 
     /// Appended to the help-me-say prompt when the model may search the web.
     static let webSearchAddendum = """
-    联网搜索（可选）：你可以使用联网搜索工具。只有当内容涉及需要查证或较新的事实（如产品或软件的版本与功能、报错信息、新闻事件、专业术语、人物或机构等）时才搜索，并把查到的可靠信息融入成品，让它更准确、更完整（例如把提问写得带上相关版本与背景、改用准确的术语）；不需要查证的内容不要搜索。搜索得到的事实必须准确，查不到或不确定的不要写；不要在成品里加入引用标记、链接或来源说明，除非用户原话要求。仍然不回答其中的问题，只负责把话说好。
+    联网搜索（已开启，请积极使用）：你有联网搜索和读取网页的工具。只要内容里出现具体的现实世界事实——公司、人物、职位或人事变动、产品与版本、新闻与事件、数据、地点、专业术语、报错信息、网址等——或者说话人表示记不清、不确定、想确认（如“是不是”“记不得”“确定一下”“查一下”），就必须先搜索核实，再动笔，不要凭记忆。只有整段话纯属个人日常事务、完全不涉及可查证的外部事实时才可以不搜。把查到的可靠事实（准确的人名、职位、日期、版本、术语等）自然融入成品，让它准确、具体、完整，但不要另写一篇回答；搜索没有结果或来源相互矛盾时，用不下结论的措辞，不要编造。成品里不要加入引用标记、链接或来源说明，除非用户原话要求。
     """
 
     static func userPrompt(transcript: String) -> String {

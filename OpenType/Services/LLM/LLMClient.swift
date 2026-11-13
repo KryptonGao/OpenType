@@ -147,9 +147,18 @@ enum LLMRequestBuilder {
         }
         if webSearch {
             // DeepSeek runs the search / page reading server-side: declaring the tool is all the client does.
+            // Thinking mode turns on its multi-step "deep search" (search, open pages, find in page), which is far more
+            // willing to actually search than the non-thinking mode.
             switch profile.format {
-            case .openAIResponses, .openAIChatCompletions: body["tools"] = [["type": webSearchToolName]]
-            case .anthropicMessages: body["tools"] = [["type": webSearchToolName, "name": webSearchToolName]]
+            case .openAIResponses:
+                body["tools"] = [["type": webSearchToolName]]
+                if body["reasoning"] == nil { body["reasoning"] = ["effort": "high"] }
+            case .openAIChatCompletions:
+                body["tools"] = [["type": webSearchToolName]]
+                body["thinking"] = ["type": "enabled"]
+            case .anthropicMessages:
+                body["tools"] = [["type": webSearchToolName, "name": webSearchToolName]]
+                body["thinking"] = ["type": "enabled"]
             }
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -193,6 +202,21 @@ enum LLMResponseParser {
         let cleaned = clean(text)
         guard !cleaned.isEmpty else { throw LLMError.emptyOutput }
         return cleaned
+    }
+
+    /// How many server-side tool calls (searches, page opens, link reads) the model made, per DeepSeek's response formats.
+    static func serverToolCallCount(format: LLMAPIFormat, data: Data) -> Int {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return 0 }
+        switch format {
+        case .openAIChatCompletions:
+            let message = (root["choices"] as? [[String: Any]])?.first?["message"] as? [String: Any]
+            let steps = message?["server_tool_calls"] as? [[String: Any]] ?? []
+            return steps.reduce(0) { $0 + (($1["calls"] as? [Any])?.count ?? 0) }
+        case .anthropicMessages:
+            return (root["content"] as? [[String: Any]] ?? []).filter { ($0["type"] as? String) == "server_tool_use" }.count
+        case .openAIResponses:
+            return (root["output"] as? [[String: Any]] ?? []).filter { ($0["type"] as? String) == "web_search_call" }.count
+        }
     }
 
     /// Trims whitespace and removes a wrapping Markdown code fence if the model added one anyway.
@@ -249,10 +273,14 @@ struct HTTPLLMProvider: LLMProvider {
     }
 
     func process(transcript: String, systemPrompt: String) async throws -> String {
-        try await process(transcript: transcript, systemPrompt: systemPrompt, webSearch: false)
+        try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: false).text
     }
 
-    func process(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> String {
+    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput {
+        try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: true)
+    }
+
+    private func send(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> WebSearchOutput {
         guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
         let request = try LLMRequestBuilder.makeRequest(
             profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt, webSearch: webSearch
@@ -261,6 +289,9 @@ struct HTTPLLMProvider: LLMProvider {
         guard (200..<300).contains(response.statusCode) else {
             throw LLMResponseParser.mapFailure(status: response.statusCode, data: data, secrets: [apiKey])
         }
-        return try LLMResponseParser.extractText(format: profile.format, data: data)
+        let text = try LLMResponseParser.extractText(format: profile.format, data: data)
+        let calls = webSearch ? LLMResponseParser.serverToolCallCount(format: profile.format, data: data) : 0
+        if webSearch { Diagnostics.log("web search tool calls=\(calls)") }
+        return WebSearchOutput(text: text, toolCalls: calls)
     }
 }

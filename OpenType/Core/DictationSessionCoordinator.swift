@@ -455,9 +455,16 @@ final class DictationSessionCoordinator {
                 let provider = webSearch ? try resolveWebSearchProvider() : try resolveProvider().0
                 var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
                 if webSearch { prompt += "\n" + TextProcessor.webSearchAddendum }
-                let output = try await provider.process(transcript: rawText, systemPrompt: prompt, webSearch: webSearch)
-                guard isCurrent(id) else { return }
-                finalText = output
+                if webSearch {
+                    let result = try await provider.processWithWebSearch(transcript: rawText, systemPrompt: prompt)
+                    guard isCurrent(id) else { return }
+                    finalText = result.text
+                    notes.append(result.toolCalls > 0 ? "已联网搜索（\(result.toolCalls) 次调用）" : "模型未联网搜索")
+                } else {
+                    let output = try await provider.process(transcript: rawText, systemPrompt: prompt)
+                    guard isCurrent(id) else { return }
+                    finalText = output
+                }
             } catch is CancellationError {
                 return
             } catch {
@@ -676,11 +683,10 @@ final class DictationSessionCoordinator {
     /// Sends a tiny sample through the profile's adapter. Distinguishes auth / model / network / format errors.
     /// Sends a tiny request to DeepSeek with the web-search tool declared, using the dedicated key.
     func testWebSearchConnection() async throws -> String {
-        try await resolveWebSearchProvider().process(
+        try await resolveWebSearchProvider().processWithWebSearch(
             transcript: "嗯那个今天天气呃很好我们去公园",
-            systemPrompt: TextProcessor.systemPrompt(base: "", level: .standard),
-            webSearch: true
-        )
+            systemPrompt: TextProcessor.systemPrompt(base: "", level: .standard)
+        ).text
     }
 
     func testLLMConnection(profile: LLMProfile) async throws -> String {
