@@ -86,6 +86,50 @@ enum ASRLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
     var apiValue: String? { self == .auto ? nil : rawValue }
 }
 
+/// Regional variant of a translation language whose wording differs noticeably between regions.
+enum TranslationRegion: String, CaseIterable, Identifiable, Codable, Sendable {
+    case brazil
+    case portugal
+    case taiwan
+    case hongKongMacau
+
+    var id: String { rawValue }
+
+    /// Short name shown in menus.
+    var displayName: String {
+        switch self {
+        case .brazil: "巴西"
+        case .portugal: "葡萄牙"
+        case .taiwan: "台湾"
+        case .hongKongMacau: "港澳"
+        }
+    }
+
+    /// Language name used inside the translation prompt.
+    var promptName: String {
+        switch self {
+        case .brazil: "Brazilian Portuguese（巴西葡萄牙语）"
+        case .portugal: "European Portuguese（葡萄牙本土葡萄牙语）"
+        case .taiwan: "Traditional Chinese as written in Taiwan（台湾繁体中文）"
+        case .hongKongMacau: "Traditional Chinese as written in Hong Kong and Macau（港澳繁体中文）"
+        }
+    }
+
+    /// Extra instruction making the regional wording explicit.
+    var promptRule: String {
+        switch self {
+        case .brazil:
+            "必须使用巴西葡萄牙语的拼写、词汇和语法习惯（如 você、ônibus、celular、café da manhã），不要使用葡萄牙本土的说法"
+        case .portugal:
+            "必须使用葡萄牙本土葡萄牙语的拼写、词汇和语法习惯（如 autocarro、telemóvel、pequeno-almoço，第二人称使用 tu / você 的欧洲用法），不要使用巴西的说法"
+        case .taiwan:
+            "必须使用台湾的繁体中文用词和书写习惯（如「軟體」「資訊」「網路」「滑鼠」「影片」「品質」），标点使用「」引号，不要使用大陆或港澳的说法"
+        case .hongKongMacau:
+            "必须使用香港、澳门的繁体中文书面用词和书写习惯（如「軟件」「資訊」「網絡」「滑鼠」「影片」「質素」），不要使用台湾或大陆的说法；保持书面语，不要写成粤语口语"
+        }
+    }
+}
+
 /// Target languages for voice translation.
 enum TranslationLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
     case english = "en"
@@ -125,6 +169,21 @@ enum TranslationLanguage: String, CaseIterable, Identifiable, Codable, Sendable 
         case .vietnamese: "Tiếng Việt"
         case .indonesian: "Bahasa Indonesia"
         }
+    }
+
+    /// Regional variants the user can choose between (empty when the language has none).
+    var regions: [TranslationRegion] {
+        switch self {
+        case .portuguese: [.brazil, .portugal]
+        case .traditionalChinese: [.taiwan, .hongKongMacau]
+        default: []
+        }
+    }
+
+    /// Menu label including the region, e.g. "繁體中文（台湾）".
+    func displayName(region: TranslationRegion?) -> String {
+        guard let region, regions.contains(region) else { return displayName }
+        return "\(displayName)（\(region.displayName)）"
     }
 
     /// Name used inside the translation prompt.
@@ -183,6 +242,8 @@ final class SettingsStore {
     // MARK: Translation
     /// Language pre-selected in the translation popup (can be changed per session there).
     var translationTargetLanguage: TranslationLanguage { didSet { defaults.set(translationTargetLanguage.rawValue, forKey: Keys.translationTargetLanguage) } }
+    /// Preferred regional variant per language (keyed by `TranslationLanguage.rawValue`), e.g. Brazilian vs. European Portuguese.
+    var translationRegions: [String: String] { didSet { defaults.set(translationRegions, forKey: Keys.translationRegions) } }
     /// Tap-to-toggle shortcut that starts a translation session. `nil` = no shortcut (menu only).
     var translationHotkey: HotkeyConfig? { didSet { persistTranslationHotkey() } }
 
@@ -239,6 +300,7 @@ final class SettingsStore {
         activeProfileID = profiles.contains(where: { $0.id == storedActive }) ? storedActive : profiles.first?.id
 
         translationTargetLanguage = raw(Keys.translationTargetLanguage, .english)
+        translationRegions = defaults.dictionary(forKey: Keys.translationRegions) as? [String: String] ?? [:]
         if let data = defaults.data(forKey: Keys.translationHotkey) {
             // Empty data means the user explicitly cleared the shortcut.
             if data.isEmpty {
@@ -284,6 +346,26 @@ final class SettingsStore {
         llmProfiles.remove(at: index)
         if activeProfileID == id { activeProfileID = llmProfiles.first?.id }
         return id
+    }
+
+    /// The configured regional variant for `language`, or its first (default) variant; `nil` if the language has none.
+    func translationRegion(for language: TranslationLanguage) -> TranslationRegion? {
+        guard let first = language.regions.first else { return nil }
+        if let raw = translationRegions[language.rawValue], let region = TranslationRegion(rawValue: raw),
+           language.regions.contains(region) {
+            return region
+        }
+        return first
+    }
+
+    /// Default target with its region, e.g. "繁體中文（台湾）".
+    var translationLabel: String {
+        translationTargetLanguage.displayName(region: translationRegion(for: translationTargetLanguage))
+    }
+
+    func setTranslationRegion(_ region: TranslationRegion, for language: TranslationLanguage) {
+        guard language.regions.contains(region) else { return }
+        translationRegions[language.rawValue] = region.rawValue
     }
 
     // MARK: Login item
@@ -339,6 +421,7 @@ final class SettingsStore {
         static let llmProfiles = "opentype.llmProfiles"
         static let activeProfileID = "opentype.activeProfileID"
         static let translationTargetLanguage = "opentype.translationTargetLanguage"
+        static let translationRegions = "opentype.translationRegions"
         static let translationHotkey = "opentype.translationHotkey"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }

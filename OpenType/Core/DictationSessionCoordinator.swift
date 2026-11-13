@@ -30,6 +30,8 @@ final class DictationSessionCoordinator {
     /// Non-nil while the current session translates the dictation into this language.
     /// Pre-set from Settings when the session starts; the overlay popup may change it until processing begins.
     private(set) var translationTarget: TranslationLanguage?
+    /// Regional variant of `translationTarget` (e.g. Brazil vs. Portugal); `nil` for languages without variants.
+    private(set) var translationRegion: TranslationRegion?
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
     var isRecordingHotkey = false
 
@@ -174,9 +176,17 @@ final class DictationSessionCoordinator {
     }
 
     /// Switches the translation language from the overlay popup. Only possible until the LLM step starts.
+    /// The region falls back to the one configured in Settings for that language.
     func setTranslationTarget(_ language: TranslationLanguage) {
         guard translationTarget != nil, canChangeTranslationTarget else { return }
         translationTarget = language
+        translationRegion = settingsStore.translationRegion(for: language)
+    }
+
+    /// Switches the regional variant (only variants of the current target language are accepted).
+    func setTranslationRegion(_ region: TranslationRegion) {
+        guard let target = translationTarget, canChangeTranslationTarget, target.regions.contains(region) else { return }
+        translationRegion = region
     }
 
     var canChangeTranslationTarget: Bool {
@@ -203,6 +213,7 @@ final class DictationSessionCoordinator {
         pendingText = ""
         aggregator = TranscriptAggregator()
         translationTarget = nil
+        translationRegion = nil
         state = .idle
         overlay?.hide()
     }
@@ -231,6 +242,7 @@ final class DictationSessionCoordinator {
         currentSessionID = id
         sessionMode = mode
         translationTarget = translating ? settingsStore.translationTargetLanguage : nil
+        translationRegion = translationTarget.flatMap { settingsStore.translationRegion(for: $0) }
         aggregator = TranscriptAggregator()
         pendingText = ""
         audioLevel = 0
@@ -359,12 +371,13 @@ final class DictationSessionCoordinator {
         var notes: [String] = []
         if let interruptionNote { notes.append(interruptionNote) }
         if timedOut { notes.append("语音识别收尾超时，已使用当前识别内容") }
-        if let target = translationTarget { // the language is locked from here on (state is .processing)
+        if let target = translationTarget { // language and region are locked from here on (state is .processing)
+            let region = translationRegion
             do {
                 let (provider, _) = try resolveProvider()
                 let output = try await provider.process(
                     transcript: rawText,
-                    systemPrompt: TextProcessor.translationSystemPrompt(target: target)
+                    systemPrompt: TextProcessor.translationSystemPrompt(target: target, region: region)
                 )
                 guard isCurrent(id) else { return }
                 finalText = output

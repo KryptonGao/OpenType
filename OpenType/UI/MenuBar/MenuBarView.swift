@@ -15,7 +15,7 @@ struct MenuBarView: View {
 
         Button(recording && coordinator.sessionMode == .toggle && coordinator.translationTarget != nil
                ? "结束语音翻译"
-               : "开始语音翻译（→ \(coordinator.settingsStore.translationTargetLanguage.displayName)）") {
+               : "开始语音翻译（→ \(coordinator.settingsStore.translationLabel)）") {
             coordinator.toggleTranslationFromMenu()
         }
         .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))

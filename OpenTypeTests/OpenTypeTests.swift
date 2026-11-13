@@ -744,6 +744,34 @@ struct CoordinatorTests {
         #expect(c.translationTarget == .french)
     }
 
+    @Test func regionFollowsSettingsAndPopupChoice() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) },
+            llm: .success("Olá"), recorder: recorder,
+            configure: {
+                $0.translationTargetLanguage = .portuguese
+                $0.setTranslationRegion(.portugal, for: .portuguese)
+            }
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle, translating: true)
+        #expect(c.translationRegion == .portugal) // from Settings
+        await harness.wait { c.state == .recording }
+        c.setTranslationRegion(.brazil) // popup override
+        c.setTranslationRegion(.taiwan) // not a Portuguese variant: ignored
+        #expect(c.translationRegion == .brazil)
+        c.setTranslationTarget(.traditionalChinese) // switching language picks that language's configured region
+        #expect(c.translationRegion == .taiwan)
+        c.setTranslationTarget(.portuguese)
+        #expect(c.translationRegion == .portugal)
+        c.setTranslationRegion(.brazil)
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(recorder.calls.first?.prompt == TextProcessor.translationSystemPrompt(target: .portuguese, region: .brazil))
+        #expect(harness.settings.translationRegion(for: .portuguese) == .portugal) // Settings untouched
+    }
+
     @Test func translationIgnoresRawModeAndLLMSwitch() async {
         let recorder = PromptRecorder()
         let harness = Harness(
@@ -1022,6 +1050,42 @@ struct SettingsStoreTests {
         s.translationHotkey = custom
         reloaded = SettingsStore(defaults: defaults)
         #expect(reloaded.translationHotkey == custom)
+    }
+
+    @Test func regionalVariantsAreOnlyOfferedWhereTheyMatter() {
+        #expect(TranslationLanguage.portuguese.regions == [.brazil, .portugal])
+        #expect(TranslationLanguage.traditionalChinese.regions == [.taiwan, .hongKongMacau])
+        #expect(TranslationLanguage.english.regions.isEmpty)
+        #expect(TranslationLanguage.simplifiedChinese.regions.isEmpty)
+    }
+
+    @Test func regionDefaultsAndPersists() {
+        let (s, defaults) = makeStore()
+        #expect(s.translationRegion(for: .portuguese) == .brazil)
+        #expect(s.translationRegion(for: .traditionalChinese) == .taiwan)
+        #expect(s.translationRegion(for: .japanese) == nil)
+        s.setTranslationRegion(.portugal, for: .portuguese)
+        s.setTranslationRegion(.hongKongMacau, for: .traditionalChinese)
+        s.setTranslationRegion(.taiwan, for: .portuguese) // not a Portuguese variant: ignored
+        let reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.translationRegion(for: .portuguese) == .portugal)
+        #expect(reloaded.translationRegion(for: .traditionalChinese) == .hongKongMacau)
+        reloaded.translationTargetLanguage = .traditionalChinese
+        #expect(reloaded.translationLabel == "繁體中文（港澳）")
+    }
+
+    @Test func promptNamesTheRegionalVariant() {
+        let br = TextProcessor.translationSystemPrompt(target: .portuguese, region: .brazil)
+        let pt = TextProcessor.translationSystemPrompt(target: .portuguese, region: .portugal)
+        let tw = TextProcessor.translationSystemPrompt(target: .traditionalChinese, region: .taiwan)
+        let hk = TextProcessor.translationSystemPrompt(target: .traditionalChinese, region: .hongKongMacau)
+        #expect(br.contains("Brazilian Portuguese") && !br.contains("European Portuguese"))
+        #expect(pt.contains("European Portuguese") && !pt.contains("Brazilian Portuguese"))
+        #expect(tw.contains("Taiwan") && !tw.contains("Hong Kong"))
+        #expect(hk.contains("Hong Kong") && !hk.contains("in Taiwan"))
+        // A region belonging to another language is ignored.
+        #expect(TextProcessor.translationSystemPrompt(target: .french, region: .brazil)
+                == TextProcessor.translationSystemPrompt(target: .french))
     }
 
     @Test func translationPromptNamesTargetLanguage() {

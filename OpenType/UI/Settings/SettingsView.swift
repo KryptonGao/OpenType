@@ -326,6 +326,22 @@ private struct TranslationSettingsTab: View {
                 Text("开始翻译时，悬浮窗会预先选中这里的语言；你可以在悬浮窗里临时切换成其他语言（仅对当次生效，不会改动这里的默认值）。")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("地区用语") {
+                Picker("葡萄牙语", selection: Binding(
+                    get: { settingsStore.translationRegion(for: .portuguese) ?? .brazil },
+                    set: { settingsStore.setTranslationRegion($0, for: .portuguese) }
+                )) {
+                    ForEach(TranslationLanguage.portuguese.regions) { Text($0.displayName).tag($0) }
+                }
+                Picker("繁體中文", selection: Binding(
+                    get: { settingsStore.translationRegion(for: .traditionalChinese) ?? .taiwan },
+                    set: { settingsStore.setTranslationRegion($0, for: .traditionalChinese) }
+                )) {
+                    ForEach(TranslationLanguage.traditionalChinese.regions) { Text($0.displayName).tag($0) }
+                }
+                Text("巴西与葡萄牙的葡萄牙语、台湾与港澳的繁体中文，用词和写法并不相同。翻译成这两种语言时，会明确要求模型使用这里选的地区用语；悬浮窗里也可以临时切换。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("翻译快捷键（按一下开始，再按一下结束）") {
                 HotkeyRecorderRow(
                     title: "翻译快捷键",

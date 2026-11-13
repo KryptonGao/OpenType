@@ -84,6 +84,27 @@ struct OverlayView: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
             .disabled(!coordinator.canChangeTranslationTarget)
+            if !target.regions.isEmpty {
+                Text("用语").foregroundStyle(.secondary)
+                Menu {
+                    ForEach(target.regions) { region in
+                        Button {
+                            coordinator.setTranslationRegion(region)
+                        } label: {
+                            if region == coordinator.translationRegion {
+                                Label(region.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(region.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    Text(coordinator.translationRegion?.displayName ?? target.regions[0].displayName)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .disabled(!coordinator.canChangeTranslationTarget)
+            }
             Spacer(minLength: 0)
         }
         .font(.callout)
