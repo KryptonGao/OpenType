@@ -14,6 +14,14 @@ struct OverlayView: View {
                 trailingControl
             }
 
+            if let status = coordinator.webSearchStatus, coordinator.state == .processing {
+                Label(status, systemImage: "magnifyingglass")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             if let target = coordinator.translationTarget {
                 translationPicker(target)
             }

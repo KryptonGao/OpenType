@@ -32,18 +32,43 @@ enum LLMError: Error, Equatable, Sendable {
 
 protocol HTTPTransport: Sendable {
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
+    /// Streams a (server-sent events) response line by line. A non-2xx response is returned with its body and `onLine` is not called.
+    func sendStreaming(_ request: URLRequest, onLine: (String) -> Void) async throws -> (HTTPURLResponse, Data)
+}
+
+extension HTTPTransport {
+    /// Fallback for transports that cannot stream: fetches the whole body, then replays it line by line.
+    func sendStreaming(_ request: URLRequest, onLine: (String) -> Void) async throws -> (HTTPURLResponse, Data) {
+        let (data, response) = try await send(request)
+        guard (200..<300).contains(response.statusCode) else { return (response, data) }
+        for line in String(decoding: data, as: UTF8.self).split(whereSeparator: \.isNewline) { onLine(String(line)) }
+        return (response, Data())
+    }
 }
 
 /// Ephemeral session: no cookies / disk caches. TLS is validated by the system (no custom trust handling).
 struct URLSessionTransport: HTTPTransport {
     let timeout: TimeInterval
 
-    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+    private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = timeout
         configuration.timeoutIntervalForResource = timeout
         configuration.urlCache = nil
-        let session = URLSession(configuration: configuration)
+        return URLSession(configuration: configuration)
+    }
+
+    private func mapped(_ error: Error) -> Error {
+        guard let error = error as? URLError else { return error }
+        switch error.code {
+        case .timedOut: return LLMError.timeout
+        case .cancelled: return CancellationError()
+        default: return LLMError.network(error.localizedDescription)
+        }
+    }
+
+    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let session = makeSession()
         defer { session.finishTasksAndInvalidate() }
         do {
             let (data, response) = try await session.data(for: request)
@@ -51,14 +76,31 @@ struct URLSessionTransport: HTTPTransport {
                 throw LLMError.badResponse("非 HTTP 响应")
             }
             return (data, http)
-        } catch let error as LLMError {
-            throw error
-        } catch let error as URLError {
-            switch error.code {
-            case .timedOut: throw LLMError.timeout
-            case .cancelled: throw CancellationError()
-            default: throw LLMError.network(error.localizedDescription)
+        } catch {
+            throw mapped(error)
+        }
+    }
+
+    func sendStreaming(_ request: URLRequest, onLine: (String) -> Void) async throws -> (HTTPURLResponse, Data) {
+        let session = makeSession()
+        defer { session.finishTasksAndInvalidate() }
+        do {
+            let (bytes, response) = try await session.bytes(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                throw LLMError.badResponse("非 HTTP 响应")
             }
+            guard (200..<300).contains(http.statusCode) else {
+                var body = Data()
+                for try await byte in bytes {
+                    body.append(byte)
+                    if body.count >= 64 * 1024 { break }
+                }
+                return (http, body)
+            }
+            for try await line in bytes.lines { onLine(line) }
+            return (http, Data())
+        } catch {
+            throw mapped(error)
         }
     }
 }
@@ -156,6 +198,7 @@ enum LLMRequestBuilder {
             case .openAIChatCompletions:
                 body["tools"] = [["type": webSearchToolName]]
                 body["thinking"] = ["type": "enabled"]
+                body["stream"] = true // progress events (`server_tool_event`) only exist in the stream
             case .anthropicMessages:
                 body["tools"] = [["type": webSearchToolName, "name": webSearchToolName]]
                 body["thinking"] = ["type": "enabled"]
@@ -257,6 +300,58 @@ enum LLMResponseParser {
     }
 }
 
+// MARK: - Streaming (DeepSeek Chat Completions with web tools)
+
+/// Reads DeepSeek's streamed chat completion: answer text from `delta.content`, tool progress from the choice-level
+/// `server_tool_event`, and the final `server_tool_calls`. Also accepts a plain (non-streamed) JSON response.
+struct ChatStreamAccumulator {
+    private(set) var text = ""
+    private(set) var progress = WebSearchProgress()
+    private(set) var errorMessage: String?
+    /// Total calls in the final `server_tool_calls`, if the response carried it.
+    private(set) var finalCallCount: Int?
+
+    /// Feeds one line; returns `true` when `progress` changed.
+    mutating func consume(line raw: String) -> Bool {
+        var line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if line.hasPrefix("data:") {
+            line = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+        } else if !line.hasPrefix("{") {
+            return false // blank lines, `: keep-alive` comments, `event:` names
+        }
+        guard !line.isEmpty, line != "[DONE]",
+              let root = (try? JSONSerialization.jsonObject(with: Data(line.utf8))) as? [String: Any] else { return false }
+        if let error = root["error"] as? [String: Any] {
+            errorMessage = (error["message"] as? String) ?? "流式响应出错"
+            return false
+        }
+        guard let choice = (root["choices"] as? [[String: Any]])?.first else { return false }
+        if let message = choice["message"] as? [String: Any] { // not streamed
+            if let content = message["content"] as? String { text = content }
+            finalCallCount = Self.callCount(message["server_tool_calls"])
+        }
+        if let delta = choice["delta"] as? [String: Any] {
+            if let content = delta["content"] as? String { text += content }
+            if delta["server_tool_calls"] != nil { finalCallCount = Self.callCount(delta["server_tool_calls"]) }
+        }
+        if let event = choice["server_tool_event"] as? [String: Any] { return progress.apply(event: event) }
+        return false
+    }
+
+    /// The tally once the stream is over. If no events could be read but the final `server_tool_calls` lists calls,
+    /// fall back to that count so the user still sees that a search happened.
+    var finalProgress: WebSearchProgress {
+        var result = progress
+        result.activity = nil
+        if !result.madeAnyCall, let finalCallCount, finalCallCount > 0 { result.searches = finalCallCount }
+        return result
+    }
+
+    private static func callCount(_ value: Any?) -> Int {
+        (value as? [[String: Any]] ?? []).reduce(0) { $0 + (($1["calls"] as? [Any])?.count ?? 0) }
+    }
+}
+
 // MARK: - Provider
 
 /// One adapter type for all three protocols; behaviour is selected by `profile.format`.
@@ -276,8 +371,35 @@ struct HTTPLLMProvider: LLMProvider {
         try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: false).text
     }
 
-    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput {
-        try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: true)
+    func processWithWebSearch(
+        transcript: String,
+        systemPrompt: String,
+        onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+    ) async throws -> WebSearchOutput {
+        guard profile.format == .openAIChatCompletions else {
+            return try await send(transcript: transcript, systemPrompt: systemPrompt, webSearch: true)
+        }
+        guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
+        let request = try LLMRequestBuilder.makeRequest(
+            profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt, webSearch: true
+        )
+        var accumulator = ChatStreamAccumulator()
+        onProgress(accumulator.progress)
+        let (response, errorBody) = try await transport.sendStreaming(request) { line in
+            if accumulator.consume(line: line) { onProgress(accumulator.progress) }
+        }
+        guard (200..<300).contains(response.statusCode) else {
+            throw LLMResponseParser.mapFailure(status: response.statusCode, data: errorBody, secrets: [apiKey])
+        }
+        if let message = accumulator.errorMessage {
+            let safe = String(Diagnostics.redact(message, secrets: [apiKey]).prefix(200))
+            throw LLMError.server(response.statusCode, safe)
+        }
+        let text = LLMResponseParser.clean(accumulator.text)
+        guard !text.isEmpty else { throw LLMError.emptyOutput }
+        let progress = accumulator.finalProgress
+        Diagnostics.log("web search calls=\(progress.calls) results=\(progress.results) pages=\(progress.pages)")
+        return WebSearchOutput(text: text, progress: progress)
     }
 
     private func send(transcript: String, systemPrompt: String, webSearch: Bool) async throws -> WebSearchOutput {
@@ -292,6 +414,8 @@ struct HTTPLLMProvider: LLMProvider {
         let text = try LLMResponseParser.extractText(format: profile.format, data: data)
         let calls = webSearch ? LLMResponseParser.serverToolCallCount(format: profile.format, data: data) : 0
         if webSearch { Diagnostics.log("web search tool calls=\(calls)") }
-        return WebSearchOutput(text: text, toolCalls: calls)
+        var progress = WebSearchProgress()
+        progress.searches = calls
+        return WebSearchOutput(text: text, progress: progress)
     }
 }

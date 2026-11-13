@@ -247,7 +247,8 @@ struct LLMAdapterTests {
         #expect(request.url?.absoluteString == "https://api.deepseek.com/chat/completions")
         #expect(chat["model"] as? String == "deepseek-flash")
         #expect((chat["tools"] as? [[String: String]]) == [["type": "deepseek_web_search"]])
-        #expect(request.timeoutInterval == 120)
+        #expect(request.timeoutInterval == 180)
+        #expect(chat["stream"] as? Bool == true)
         #expect((chat["thinking"] as? [String: String]) == ["type": "enabled"]) // thinking => multi-step deep search
         // Other wire formats declare the tool the way DeepSeek documents it.
         let (_, responses) = try json(profile(.openAIResponses))
@@ -264,6 +265,60 @@ struct LLMAdapterTests {
         #expect(try LLMResponseParser.extractText(format: .anthropicMessages, data: Data(anthropic.utf8)) == "成品。")
         let chat = #"{"choices":[{"message":{"content":"成品。","server_tool_calls":[{"index":0,"calls":[]}]}}]}"#
         #expect(try LLMResponseParser.extractText(format: .openAIChatCompletions, data: Data(chat.utf8)) == "成品。")
+    }
+
+    @Test func streamedWebSearchReportsProgressAndText() async throws {
+        let sse = """
+        : keep-alive
+        data: {"choices":[{"delta":{"reasoning_content":"先查一下"},"server_tool_event":{"type":"step_reasoning_done","step":0}}]}
+
+        data: {"choices":[{"delta":{},"server_tool_event":{"type":"call_started","step":0,"call":{"index":0,"type":"deepseek_web_search","kind":"deep_search","action":{"type":"search","queries":["英伟达 CEO","黄仁勋 离职"]}}}}]}
+
+        data: {"choices":[{"delta":{},"server_tool_event":{"type":"call_completed","step":0,"call":{"index":0,"status":"completed","sources":[{"url":"https://a.com"},{"url":"https://b.com"},{"url":"https://c.com"}]}}}]}
+
+        data: {"choices":[{"delta":{},"server_tool_event":{"type":"call_started","step":1,"call":{"index":0,"action":{"type":"open_page","url":"https://news.example.com/x"}}}}]}
+
+        data: {"choices":[{"delta":{},"server_tool_event":{"type":"call_completed","step":1,"call":{"index":0,"status":"completed","page":{"url":"https://news.example.com/x"}}}}]}
+
+        data: {"choices":[{"delta":{"content":"黄仁勋仍是"}}]}
+
+        data: {"choices":[{"delta":{"content":"英伟达 CEO。","server_tool_calls":[{"index":0,"calls":[{"id":"a"}]},{"index":1,"calls":[{"id":"b"}]}]},"finish_reason":"stop"}]}
+
+        data: [DONE]
+        """
+        final class Seen: @unchecked Sendable { var statuses: [String] = [] }
+        let seen = Seen()
+        let box = MockTransport.CaptureBox()
+        let provider = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
+                                       transport: MockTransport(status: 200, body: sse, capture: box))
+        let output = try await provider.processWithWebSearch(transcript: "t", systemPrompt: "S") { seen.statuses.append($0.statusText) }
+        #expect(output.text == "黄仁勋仍是英伟达 CEO。")
+        #expect(output.progress.searches == 1 && output.progress.results == 3 && output.progress.pages == 1)
+        #expect(output.progress.summary == "搜索 1 次，共 3 条结果，读取 1 个网页")
+        #expect(seen.statuses.contains("正在搜索「英伟达 CEO、黄仁勋 离职」"))
+        #expect(seen.statuses.contains("正在读取网页 news.example.com · 已搜到 3 条结果"))
+        #expect(seen.statuses.last == "搜索 1 次 · 已搜到 3 条结果 · 已读取 1 个网页 · 正在整理…")
+        #expect(seen.statuses.first == "已开启联网搜索，模型思考中…")
+    }
+
+    @Test func streamedWebSearchFallsBackToFinalCallCountAndMapsErrors() async throws {
+        // Event shape not recognised, but the final server_tool_calls still tells us the model searched.
+        let odd = #"data: {"choices":[{"delta":{"content":"好。","server_tool_calls":[{"index":0,"calls":[{},{}]}]},"finish_reason":"stop"}]}"#
+        let provider = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k", transport: MockTransport(status: 200, body: odd))
+        let output = try await provider.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in }
+        #expect(output.text == "好。" && output.progress.madeAnyCall && output.progress.searches == 2)
+
+        let none = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
+                                   transport: MockTransport(status: 200, body: #"data: {"choices":[{"delta":{"content":"没搜。"}}]}"#))
+        let plain = try await none.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in }
+        #expect(!plain.progress.madeAnyCall)
+
+        let failing = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
+                                      transport: MockTransport(status: 401, body: #"{"error":{"message":"bad"}}"#))
+        await #expect(throws: LLMError.auth(401)) { try await failing.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in } }
+        let midStream = HTTPLLMProvider(profile: LLMProfile.makeDeepSeekWebSearch(), apiKey: "k",
+                                        transport: MockTransport(status: 200, body: #"data: {"error":{"message":"boom"}}"#))
+        await #expect(throws: LLMError.server(200, "boom")) { try await midStream.processWithWebSearch(transcript: "t", systemPrompt: "S") { _ in } }
     }
 
     @Test func countsServerToolCalls() {
@@ -489,9 +544,13 @@ private struct FakeLLM: LLMProvider {
         recorder?.record(transcript, systemPrompt)
         return try result.get()
     }
-    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput {
+    func processWithWebSearch(
+        transcript: String, systemPrompt: String, onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+    ) async throws -> WebSearchOutput {
         recorder?.record(transcript, systemPrompt, webSearch: true)
-        return WebSearchOutput(text: try result.get(), toolCalls: 2)
+        let progress = WebSearchProgress(searches: 2, results: 9, pages: 1)
+        onProgress(progress)
+        return WebSearchOutput(text: try result.get(), progress: progress)
     }
 }
 

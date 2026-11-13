@@ -34,6 +34,8 @@ final class DictationSessionCoordinator {
     private(set) var translationRegion: TranslationRegion?
     /// `true` while the current session is "help me say": the speech is turned into a polished, elaborated message.
     private(set) var isHelpMeSay = false
+    /// Live line while the model searches the web during "help me say" (e.g. "正在搜索「…」 · 已搜到 8 条结果").
+    private(set) var webSearchStatus: String?
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
     var isRecordingHotkey = false
 
@@ -456,10 +458,17 @@ final class DictationSessionCoordinator {
                 var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
                 if webSearch { prompt += "\n" + TextProcessor.webSearchAddendum }
                 if webSearch {
-                    let result = try await provider.processWithWebSearch(transcript: rawText, systemPrompt: prompt)
+                    webSearchStatus = WebSearchProgress().statusText
+                    let result = try await provider.processWithWebSearch(
+                        transcript: rawText, systemPrompt: prompt,
+                        onProgress: { [weak self] progress in
+                            Task { @MainActor in self?.updateWebSearchStatus(progress, sessionID: id) }
+                        }
+                    )
+                    webSearchStatus = nil
                     guard isCurrent(id) else { return }
                     finalText = result.text
-                    notes.append(result.toolCalls > 0 ? "已联网搜索（\(result.toolCalls) 次调用）" : "模型未联网搜索")
+                    notes.append(result.progress.madeAnyCall ? "已联网搜索：\(result.progress.summary)" : "模型未联网搜索")
                 } else {
                     let output = try await provider.process(transcript: rawText, systemPrompt: prompt)
                     guard isCurrent(id) else { return }
@@ -545,6 +554,11 @@ final class DictationSessionCoordinator {
         fail(id, message, recoverableText: recovered)
     }
 
+    private func updateWebSearchStatus(_ progress: WebSearchProgress, sessionID id: UUID) {
+        guard isCurrent(id), state == .processing else { return }
+        webSearchStatus = progress.statusText
+    }
+
     private func receiveLevel(_ level: Float, sessionID id: UUID) {
         guard isCurrent(id), state == .recording || state == .connecting else { return }
         audioLevel = level
@@ -603,6 +617,7 @@ final class DictationSessionCoordinator {
     }
 
     private func finishActiveWork() {
+        webSearchStatus = nil
         audio.stop()
         eventsTask?.cancel()
         eventsTask = nil
@@ -685,7 +700,8 @@ final class DictationSessionCoordinator {
     func testWebSearchConnection() async throws -> String {
         try await resolveWebSearchProvider().processWithWebSearch(
             transcript: "嗯那个今天天气呃很好我们去公园",
-            systemPrompt: TextProcessor.systemPrompt(base: "", level: .standard)
+            systemPrompt: TextProcessor.systemPrompt(base: "", level: .standard),
+            onProgress: { _ in }
         ).text
     }
 

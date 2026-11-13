@@ -79,7 +79,7 @@ struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
             baseURL: deepSeekWebSearchBaseURL,
             modelID: deepSeekWebSearchModel,
             systemPrompt: "",
-            timeout: 120 // thinking + multi-step search / page reading takes a while
+            timeout: 180 // thinking + multi-step search / page reading takes a while
         )
     }
 
@@ -117,19 +117,119 @@ extension LLMProfile {
 
 protocol LLMProvider: Sendable {
     func process(transcript: String, systemPrompt: String) async throws -> String
-    /// Same as above, but with DeepSeek's web-search tool declared; also reports how many searches / page reads the model made.
-    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput
+    /// Same as above, but with DeepSeek's web-search tool declared. `onProgress` reports each search / page read live;
+    /// the result carries the final tally.
+    func processWithWebSearch(
+        transcript: String,
+        systemPrompt: String,
+        onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+    ) async throws -> WebSearchOutput
 }
 
 struct WebSearchOutput: Equatable, Sendable {
     var text: String
-    /// Number of server-side tool calls (searches, page opens, link reads) the model made.
-    var toolCalls: Int
+    var progress: WebSearchProgress
 }
 
 extension LLMProvider {
-    func processWithWebSearch(transcript: String, systemPrompt: String) async throws -> WebSearchOutput {
-        WebSearchOutput(text: try await process(transcript: transcript, systemPrompt: systemPrompt), toolCalls: 0)
+    func processWithWebSearch(
+        transcript: String,
+        systemPrompt: String,
+        onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+    ) async throws -> WebSearchOutput {
+        WebSearchOutput(text: try await process(transcript: transcript, systemPrompt: systemPrompt), progress: WebSearchProgress())
+    }
+}
+
+/// What the model is doing with DeepSeek's server-side web tools, built from the streamed `server_tool_event`s.
+struct WebSearchProgress: Equatable, Sendable {
+    /// The call currently in flight, e.g. "搜索「英伟达 CEO」" (nil between calls).
+    var activity: String?
+    /// Search calls started.
+    var searches = 0
+    /// Total search results returned so far.
+    var results = 0
+    /// Web pages opened / links read successfully.
+    var pages = 0
+    var failures = 0
+
+    /// Calls made so far (searches and page reads).
+    var calls: Int { searches + pages + failures }
+    var madeAnyCall: Bool { searches > 0 || pages > 0 || failures > 0 || activity != nil }
+
+    /// Counts only, e.g. "搜索 2 次，共 15 条结果，读取 1 个网页".
+    var summary: String {
+        var parts: [String] = []
+        if searches > 0 { parts.append("搜索 \(searches) 次，共 \(results) 条结果") }
+        if pages > 0 { parts.append("读取 \(pages) 个网页") }
+        return parts.joined(separator: "，")
+    }
+
+    /// Live line shown in the overlay.
+    var statusText: String {
+        var counts: [String] = []
+        if searches > 0 { counts.append("已搜到 \(results) 条结果") }
+        if pages > 0 { counts.append("已读取 \(pages) 个网页") }
+        if let activity {
+            // Mid-call, only mention results once there are some (a first search shouldn't read "已搜到 0 条").
+            return (["正在\(activity)"] + (results > 0 || pages > 0 ? counts : [])).joined(separator: " · ")
+        }
+        if counts.isEmpty { return "已开启联网搜索，模型思考中…" }
+        return (["搜索 \(searches) 次"] + counts + ["正在整理…"]).joined(separator: " · ")
+    }
+
+    private enum CallKind { case search, page, find }
+    private var currentKind: CallKind?
+
+    /// Applies one `server_tool_event` (`call_started` / `call_completed`); returns whether anything changed.
+    /// Field lookups are tolerant: the call's details may sit under `call` or directly on the event.
+    mutating func apply(event: [String: Any]) -> Bool {
+        let call = event["call"] as? [String: Any] ?? [:]
+        func field(_ key: String) -> Any? { call[key] ?? event[key] }
+        switch event["type"] as? String {
+        case "call_started":
+            let action = field("action") as? [String: Any] ?? [:]
+            switch action["type"] as? String {
+            case "search":
+                searches += 1
+                currentKind = .search
+                let queries = (action["queries"] as? [String] ?? []).filter { !$0.isEmpty }
+                let shown = queries.prefix(2).joined(separator: "、")
+                activity = shown.isEmpty ? "搜索" : "搜索「\(Self.truncate(shown))」"
+            case "open_page", "read_link":
+                currentKind = .page
+                activity = "读取网页 \(Self.host(action["url"] as? String))"
+            case "find_in_page":
+                currentKind = .find
+                activity = "在网页中查找"
+            default:
+                currentKind = nil
+                activity = "查询资料"
+            }
+            return true
+        case "call_completed":
+            if (field("status") as? String) == "failed" {
+                failures += 1
+            } else if currentKind == .search {
+                results += (field("sources") as? [Any])?.count ?? 0
+            } else if currentKind == .page {
+                pages += 1
+            }
+            activity = nil
+            currentKind = nil
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func host(_ url: String?) -> String {
+        guard let url else { return "" }
+        return URL(string: url)?.host ?? truncate(url)
+    }
+
+    private static func truncate(_ text: String) -> String {
+        text.count > 36 ? String(text.prefix(36)) + "…" : text
     }
 }
 
