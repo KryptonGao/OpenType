@@ -35,10 +35,13 @@ struct HistoryView: View {
                          : "当前未保存识别文字，开启上方的「保存文字」后，新的输入会出现在这里。")
                 }
             } else {
-                HSplitView {
-                    list.frame(minWidth: 280, idealWidth: 320, maxWidth: 420)
-                    detail.frame(minWidth: 320, maxWidth: .infinity)
+                // Plain HStack: HSplitView mis-sizes a List vertically (content sinks to the bottom).
+                HStack(spacing: 0) {
+                    list.frame(width: 320).frame(maxHeight: .infinity)
+                    Divider()
+                    detail.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .frame(maxHeight: .infinity)
             }
         }
         .confirmationDialog("清空历史记录？", isPresented: $confirmClear) {
