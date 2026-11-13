@@ -3,6 +3,20 @@ import Foundation
 import Observation
 import ServiceManagement
 
+enum ASRProvider: String, CaseIterable, Identifiable, Codable, Sendable {
+    case bailian
+    case deepseek
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .bailian: "阿里云百炼（实时流式）"
+        case .deepseek: "DeepSeek（录完后整段识别）"
+        }
+    }
+}
+
 enum ASRRegion: String, CaseIterable, Identifiable, Codable, Sendable {
     case beijing
     case singapore
@@ -86,6 +100,7 @@ final class SettingsStore {
     var soundFeedbackEnabled: Bool { didSet { defaults.set(soundFeedbackEnabled, forKey: Keys.soundFeedbackEnabled) } }
 
     // MARK: Speech recognition
+    var asrProvider: ASRProvider { didSet { defaults.set(asrProvider.rawValue, forKey: Keys.asrProvider) } }
     var asrRegion: ASRRegion { didSet { defaults.set(asrRegion.rawValue, forKey: Keys.asrRegion) } }
     var asrWorkspaceID: String { didSet { defaults.set(asrWorkspaceID, forKey: Keys.asrWorkspaceID) } }
     /// Advanced: full custom `wss://` endpoint. Overrides region / workspace when non-empty.
@@ -131,6 +146,7 @@ final class SettingsStore {
         overlayPosition = raw(Keys.overlayPosition, .bottomCenter)
         soundFeedbackEnabled = bool(Keys.soundFeedbackEnabled, false)
 
+        asrProvider = raw(Keys.asrProvider, .bailian)
         asrRegion = raw(Keys.asrRegion, .beijing)
         asrWorkspaceID = defaults.string(forKey: Keys.asrWorkspaceID) ?? ""
         asrCustomURL = defaults.string(forKey: Keys.asrCustomURL) ?? ""
@@ -218,6 +234,7 @@ final class SettingsStore {
         static let hotkey = "opentype.hotkey"
         static let overlayPosition = "opentype.overlayPosition"
         static let soundFeedbackEnabled = "opentype.soundFeedbackEnabled"
+        static let asrProvider = "opentype.asrProvider"
         static let asrRegion = "opentype.asrRegion"
         static let asrWorkspaceID = "opentype.asrWorkspaceID"
         static let asrCustomURL = "opentype.asrCustomURL"

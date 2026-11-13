@@ -85,52 +85,93 @@ private struct SpeechRecognitionSettingsTab: View {
     var body: some View {
         @Bindable var settingsStore = settingsStore
         Form {
-            Section("阿里云百炼（qwen3-asr-flash-realtime）") {
-                Picker("区域", selection: $settingsStore.asrRegion) {
-                    ForEach(ASRRegion.allCases) { Text($0.displayName).tag($0) }
+            Section("服务商") {
+                Picker("语音识别服务", selection: $settingsStore.asrProvider) {
+                    ForEach(ASRProvider.allCases) { Text($0.displayName).tag($0) }
                 }
-                TextField("Workspace ID", text: $settingsStore.asrWorkspaceID)
-                SecretField(
-                    title: "API Key",
-                    account: CredentialAccount.bailianAPIKey,
-                    credentials: coordinator.credentialStore
-                )
-                DisclosureGroup("高级：自定义 WebSocket 地址") {
-                    TextField("wss://…（留空则使用上方区域与 Workspace ID）", text: $settingsStore.asrCustomURL)
-                }
-                HStack {
-                    Button("测试连接") { test() }
-                        .disabled(testResult == .running)
-                    TestResultView(result: testResult)
-                }
+                .onChange(of: settingsStore.asrProvider) { _, _ in testResult = .idle }
             }
-            Section("识别") {
-                Picker("识别语言", selection: $settingsStore.asrLanguage) {
-                    ForEach(ASRLanguage.allCases) { Text($0.displayName).tag($0) }
-                }
-                Picker("断句模式", selection: $settingsStore.asrTurnDetection) {
-                    ForEach(ASRTurnDetection.allCases) { Text($0.displayName).tag($0) }
-                }
-                if settingsStore.asrTurnDetection == .serverVAD {
-                    HStack {
-                        Text("VAD 阈值")
-                        Slider(value: $settingsStore.asrVADThreshold, in: -1...1, step: 0.1)
-                        Text(settingsStore.asrVADThreshold, format: .number.precision(.fractionLength(1)))
-                            .monospacedDigit().frame(width: 36)
-                    }
-                    Stepper("静音时长：\(settingsStore.asrSilenceDurationMS) ms",
-                            value: $settingsStore.asrSilenceDurationMS, in: 200...2000, step: 100)
-                } else {
-                    Text("手动模式在结束录音时发送 commit，建议单次录音不超过 60 秒。")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Section {
-                Text("录音会实时发送到阿里云百炼进行识别；默认不在本地保存音频与识别记录。")
-                    .font(.caption).foregroundStyle(.secondary)
+            switch settingsStore.asrProvider {
+            case .bailian:
+                bailianSections(settingsStore: settingsStore)
+            case .deepseek:
+                deepseekSections()
             }
         }
         .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private func bailianSections(settingsStore: SettingsStore) -> some View {
+        @Bindable var settingsStore = settingsStore
+        Section("阿里云百炼（qwen3-asr-flash-realtime）") {
+            Picker("区域", selection: $settingsStore.asrRegion) {
+                ForEach(ASRRegion.allCases) { Text($0.displayName).tag($0) }
+            }
+            TextField("Workspace ID", text: $settingsStore.asrWorkspaceID)
+            SecretField(
+                title: "API Key",
+                account: CredentialAccount.bailianAPIKey,
+                credentials: coordinator.credentialStore
+            )
+            DisclosureGroup("高级：自定义 WebSocket 地址") {
+                TextField("wss://…（留空则使用上方区域与 Workspace ID）", text: $settingsStore.asrCustomURL)
+            }
+            HStack {
+                Button("测试连接") { test() }
+                    .disabled(testResult == .running)
+                TestResultView(result: testResult)
+            }
+        }
+        Section("识别") {
+            Picker("识别语言", selection: $settingsStore.asrLanguage) {
+                ForEach(ASRLanguage.allCases) { Text($0.displayName).tag($0) }
+            }
+            Picker("断句模式", selection: $settingsStore.asrTurnDetection) {
+                ForEach(ASRTurnDetection.allCases) { Text($0.displayName).tag($0) }
+            }
+            if settingsStore.asrTurnDetection == .serverVAD {
+                HStack {
+                    Text("VAD 阈值")
+                    Slider(value: $settingsStore.asrVADThreshold, in: -1...1, step: 0.1)
+                    Text(settingsStore.asrVADThreshold, format: .number.precision(.fractionLength(1)))
+                        .monospacedDigit().frame(width: 36)
+                }
+                Stepper("静音时长：\(settingsStore.asrSilenceDurationMS) ms",
+                        value: $settingsStore.asrSilenceDurationMS, in: 200...2000, step: 100)
+            } else {
+                Text("手动模式在结束录音时发送 commit，建议单次录音不超过 60 秒。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        Section {
+            Text("录音会实时发送到阿里云百炼进行识别；默认不在本地保存音频与识别记录。")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func deepseekSections() -> some View {
+        Section("DeepSeek 语音识别") {
+            SecretField(
+                title: "API Key",
+                account: CredentialAccount.deepseekASRAPIKey,
+                credentials: coordinator.credentialStore
+            )
+            HStack {
+                Button("测试连接") { test() }
+                    .disabled(testResult == .running)
+                TestResultView(result: testResult)
+            }
+            Text("语言自动识别，支持中文、粤语、英语、日语、韩语等 21 种语言。")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        Section {
+            Text("DeepSeek 不支持流式识别：录音期间不会显示实时文字，结束录音后才会上传整段音频并返回结果。单次请求最长 120 秒，更长的录音会自动分段识别。测试连接会发送一段 0.5 秒的静音，按 1 秒计费。")
+                .font(.caption).foregroundStyle(.secondary)
+            Text("录音结束后会以 WAV 文件整段发送到 DeepSeek（api.deepseek.com）进行识别；默认不在本地保存音频与识别记录。")
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
 
     private func test() {
@@ -302,7 +343,7 @@ private struct PrivacyPermissionsSettingsTab: View {
             }
             Section("隐私") {
                 Text("默认不将原始音频或识别记录写入磁盘；临时内容随会话结束释放。")
-                Text("语音流发送至阿里云百炼；转写文本发送至所配置的 LLM 服务。API Key 仅存于 Keychain。")
+                Text("语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 仅存于 Keychain。")
                     .foregroundStyle(.secondary)
                 Toggle("启用诊断日志（仅记录阶段耗时，不含语音与文字内容）", isOn: $settingsStore.diagnosticsEnabled)
                 Button("清除临时数据") { coordinator.clearTemporaryData() }

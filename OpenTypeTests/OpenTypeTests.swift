@@ -51,6 +51,79 @@ struct TranscriptAggregatorTests {
     }
 }
 
+// MARK: - DeepSeek ASR
+
+struct DeepSeekASRTests {
+    @Test func wavHeaderDescribesMono16BitPCM() {
+        let pcm = Data(count: 3200)
+        let wav = DeepSeekASR.wav(pcm: pcm)
+        #expect(wav.count == 44 + 3200)
+        #expect(String(decoding: wav.prefix(4), as: UTF8.self) == "RIFF")
+        #expect(String(decoding: wav[8..<12], as: UTF8.self) == "WAVE")
+        func u32(_ offset: Int) -> UInt32 {
+            wav.subdata(in: offset..<offset + 4).withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
+        }
+        func u16(_ offset: Int) -> UInt16 {
+            wav.subdata(in: offset..<offset + 2).withUnsafeBytes { $0.loadUnaligned(as: UInt16.self) }
+        }
+        #expect(u32(4) == 36 + 3200)
+        #expect(u16(20) == 1)       // PCM
+        #expect(u16(22) == 1)       // mono
+        #expect(u32(24) == 16000)   // sample rate
+        #expect(u32(28) == 32000)   // byte rate
+        #expect(u16(34) == 16)      // bits
+        #expect(u32(40) == 3200)    // data size
+    }
+
+    @Test func requestIsMultipartWithBearerHeaderAndNoKeyInURL() throws {
+        let request = DeepSeekASR.makeRequest(url: DeepSeekASR.endpoint, apiKey: "sk-secret", pcm: Data(count: 64), boundary: "B")
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.absoluteString == "https://api.deepseek.com/v1/tools/asr")
+        #expect(request.url?.absoluteString.contains("sk-secret") == false)
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer sk-secret")
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "multipart/form-data; boundary=B")
+        let body = try #require(request.httpBody)
+        let text = String(decoding: body, as: UTF8.self)
+        #expect(text.hasPrefix("--B\r\nContent-Disposition: form-data; name=\"file\"; filename=\"speech.wav\""))
+        #expect(text.hasSuffix("\r\n--B--\r\n"))
+    }
+
+    @Test func splitsLongRecordingsOnSampleBoundaries() {
+        let pcm = Data(count: 1001)
+        let parts = DeepSeekASR.segments(of: pcm, maxBytes: 400)
+        #expect(parts.map(\.count) == [400, 400, 201])
+        #expect(DeepSeekASR.segments(of: Data(count: 100), maxBytes: 400).count == 1)
+        #expect(DeepSeekASR.maxSegmentBytes <= 8 * 1024 * 1024)
+        #expect(DeepSeekASR.maxSegmentSeconds < 120)
+    }
+
+    @Test func parsesTranscriptAndMapsErrors() throws {
+        let json = Data(#"{"request_id":"r","text":"上海今天天气怎么样？","duration_ms":3200}"#.utf8)
+        #expect(try DeepSeekASR.parseTranscript(json) == "上海今天天气怎么样？")
+        #expect(throws: ASRError.self) { try DeepSeekASR.parseTranscript(Data("nope".utf8)) }
+        #expect(DeepSeekASR.error(forStatus: 401) == .auth(401))
+        #expect(DeepSeekASR.error(forStatus: 429) == .rateLimited)
+        #expect(DeepSeekASR.error(forStatus: 504) == .timeout)
+        #expect(DeepSeekASR.error(forStatus: 408) == .timeout)
+    }
+
+    @Test func buffersAudioAndEmitsNothingBeforeFinish() async throws {
+        let asr = DeepSeekASR(config: ASRConfig(url: DeepSeekASR.endpoint, apiKey: "k", language: nil, turnDetection: .manual, provider: .deepseek))
+        try await asr.connect()
+        try await asr.sendAudio(Data(count: 3200))
+        await asr.close()
+        var received: [ASREvent] = []
+        for await event in asr.events { received.append(event) }
+        #expect(received.isEmpty)
+        await #expect(throws: ASRError.self) { try await asr.sendAudio(Data(count: 2)) }
+    }
+
+    @Test func rejectsNonHTTPSEndpoint() async {
+        let asr = DeepSeekASR(config: ASRConfig(url: URL(string: "http://example.com")!, apiKey: "k", language: nil, turnDetection: .manual, provider: .deepseek))
+        await #expect(throws: ASRError.self) { try await asr.connect() }
+    }
+}
+
 // MARK: - ASR config / payload
 
 struct ASRConfigTests {
@@ -590,6 +663,24 @@ struct CoordinatorTests {
         guard case .error(let message) = c.state else { Issue.record("expected error, got \(c.state)"); return }
         #expect(message.contains("Workspace ID"))
         #expect(!c.state.isBusy)
+    }
+
+    @Test func deepSeekProviderRequiresItsOwnKey() async {
+        let harness = Harness(asr: { FakeASR() }, configure: { $0.asrProvider = .deepseek })
+        let c = harness.coordinator
+        c.beginSession(mode: .hold)
+        await harness.wait { if case .error = c.state { true } else { false } }
+        guard case .error(let message) = c.state else { Issue.record("expected error, got \(c.state)"); return }
+        #expect(message.contains("DeepSeek"))
+    }
+
+    @Test func deepSeekConfigUsesDeepSeekEndpointAndKey() throws {
+        let harness = Harness(asr: { FakeASR() }, configure: { $0.asrProvider = .deepseek })
+        try harness.credentials.save("ds-key", account: CredentialAccount.deepseekASRAPIKey)
+        let config = try harness.coordinator.asrConfig()
+        #expect(config.provider == .deepseek)
+        #expect(config.url == DeepSeekASR.endpoint)
+        #expect(config.apiKey == "ds-key")
     }
 
     @Test func deniedMicrophoneFailsCleanly() async {

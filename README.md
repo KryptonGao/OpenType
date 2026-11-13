@@ -8,7 +8,7 @@
 
 - **按一下开始、再按一下结束**：全局快捷键，完全自定义——单个按键、组合键、单个修饰键（区分左右，如右 ⌥）或 `fn` 均可。
 - **不抢焦点**：悬浮窗为非激活式 `NSPanel`，实时显示音量波形和识别文字（已确认文字 + 浅色的未稳定部分）。
-- **实时 ASR**：`AVAudioEngine` 采集，16 kHz / 单声道 / PCM16 流式发送到阿里云百炼 `qwen3-asr-flash-realtime`。
+- **ASR**：`AVAudioEngine` 采集，16 kHz / 单声道 / PCM16。可选阿里云百炼 `qwen3-asr-flash-realtime`（实时流式）或 DeepSeek（录完后整段上传）。
 - **ASR 与 LLM 解耦**：内置 OpenAI Responses、OpenAI Chat Completions、Anthropic Messages 三种协议适配器，兼容第三方 OpenAI 兼容服务；支持多 Profile、三档处理等级（原始 / 标准 / 深度整理）。
 - **失败不丢字**：LLM 失败或超时可自动回退为 ASR 原文；ASR 断线时保留已识别内容供复制；`Esc` 随时取消，取消时不会插入任何文字。
 - **三级插入**：Accessibility 直写 → 模拟粘贴（自动备份并恢复剪贴板）→ 悬浮窗手动复制。不会向密码框、安全输入模式或已切换的应用写入，也不会自动回车或提交。
@@ -60,7 +60,9 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 
 ### 配置服务
 
-- **语音识别**（设置 → 语音识别）：选择区域（北京 / 新加坡），填写百炼 Workspace ID 与 API Key，可点「测试连接」。也支持自定义 `wss://` 地址。
+- **语音识别**（设置 → 语音识别）：先选择服务商。
+  - 阿里云百炼（实时流式）：选择区域（北京 / 新加坡），填写 Workspace ID 与 API Key，可点「测试连接」。也支持自定义 `wss://` 地址。
+  - DeepSeek（整段识别）：只需填写 API Key。该接口不支持流式，录音期间没有实时文字，结束后上传整段 WAV 并返回结果；单次请求最长 120 秒，更长的录音自动分段识别。
 - **AI 处理**（设置 → AI 处理）：新建 Profile，选择 API 格式，填写 Base URL、Model ID 和 API Key，可点「测试连接」。Base URL 只允许 `https`，末尾的 `/v1`、`/responses` 等会被规范化，不会重复拼接。
 
 ## 使用
@@ -79,7 +81,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 
 ## 隐私与安全
 
-- 录音会实时发送到阿里云百炼；转写文本会发送到你配置的 LLM 服务。除此之外没有任何其他网络请求。
+- 录音会发送到你选择的语音识别服务（阿里云百炼实时流式，或 DeepSeek 录完后整段上传）；转写文本会发送到你配置的 LLM 服务。除此之外没有任何其他网络请求。
 - API Key 仅保存在 Keychain，界面只显示「已保存」，不会读回；不会写入 `UserDefaults`、日志或错误提示。
 - 只接受校验证书的 HTTPS / WSS；Workspace ID 经过格式校验，密钥只会发往由它生成的阿里云域名或你明确填写的自定义 `wss://` 地址。
 - 默认不落盘原始音频和识别记录。诊断日志默认关闭，开启后也只记录各阶段耗时。
@@ -92,7 +94,7 @@ OpenType/
 ├── Core/           会话状态机与协调器、转写聚合器
 ├── Services/
 │   ├── Audio/      AVAudioEngine 采集、重采样与分块
-│   ├── ASR/        百炼实时识别 WebSocket 客户端
+│   ├── ASR/        百炼实时识别 WebSocket 客户端、DeepSeek 整段识别客户端
 │   ├── LLM/        三种协议适配器、Prompt、错误映射
 │   ├── Hotkey/     CGEventTap 全局快捷键与快捷键配置
 │   ├── Insertion/  三级文本插入

@@ -61,7 +61,12 @@ final class DictationSessionCoordinator {
         permissions: PermissionManager = PermissionManager(),
         audio: any AudioCapturing = AudioCaptureService(),
         permissionChecker: (any PermissionChecking)? = nil,
-        makeASR: @escaping (ASRConfig) -> any ASRService = { BailianRealtimeASR(config: $0) },
+        makeASR: @escaping (ASRConfig) -> any ASRService = { config in
+            switch config.provider {
+            case .bailian: BailianRealtimeASR(config: config)
+            case .deepseek: DeepSeekASR(config: config)
+            }
+        },
         makeLLM: @escaping (LLMProfile, String) -> any LLMProvider = { HTTPLLMProvider(profile: $0, apiKey: $1) },
         textProcessor: TextProcessor = TextProcessor(),
         inserter: any TextInserting = TextInsertionService(),
@@ -281,8 +286,9 @@ final class DictationSessionCoordinator {
             return handleASRFailure(.disconnected(error.localizedDescription), sessionID: id)
         }
         var timedOut = false
+        let finalizeTimeout = asr.finalizeTimeout
         let watchdog = Task { [asr] in
-            try? await Task.sleep(for: .seconds(10))
+            try? await Task.sleep(for: finalizeTimeout)
             guard !Task.isCancelled else { return }
             timedOut = true
             await asr.close() // ends the event stream so the wait below returns
@@ -460,6 +466,12 @@ final class DictationSessionCoordinator {
     // MARK: - Configuration
 
     func asrConfig() throws -> ASRConfig {
+        if settingsStore.asrProvider == .deepseek {
+            guard let key = try? credentialStore.load(account: CredentialAccount.deepseekASRAPIKey), !key.isEmpty else {
+                throw ASRError.invalidConfig("请先在设置中填写 DeepSeek API Key")
+            }
+            return ASRConfig(url: DeepSeekASR.endpoint, apiKey: key, language: nil, turnDetection: .manual, provider: .deepseek)
+        }
         let url = try ASRConfig.endpoint(
             region: settingsStore.asrRegion,
             workspaceID: settingsStore.asrWorkspaceID,
@@ -487,14 +499,7 @@ final class DictationSessionCoordinator {
     // MARK: - Connection tests (Settings)
 
     func testASRConnection() async throws {
-        let asr = makeASR(try asrConfig())
-        do {
-            try await asr.connect()
-            await asr.close()
-        } catch {
-            await asr.close()
-            throw error
-        }
+        try await makeASR(try asrConfig()).probe()
     }
 
     /// Sends a tiny sample through the profile's adapter. Distinguishes auth / model / network / format errors.

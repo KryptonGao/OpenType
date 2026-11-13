@@ -12,7 +12,7 @@ enum ASRError: Error, Equatable, Sendable {
     var userMessage: String {
         switch self {
         case .invalidConfig(let detail): "语音识别配置无效：\(detail)"
-        case .auth(let code): "语音识别鉴权失败（HTTP \(code)），请检查 API Key 与 Workspace ID"
+        case .auth(let code): "语音识别鉴权失败（HTTP \(code)），请检查 API Key（百炼还需检查 Workspace ID）"
         case .rateLimited: "语音识别被限流（429），请稍后重试"
         case .timeout: "连接语音识别服务超时"
         case .disconnected(let detail): "语音识别连接中断：\(detail)"
@@ -39,6 +39,7 @@ struct ASRConfig: Sendable, Equatable {
     var apiKey: String
     var language: String?
     var turnDetection: TurnDetection
+    var provider: ASRProvider = .bailian
 
     static let model = "qwen3-asr-flash-realtime"
 
@@ -79,6 +80,24 @@ protocol ASRService: Sendable {
     /// Sends `session.finish`; the server then flushes pending `completed` events and `session.finished`.
     func finish() async throws
     func close() async
+    /// How long the coordinator waits for pending results after `finish()` before using what it has.
+    var finalizeTimeout: Duration { get }
+    /// Settings "test connection": verifies the credentials end to end.
+    func probe() async throws
+}
+
+extension ASRService {
+    var finalizeTimeout: Duration { .seconds(10) }
+
+    func probe() async throws {
+        do {
+            try await connect()
+            await close()
+        } catch {
+            await close()
+            throw error
+        }
+    }
 }
 
 /// Aliyun Bailian `qwen3-asr-flash-realtime` WebSocket client.
