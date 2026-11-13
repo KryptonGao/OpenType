@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="t d">
+  <title id="t">三种语音会话</title>
+  <desc id="d">听写：短按 ⌃⌥ Space 开始与结束；语音翻译：按 ⌃⌥ T；帮我说：按住听写快捷键约 0.45 秒后进入，松开结束。</desc>
+  <defs>
+    <linearGradient id="caret" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFB547"/></linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="28" fill="#0B1331"/>
+  <rect x="0.5" y="0.5" width="1199" height="299" rx="27.5" fill="none" stroke="#22305F"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif">
+    <!-- Card 1 -->
+    <g transform="translate(40 40)">
+      <rect width="350" height="220" rx="20" fill="#121C44" stroke="#2A3A70"/>
+      <g fill="#63A4FF"><rect x="30" y="38" width="8" height="16" rx="4"/><rect x="46" y="30" width="8" height="32" rx="4"/><rect x="62" y="24" width="8" height="44" rx="4"/><rect x="78" y="32" width="8" height="28" rx="4"/></g>
+      <text x="106" y="56" font-size="34" font-weight="800" fill="#F4F7FF">听写</text>
+      <text x="30" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="600" fill="#FFC15E">短按 ⌃⌥ Space</text>
+      <text x="30" y="156" font-size="22" fill="#C4CFF0">去口头禅、补标点，</text>
+      <text x="30" y="188" font-size="22" fill="#C4CFF0">文字插入原来的光标处</text>
+    </g>
+    <!-- Card 2 -->
+    <g transform="translate(425 40)">
+      <rect width="350" height="220" rx="20" fill="#121C44" stroke="#2A3A70"/>
+      <g fill="none" stroke="#63A4FF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M30 40 H76 M64 28 L76 40 L64 52"/><path d="M80 62 H34 M46 50 L34 62 L46 74" transform="translate(0 -6)"/>
+      </g>
+      <text x="106" y="56" font-size="34" font-weight="800" fill="#F4F7FF">语音翻译</text>
+      <text x="30" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="600" fill="#FFC15E">按 ⌃⌥ T</text>
+      <text x="30" y="156" font-size="22" fill="#C4CFF0">先整理再翻译，</text>
+      <text x="30" y="188" font-size="22" fill="#C4CFF0">支持 15 种目标语言</text>
+    </g>
+    <!-- Card 3 -->
+    <g transform="translate(810 40)">
+      <rect width="350" height="220" rx="20" fill="#121C44" stroke="#FFC15E" stroke-opacity="0.7"/>
+      <g fill="url(#caret)"><rect x="46" y="22" width="6" height="44" rx="3"/><rect x="36" y="22" width="26" height="5" rx="2.5"/><rect x="36" y="61" width="26" height="5" rx="2.5"/></g>
+      <text x="106" y="56" font-size="34" font-weight="800" fill="#F4F7FF">帮我说</text>
+      <text x="30" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="600" fill="#FFC15E">长按 ⌃⌥ Space</text>
+      <text x="30" y="156" font-size="22" fill="#C4CFF0">把随口一句话细化成</text>
+      <text x="30" y="188" font-size="22" fill="#C4CFF0">可以直接发出的成品</text>
+    </g>
+  </g>
+</svg>
