@@ -46,17 +46,26 @@ struct OverlayView: View {
     }
 
     private var mainCapsule: some View {
-        Group {
-            switch coordinator.state {
-            case .recording, .connecting:
-                WaveformView(levels: Array(coordinator.levelHistory.suffix(12)), color: statusColor, spacing: 2)
-                    .frame(width: 56, height: 14)
-            default:
-                statusIcon
+        VStack(spacing: 3) {
+            if coordinator.isHelpMeSay {
+                Text("帮我说")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
+            Group {
+                switch coordinator.state {
+                case .recording, .connecting:
+                    WaveformView(levels: Array(coordinator.levelHistory.suffix(12)), color: statusColor, spacing: 2)
+                        .frame(width: 56, height: 14)
+                default:
+                    statusIcon
+                }
+            }
+            .frame(minHeight: 16)
         }
-        .frame(minWidth: 72, minHeight: 28)
-        .padding(.horizontal, 6)
+        .frame(minWidth: 72, minHeight: coordinator.isHelpMeSay ? 46 : 28)
+        .padding(.horizontal, 10)
+        .padding(.vertical, coordinator.isHelpMeSay ? 4 : 0)
         .capsuleBackground()
     }
 
