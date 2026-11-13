@@ -2,8 +2,16 @@ import SwiftUI
 
 struct OverlayView: View {
     let coordinator: DictationSessionCoordinator
+    /// Reports the size the content wants. The panel is resized from this callback (asynchronously) instead of letting
+    /// the hosting view drive the window size, which could loop forever between window layout and SwiftUI layout.
+    var onContentSizeChange: (CGSize) -> Void = { _ in }
 
     var body: some View {
+        content
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { onContentSizeChange($0) }
+    }
+
+    @ViewBuilder private var content: some View {
         if usesMinimalLayout {
             minimalBody
         } else {

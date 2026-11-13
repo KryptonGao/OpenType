@@ -1687,3 +1687,38 @@ struct HistoryStoreTests {
         #expect(store.records.count == HistoryStore.maxRecords)
     }
 }
+
+// MARK: - Overlay panel
+
+/// Regression: showing the translation overlay and rapidly changing language / region used to recurse between
+/// `NSHostingView.windowDidLayout` and the window resize until the stack overflowed (intermittent crash).
+@MainActor
+struct OverlayPanelStressTests {
+    @Test func translationOverlaySurvivesRapidChanges() async throws {
+        let h = Harness(asr: { FakeASR() })
+        let c = DictationSessionCoordinator(
+            settingsStore: h.settings, credentialStore: h.credentials, permissions: PermissionManager(),
+            historyStore: h.history, audio: h.audio, permissionChecker: h.permissions,
+            makeASR: { _ in FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话原话")]) },
+            makeLLM: { _, _ in FakeLLM(result: .success("x"), recorder: nil) },
+            inserter: h.inserter, overlay: OverlayPanelController(), playsSounds: false
+        )
+        let langs = TranslationLanguage.allCases
+        for round in 0..<30 {
+            h.settings.overlayMinimalMode = round % 3 == 0
+            h.settings.overlayPosition = round % 2 == 0 ? .bottomCenter : .topCenter
+            h.settings.translationTargetLanguage = langs[round % langs.count]
+            c.toggleTranslationFromMenu()
+            try await Task.sleep(for: .milliseconds(Int.random(in: 5...120)))
+            for _ in 0..<5 {
+                c.setTranslationTarget(langs.randomElement()!)
+                if let r = c.translationTarget?.regions.randomElement() { c.setTranslationRegion(r) }
+                try await Task.sleep(for: .milliseconds(Int.random(in: 1...40)))
+            }
+            if round % 2 == 0 { c.toggleTranslationFromMenu() }
+            try await Task.sleep(for: .milliseconds(Int.random(in: 20...300)))
+            c.cancelSession()
+            try await Task.sleep(for: .milliseconds(20))
+        }
+    }
+}

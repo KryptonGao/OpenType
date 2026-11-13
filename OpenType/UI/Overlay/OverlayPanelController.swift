@@ -5,8 +5,8 @@ import SwiftUI
 @MainActor
 final class OverlayPanelController: OverlayPresenting {
     private var panel: NSPanel?
-    private var hostingController: NSHostingController<OverlayView>?
-    private var resizeObserver: NSObjectProtocol?
+    private var hostingView: NSHostingView<OverlayView>?
+    private var pendingContentSize: CGSize?
     private weak var settings: SettingsStore?
 
     func show(coordinator: DictationSessionCoordinator) {
@@ -21,15 +21,19 @@ final class OverlayPanelController: OverlayPresenting {
     }
 
     private func buildPanel(coordinator: DictationSessionCoordinator) {
-        let controller = NSHostingController(rootView: OverlayView(coordinator: coordinator))
-        controller.sizingOptions = [.preferredContentSize]
+        // The window size is deliberately NOT driven by the hosting view (`sizingOptions = []`): letting SwiftUI resize the
+        // window from inside its own layout pass could recurse until the stack overflowed (crash when translating).
+        let hosting = NSHostingView(rootView: OverlayView(coordinator: coordinator, onContentSizeChange: { [weak self] size in
+            MainActor.assumeIsolated { self?.contentSizeChanged(size) }
+        }))
+        hosting.sizingOptions = []
         let panel = OverlayPanel(
             contentRect: NSRect(x: 0, y: 0, width: 436, height: 80),
             styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
         )
-        panel.contentViewController = controller
+        panel.contentView = hosting
         panel.isFloatingPanel = true
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
@@ -40,13 +44,30 @@ final class OverlayPanelController: OverlayPresenting {
         panel.isMovableByWindowBackground = false
         panel.becomesKeyOnlyIfNeeded = true
         self.panel = panel
-        self.hostingController = controller
-        // Content height changes with the transcript: keep the panel anchored to its edge.
-        resizeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didResizeNotification, object: panel, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.reposition() }
+        self.hostingView = hosting
+    }
+
+    /// Content height changes with the transcript: resize on the next run-loop turn (never inside a layout pass) and
+    /// keep the panel anchored to its edge.
+    private func contentSizeChanged(_ size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+        let alreadyScheduled = pendingContentSize != nil
+        pendingContentSize = size
+        guard !alreadyScheduled else { return }
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated { self?.applyPendingContentSize() }
         }
+    }
+
+    private func applyPendingContentSize() {
+        guard let size = pendingContentSize else { return }
+        pendingContentSize = nil
+        guard let panel else { return }
+        let target = NSSize(width: ceil(size.width), height: ceil(size.height))
+        if abs(panel.contentLayoutRect.width - target.width) > 0.5 || abs(panel.contentLayoutRect.height - target.height) > 0.5 {
+            panel.setContentSize(target)
+        }
+        reposition()
     }
 
     /// Screen under the mouse cursor (works for multi-display and full-screen spaces).
