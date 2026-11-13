@@ -247,6 +247,12 @@ final class SettingsStore {
     /// Tap-to-toggle shortcut that starts a translation session. `nil` = no shortcut (menu only).
     var translationHotkey: HotkeyConfig? { didSet { persistTranslationHotkey() } }
 
+    // MARK: Help me say (长按听写快捷键)
+    /// Holding the dictation shortcut starts a "help me say" session (speech → polished and elaborated text).
+    var helpMeSayEnabled: Bool { didSet { defaults.set(helpMeSayEnabled, forKey: Keys.helpMeSayEnabled) } }
+    /// Custom system prompt for help-me-say; blank falls back to `TextProcessor.defaultHelpMeSayPrompt`.
+    var helpMeSayPrompt: String { didSet { defaults.set(helpMeSayPrompt, forKey: Keys.helpMeSayPrompt) } }
+
     // MARK: Privacy
     var diagnosticsEnabled: Bool {
         didSet {
@@ -313,6 +319,9 @@ final class SettingsStore {
         } else {
             translationHotkey = .defaultTranslation
         }
+
+        helpMeSayEnabled = bool(Keys.helpMeSayEnabled, true)
+        helpMeSayPrompt = defaults.string(forKey: Keys.helpMeSayPrompt) ?? TextProcessor.defaultHelpMeSayPrompt
 
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
         Diagnostics.isEnabled = diagnosticsEnabled
@@ -423,6 +432,8 @@ final class SettingsStore {
         static let translationTargetLanguage = "opentype.translationTargetLanguage"
         static let translationRegions = "opentype.translationRegions"
         static let translationHotkey = "opentype.translationHotkey"
+        static let helpMeSayEnabled = "opentype.helpMeSayEnabled"
+        static let helpMeSayPrompt = "opentype.helpMeSayPrompt"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }
 }

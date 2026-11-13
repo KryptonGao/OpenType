@@ -9,6 +9,11 @@ final class HotkeyManager {
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
     var onCancel: (() -> Void)?
+    /// Fired once when the shortcut has been held for `longPressDelay` without interruption.
+    /// Return `true` when the long press was handled (the hold now owns the gesture): a modifier-only
+    /// shortcut then no longer fires `onPress` on release, only `onRelease`.
+    var onLongPress: (() -> Bool)?
+    var longPressDelay: Duration = .milliseconds(450)
     /// Return `false` (e.g. hotkeys paused) to let events pass through untouched.
     var isEnabled: () -> Bool = { true }
     /// Return `true` while a session / result is visible so `Escape` is consumed and cancels it.
@@ -27,6 +32,9 @@ final class HotkeyManager {
     /// and only if no other key / mouse button went down while it was held. That keeps ordinary chords
     /// such as ⌘C or ⌥-click from triggering dictation, while a quick tap works instantly.
     private var pendingTap = false
+    private var longPressTask: Task<Void, Never>?
+    /// The current hold was claimed by `onLongPress`; its release must be reported via `onRelease`.
+    private var longPressConsumed = false
     private static let escapeKeyCode = HotkeyConfig.escapeKeyCode
 
     /// Modifiers that take part in matching. `fn` is only compared when the shortcut itself uses it,
@@ -74,7 +82,9 @@ final class HotkeyManager {
         runLoopSource = nil
         isListening = false
         pendingTap = false
+        cancelLongPress()
         releaseIfHeld()
+        endConsumedLongPress()
     }
 
     // MARK: Event handling
@@ -87,7 +97,9 @@ final class HotkeyManager {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             pendingTap = false
+            cancelLongPress()
             releaseIfHeld() // we may have missed the key-up: never leave a session stuck
+            endConsumedLongPress()
             return false
 
         case .leftMouseDown, .rightMouseDown, .otherMouseDown:
@@ -101,11 +113,14 @@ final class HotkeyManager {
                 isHeld = true
                 swallowKeyUp = true
                 onPress?()
+                armLongPress()
                 return true
             }
             if keyCode == Self.escapeKeyCode, shouldInterceptEscape() {
                 isHeld = false
                 pendingTap = false
+                cancelLongPress()
+                longPressConsumed = false // the session is being cancelled: no release to report
                 suppressedUntilModifiersChange = true
                 onCancel?()
                 return true
@@ -164,12 +179,19 @@ final class HotkeyManager {
     private func beginModifierOnlyPress() {
         guard !pendingTap, !suppressedUntilModifiersChange, isEnabled() else { return }
         pendingTap = true
+        armLongPress()
     }
 
-    /// The modifier went up: if nothing interrupted the press, it counts as one tap of the shortcut.
+    /// The modifier went up: if nothing interrupted the press, it counts as one tap of the shortcut
+    /// (or, after a handled long press, as the end of the hold).
     private func endModifierOnlyPress() {
         guard pendingTap else { return }
         pendingTap = false
+        cancelLongPress()
+        if longPressConsumed {
+            endConsumedLongPress()
+            return
+        }
         guard isEnabled() else { return }
         onPress?()
         onRelease?()
@@ -178,13 +200,51 @@ final class HotkeyManager {
     private func abortPendingTap() {
         guard pendingTap else { return }
         pendingTap = false
+        cancelLongPress()
         suppressedUntilModifiersChange = true
+        endConsumedLongPress() // another key joined a hold: end it rather than leave it stuck
     }
 
     private func releaseIfHeld() {
         guard isHeld else { return }
         isHeld = false
+        cancelLongPress()
+        longPressConsumed = false
         onRelease?()
+    }
+
+    // MARK: Long press
+
+    private func armLongPress() {
+        longPressTask?.cancel()
+        longPressConsumed = false
+        guard onLongPress != nil else { return }
+        let delay = longPressDelay
+        longPressTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            self?.fireLongPress()
+        }
+    }
+
+    private func cancelLongPress() {
+        longPressTask?.cancel()
+        longPressTask = nil
+    }
+
+    /// Called when the hold threshold elapses (also invoked directly by tests).
+    /// Only meaningful while the shortcut is still held.
+    func fireLongPress() {
+        longPressTask = nil
+        guard isHeld || pendingTap, isEnabled() else { return }
+        longPressConsumed = onLongPress?() ?? false
+    }
+
+    /// Reports the end of a hold that `onLongPress` claimed (modifier-only shortcuts; chords release via key-up).
+    private func endConsumedLongPress() {
+        guard longPressConsumed else { return }
+        longPressConsumed = false
+        if !isHeld { onRelease?() }
     }
 }
 

@@ -162,10 +162,17 @@ struct OverlayView: View {
     private var statusTitle: String {
         switch coordinator.state {
         case .idle: "待机"
-        case .connecting: "正在连接…"
-        case .recording: coordinator.sessionMode == .hold ? "正在聆听…（松开结束）" : "正在聆听…（再按一次结束）"
+        case .connecting: coordinator.isHelpMeSay ? "帮我说 · 正在连接…" : "正在连接…"
+        case .recording:
+            switch (coordinator.isHelpMeSay, coordinator.sessionMode) {
+            case (true, .hold): "帮我说 · 正在聆听…（松开结束）"
+            case (true, .toggle): "帮我说 · 正在聆听…（再按一次结束）"
+            case (false, .hold): "正在聆听…（松开结束）"
+            case (false, .toggle): "正在聆听…（再按一次结束）"
+            }
         case .finalizing: "正在收尾…"
-        case .processing: coordinator.translationTarget == nil ? "正在整理文本…" : "正在翻译…"
+        case .processing:
+            coordinator.isHelpMeSay ? "正在帮你说…" : coordinator.translationTarget == nil ? "正在整理文本…" : "正在翻译…"
         case .inserting: "正在插入…"
         case .success(let note): note.map { "已插入 · \($0)" } ?? "已插入"
         case .manualCopy(let reason): "未自动插入：\(reason)"

@@ -814,6 +814,126 @@ struct CoordinatorTests {
         c.cancelSession()
     }
 
+    // MARK: Help me say
+
+    @Test func holdingHotkeyUpgradesToHelpMeSayAndReleaseEndsRecording() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "跟老师说我明天请假")]) },
+            llm: .success("老师您好，我明天需要请假一天。"), recorder: recorder,
+            configure: { $0.processingLevel = .raw; $0.llmEnabled = false }
+        )
+        let c = harness.coordinator
+        c.handleHotkeyPress() // key down: starts a normal session
+        #expect(!c.isHelpMeSay)
+        #expect(c.handleHotkeyLongPress() == true) // still held past the threshold
+        #expect(c.isHelpMeSay)
+        #expect(c.sessionMode == .hold)
+        await harness.wait { c.state == .recording }
+        c.handleHotkeyRelease() // key up ends the recording
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["老师您好，我明天需要请假一天。"])
+        #expect(recorder.calls.first?.transcript == "跟老师说我明天请假")
+        #expect(recorder.calls.first?.prompt == TextProcessor.defaultHelpMeSayPrompt)
+    }
+
+    @Test func shortTapStaysPlainDictation() async {
+        let harness = Harness(asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "文本")]) })
+        let c = harness.coordinator
+        c.handleHotkeyPress()
+        c.handleHotkeyRelease() // released before the threshold
+        #expect(!c.isHelpMeSay)
+        #expect(c.sessionMode == .toggle)
+        await harness.wait { c.state == .recording }
+        #expect(c.state == .recording) // keeps recording until the next press
+        c.handleHotkeyPress()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(!harness.inserter.inserted.isEmpty)
+    }
+
+    @Test func longPressWhileEndingARecordingDoesNothing() async {
+        let harness = Harness(asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "文本")]) })
+        let c = harness.coordinator
+        c.handleHotkeyPress()
+        c.handleHotkeyRelease()
+        await harness.wait { c.state == .recording }
+        c.handleHotkeyPress() // this press only stops the recording
+        #expect(c.handleHotkeyLongPress() == false)
+        #expect(!c.isHelpMeSay)
+        await harness.wait { harness.inserter.inserted.count == 1 }
+    }
+
+    @Test func modifierOnlyLongPressStartsHelpMeSayItself() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "问下这个报错")]) },
+            llm: .success("请问……"), recorder: recorder
+        )
+        let c = harness.coordinator
+        #expect(c.handleHotkeyLongPress() == true) // idle: the long press begins the session
+        #expect(c.isHelpMeSay && c.state == .connecting)
+        await harness.wait { c.state == .recording }
+        c.handleHotkeyRelease()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["请问……"])
+    }
+
+    @Test func helpMeSayDisabledIgnoresLongPress() async {
+        let harness = Harness(asr: { FakeASR() }, configure: { $0.helpMeSayEnabled = false })
+        let c = harness.coordinator
+        c.handleHotkeyPress()
+        #expect(c.handleHotkeyLongPress() == false)
+        #expect(!c.isHelpMeSay)
+        #expect(c.sessionMode == .toggle)
+        c.cancelSession()
+        #expect(c.handleHotkeyLongPress() == false)
+        #expect(c.state == .idle)
+    }
+
+    @Test func helpMeSayUsesCustomPromptAndIgnoresCleanupSwitches() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) },
+            llm: .success("成品"), recorder: recorder,
+            configure: { $0.processingLevel = .raw; $0.llmEnabled = false; $0.helpMeSayPrompt = "自定义提示" }
+        )
+        let c = harness.coordinator
+        c.toggleHelpMeSayFromMenu()
+        #expect(c.isHelpMeSay && c.sessionMode == .toggle)
+        await harness.wait { c.state == .recording }
+        c.toggleHelpMeSayFromMenu() // second tap ends it
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["成品"])
+        #expect(recorder.calls.first?.prompt == "自定义提示")
+    }
+
+    @Test func helpMeSayFailureFallsBackOrKeepsRawText() async {
+        let fallback = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
+            llm: .failure(.timeout)
+        )
+        let a = fallback.coordinator
+        a.toggleHelpMeSayFromMenu()
+        await fallback.wait { a.state == .recording }
+        a.toggleHelpMeSayFromMenu()
+        await fallback.wait { fallback.inserter.inserted.count == 1 }
+        #expect(fallback.inserter.inserted == ["原话"]) // fallbackToRawOnLLMFailure defaults to on
+
+        let strict = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
+            llm: .failure(.timeout), configure: { $0.fallbackToRawOnLLMFailure = false }
+        )
+        let b = strict.coordinator
+        b.toggleHelpMeSayFromMenu()
+        await strict.wait { b.state == .recording }
+        b.toggleHelpMeSayFromMenu()
+        await strict.wait { if case .error = b.state { true } else { false } }
+        guard case .error(let message) = b.state else { Issue.record("expected error, got \(b.state)"); return }
+        #expect(message.contains("帮我说失败"))
+        #expect(b.pendingText == "原话")
+        #expect(strict.inserter.inserted.isEmpty)
+    }
+
     @Test func newSessionAfterResultIsAllowed() async {
         let harness = Harness(asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "文本")]) })
         harness.inserter.outcome = .requiresManualCopy(reason: "x")
@@ -894,6 +1014,87 @@ struct HotkeyTests {
         _ = m.handle(type: .keyDown, keyCode: 49, flags: chord, isAutoRepeat: false)
         _ = m.handle(type: .tapDisabledByTimeout, keyCode: 0, flags: [], isAutoRepeat: false)
         #expect(c.release == 1)
+    }
+}
+
+@MainActor
+struct HotkeyLongPressTests {
+    private let chord: CGEventFlags = [.maskControl, .maskAlternate]
+
+    @Test func chordHoldFiresLongPressThenReleases() {
+        let m = HotkeyManager()
+        var press = 0, release = 0, long = 0
+        m.onPress = { press += 1 }; m.onRelease = { release += 1 }
+        m.onLongPress = { long += 1; return true }
+        _ = m.handle(type: .keyDown, keyCode: 49, flags: chord, isAutoRepeat: false)
+        #expect(press == 1)
+        m.fireLongPress()
+        #expect(long == 1 && release == 0)
+        _ = m.handle(type: .keyUp, keyCode: 49, flags: chord, isAutoRepeat: false)
+        #expect(release == 1)
+        m.fireLongPress() // late timer after release: ignored
+        #expect(long == 1)
+    }
+
+    @Test func modifierOnlyHoldReplacesTapWhenClaimed() {
+        let m = HotkeyManager()
+        var press = 0, release = 0, long = 0
+        m.onPress = { press += 1 }; m.onRelease = { release += 1 }
+        m.onLongPress = { long += 1; return true }
+        m.hotkey = HotkeyConfig(keyCode: nil, modifiers: .maskSecondaryFn)
+        _ = m.handle(type: .flagsChanged, keyCode: 63, flags: .maskSecondaryFn, isAutoRepeat: false)
+        m.fireLongPress()
+        #expect(long == 1 && press == 0)
+        _ = m.handle(type: .flagsChanged, keyCode: 63, flags: [], isAutoRepeat: false)
+        #expect(press == 0 && release == 1) // no tap on release, only the end of the hold
+    }
+
+    @Test func unclaimedLongPressStillCountsAsTap() {
+        let m = HotkeyManager()
+        var press = 0, release = 0
+        m.onPress = { press += 1 }; m.onRelease = { release += 1 }
+        m.onLongPress = { false }
+        m.hotkey = HotkeyConfig(keyCode: nil, modifiers: .maskSecondaryFn)
+        _ = m.handle(type: .flagsChanged, keyCode: 63, flags: .maskSecondaryFn, isAutoRepeat: false)
+        m.fireLongPress()
+        _ = m.handle(type: .flagsChanged, keyCode: 63, flags: [], isAutoRepeat: false)
+        #expect(press == 1 && release == 1)
+    }
+
+    @Test func otherKeyDuringClaimedHoldEndsIt() {
+        let m = HotkeyManager()
+        var release = 0
+        m.onRelease = { release += 1 }
+        m.onLongPress = { true }
+        m.hotkey = HotkeyConfig(keyCode: nil, modifiers: .maskSecondaryFn)
+        _ = m.handle(type: .flagsChanged, keyCode: 63, flags: .maskSecondaryFn, isAutoRepeat: false)
+        m.fireLongPress()
+        _ = m.handle(type: .keyDown, keyCode: 123, flags: .maskSecondaryFn, isAutoRepeat: false)
+        #expect(release == 1)
+        _ = m.handle(type: .flagsChanged, keyCode: 63, flags: [], isAutoRepeat: false)
+        #expect(release == 1) // not reported twice
+    }
+
+    @Test func shortHoldNeverFiresLongPress() async {
+        let m = HotkeyManager()
+        var long = 0
+        m.onLongPress = { long += 1; return true }
+        m.longPressDelay = .milliseconds(30)
+        _ = m.handle(type: .keyDown, keyCode: 49, flags: chord, isAutoRepeat: false)
+        _ = m.handle(type: .keyUp, keyCode: 49, flags: chord, isAutoRepeat: false)
+        try? await Task.sleep(for: .milliseconds(120))
+        #expect(long == 0)
+    }
+
+    @Test func timerFiresWhileStillHeld() async {
+        let m = HotkeyManager()
+        var long = 0
+        m.onLongPress = { long += 1; return true }
+        m.longPressDelay = .milliseconds(30)
+        _ = m.handle(type: .keyDown, keyCode: 49, flags: chord, isAutoRepeat: false)
+        try? await Task.sleep(for: .milliseconds(150))
+        #expect(long == 1)
+        _ = m.handle(type: .keyUp, keyCode: 49, flags: chord, isAutoRepeat: false)
     }
 }
 
@@ -1086,6 +1287,21 @@ struct SettingsStoreTests {
         // A region belonging to another language is ignored.
         #expect(TextProcessor.translationSystemPrompt(target: .french, region: .brazil)
                 == TextProcessor.translationSystemPrompt(target: .french))
+    }
+
+    @Test func helpMeSaySettingsDefaultAndPersist() {
+        let suite = "opentype.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        let s = SettingsStore(defaults: defaults)
+        #expect(s.helpMeSayEnabled)
+        #expect(s.helpMeSayPrompt == TextProcessor.defaultHelpMeSayPrompt)
+        s.helpMeSayEnabled = false
+        s.helpMeSayPrompt = "自定义"
+        let reloaded = SettingsStore(defaults: defaults)
+        #expect(!reloaded.helpMeSayEnabled)
+        #expect(reloaded.helpMeSayPrompt == "自定义")
+        #expect(TextProcessor.helpMeSaySystemPrompt(custom: "  \n ") == TextProcessor.defaultHelpMeSayPrompt)
+        #expect(TextProcessor.helpMeSaySystemPrompt(custom: " 自定义 ") == "自定义")
     }
 
     @Test func translationPromptNamesTargetLanguage() {

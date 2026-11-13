@@ -118,7 +118,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -destination 'platform=m
 - 切换式录音（按一次开始、再按一次结束）
 - 自定义词典 / 热词、多 Prompt 预设
 - 可选的本地历史记录、应用级规则
-- 更多语音模型 / 本地 ASR、翻译模式、多语言界面
+- 更多语音模型 / 本地 ASR、多语言界面
 - 全场景兼容性验证（Safari / Chrome / VS Code / Electron / IM / 全屏 / 多屏 / 输入法切换）与 Developer ID 签名、公证
 
 不在范围内：账号与云同步、订阅计费、自建推理服务、非 macOS 平台、多人会议与说话人分离。

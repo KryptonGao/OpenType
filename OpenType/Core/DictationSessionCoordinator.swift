@@ -9,7 +9,7 @@ protocol OverlayPresenting: AnyObject {
 }
 
 enum SessionMode: Sendable {
-    case hold    // press & hold (currently unused by the hotkey, which toggles)
+    case hold    // press & hold: release ends the recording (used by "help me say")
     case toggle  // global hotkey / menu / overlay button: start, then stop explicitly
 }
 
@@ -32,6 +32,8 @@ final class DictationSessionCoordinator {
     private(set) var translationTarget: TranslationLanguage?
     /// Regional variant of `translationTarget` (e.g. Brazil vs. Portugal); `nil` for languages without variants.
     private(set) var translationRegion: TranslationRegion?
+    /// `true` while the current session is "help me say": the speech is turned into a polished, elaborated message.
+    private(set) var isHelpMeSay = false
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
     var isRecordingHotkey = false
 
@@ -59,6 +61,10 @@ final class DictationSessionCoordinator {
     @ObservationIgnored private var interruptionNote: String?
     @ObservationIgnored private var overlayToken = UUID()
     @ObservationIgnored private var timings = SessionTimings()
+    /// The session the current hotkey press started; only that one may be upgraded to help-me-say by a long press.
+    @ObservationIgnored private var holdCandidateID: UUID?
+    /// The user is still holding the shortcut of a help-me-say session: releasing it ends the recording.
+    @ObservationIgnored private var helpMeSayHolding = false
 
     init(
         settingsStore: SettingsStore = SettingsStore(),
@@ -108,6 +114,9 @@ final class DictationSessionCoordinator {
         // Tap-to-toggle: the first press starts dictation, the next press ends it. Key release is ignored.
         hotkeyManager.onPress = { [weak self] in self?.handleHotkeyPress() }
         hotkeyManager.onCancel = { [weak self] in self?.cancelSession() }
+        // Hold the dictation shortcut: "help me say" (push-to-talk; releasing ends the recording).
+        hotkeyManager.onLongPress = { [weak self] in self?.handleHotkeyLongPress() ?? false }
+        hotkeyManager.onRelease = { [weak self] in self?.handleHotkeyRelease() }
         // Second shortcut: same tap-to-toggle behaviour, but the session translates the speech.
         translationHotkeyManager.hotkey = settingsStore.translationHotkey ?? .defaultTranslation
         translationHotkeyManager.isEnabled = { [weak self] in
@@ -135,8 +144,42 @@ final class DictationSessionCoordinator {
         if state == .connecting || state == .recording {
             stopRecording()
         } else {
+            let canStart = !state.isBusy
             beginSession(mode: .toggle)
+            holdCandidateID = canStart ? currentSessionID : nil
         }
+    }
+
+    /// The dictation shortcut was held past the long-press threshold: turns the session into "help me say".
+    /// Chord shortcuts already started a session on key-down, so it is upgraded in place; modifier-only
+    /// shortcuts only report a press on release, so there a long press starts the session itself.
+    /// Returns whether the hold was claimed (the matching release then ends the recording).
+    func handleHotkeyLongPress() -> Bool {
+        guard settingsStore.helpMeSayEnabled else { return false }
+        if let id = holdCandidateID, id == currentSessionID, state == .connecting || state == .recording, !isHelpMeSay {
+            isHelpMeSay = true
+            helpMeSayHolding = true
+            sessionMode = .hold
+            translationTarget = nil
+            translationRegion = nil
+            playSound("Tink")
+            Diagnostics.log("session \(id.uuidString.prefix(8)) upgraded to help-me-say")
+            return true
+        }
+        if !state.isBusy {
+            beginSession(mode: .hold, helpMeSay: true)
+            helpMeSayHolding = state == .connecting
+            return helpMeSayHolding
+        }
+        return false
+    }
+
+    /// The dictation shortcut was released: ends a held help-me-say recording (push-to-talk).
+    func handleHotkeyRelease() {
+        holdCandidateID = nil
+        guard helpMeSayHolding else { return }
+        helpMeSayHolding = false
+        stopRecording()
     }
 
     /// Translation shortcut: starts a translation session when idle, ends the recording when one is running.
@@ -172,6 +215,15 @@ final class DictationSessionCoordinator {
             stopRecording()
         } else {
             beginSession(mode: .toggle, translating: true)
+        }
+    }
+
+    /// Menu entry point for "help me say": toggles recording like `toggleFromMenu` (for when holding a key is inconvenient).
+    func toggleHelpMeSayFromMenu() {
+        if state == .connecting || state == .recording, sessionMode == .toggle {
+            stopRecording()
+        } else {
+            beginSession(mode: .toggle, helpMeSay: true)
         }
     }
 
@@ -214,6 +266,9 @@ final class DictationSessionCoordinator {
         aggregator = TranscriptAggregator()
         translationTarget = nil
         translationRegion = nil
+        isHelpMeSay = false
+        helpMeSayHolding = false
+        holdCandidateID = nil
         state = .idle
         overlay?.hide()
     }
@@ -235,12 +290,15 @@ final class DictationSessionCoordinator {
 
     // MARK: - Session start
 
-    func beginSession(mode: SessionMode, translating: Bool = false) {
+    func beginSession(mode: SessionMode, translating: Bool = false, helpMeSay: Bool = false) {
         guard !state.isBusy else { return }
         dismissTask?.cancel()
         let id = UUID()
         currentSessionID = id
         sessionMode = mode
+        isHelpMeSay = helpMeSay && !translating
+        helpMeSayHolding = false
+        holdCandidateID = nil
         translationTarget = translating ? settingsStore.translationTargetLanguage : nil
         translationRegion = translationTarget.flatMap { settingsStore.translationRegion(for: $0) }
         aggregator = TranscriptAggregator()
@@ -254,7 +312,7 @@ final class DictationSessionCoordinator {
         state = .connecting
         overlay?.show(coordinator: self)
         playSound("Tink")
-        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode) translate=\(translating)")
+        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode) translate=\(translating) helpMeSay=\(helpMeSay)")
         pipelineTask = Task { [weak self] in await self?.runPipeline(id) }
     }
 
@@ -388,6 +446,27 @@ final class DictationSessionCoordinator {
                 // Never insert untranslated text silently: keep the recognised text for manual copy instead.
                 let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
                 return fail(id, "翻译失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
+            }
+        } else if isHelpMeSay {
+            // Always needs the LLM (like translation), regardless of the cleanup switches.
+            do {
+                let (provider, _) = try resolveProvider()
+                let output = try await provider.process(
+                    transcript: rawText,
+                    systemPrompt: TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
+                )
+                guard isCurrent(id) else { return }
+                finalText = output
+            } catch is CancellationError {
+                return
+            } catch {
+                guard isCurrent(id) else { return }
+                let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
+                if settingsStore.fallbackToRawOnLLMFailure {
+                    notes.append("帮我说失败，已使用识别原文（\(reason)）")
+                } else {
+                    return fail(id, "帮我说失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
+                }
             }
         } else {
             do {

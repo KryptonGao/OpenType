@@ -20,6 +20,13 @@ struct MenuBarView: View {
         }
         .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
 
+        Button(recording && coordinator.sessionMode == .toggle && coordinator.isHelpMeSay
+               ? "结束帮我说"
+               : "开始帮我说（长按听写快捷键）") {
+            coordinator.toggleHelpMeSayFromMenu()
+        }
+        .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
+
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
 
         Divider()

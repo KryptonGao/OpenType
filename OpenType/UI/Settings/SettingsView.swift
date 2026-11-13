@@ -17,6 +17,9 @@ struct SettingsView: View {
             TranslationSettingsTab(coordinator: coordinator)
                 .tabItem { Label("翻译", systemImage: "character.bubble") }
 
+            HelpMeSaySettingsTab(coordinator: coordinator)
+                .tabItem { Label("帮我说", systemImage: "wand.and.stars") }
+
             PrivacyPermissionsSettingsTab(coordinator: coordinator)
                 .tabItem { Label("隐私与权限", systemImage: "hand.raised") }
         }
@@ -61,7 +64,7 @@ private struct GeneralSettingsTab: View {
                     coordinator: coordinator
                 )
                 Toggle("暂停全局快捷键", isOn: $settingsStore.hotkeysPaused)
-                Text("短按快捷键开始说话，再短按一次结束，随后自动整理并插入；说话过程中按 Esc 可取消。")
+                Text("短按快捷键开始说话，再短按一次结束，随后自动整理并插入；长按快捷键则是「帮我说」（见「帮我说」标签页）；说话过程中按 Esc 可取消。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("悬浮窗与反馈") {
@@ -356,6 +359,42 @@ private struct TranslationSettingsTab: View {
             }
             Section {
                 Text("翻译由「AI 处理」中当前选中的 Profile 完成，需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，翻译仍会调用该模型。翻译失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Help me say
+
+private struct HelpMeSaySettingsTab: View {
+    let coordinator: DictationSessionCoordinator
+    private var settingsStore: SettingsStore { coordinator.settingsStore }
+
+    var body: some View {
+        @Bindable var settingsStore = settingsStore
+        Form {
+            Section("帮我说") {
+                Toggle("长按听写快捷键触发「帮我说」", isOn: $settingsStore.helpMeSayEnabled)
+                Text("按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。也可以从菜单栏的「开始帮我说」触发（按一次开始，再按一次结束）。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("例：说「跟老师说我明天发烧了想请一天假」，会得到一段完整、礼貌的请假消息；说「帮我问下这个报错怎么解决」，会被整理成问题明确、条件完整的提问。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("System Prompt") {
+                TextEditor(text: $settingsStore.helpMeSayPrompt)
+                    .font(.callout)
+                    .frame(height: 200)
+                Button("恢复默认 Prompt") {
+                    settingsStore.helpMeSayPrompt = TextProcessor.defaultHelpMeSayPrompt
+                }
+                .disabled(settingsStore.helpMeSayPrompt == TextProcessor.defaultHelpMeSayPrompt)
+                Text("留空时使用默认 Prompt。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section {
+                Text("「帮我说」由「AI 处理」中当前选中的 Profile 完成，需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
