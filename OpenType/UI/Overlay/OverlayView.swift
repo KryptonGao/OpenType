@@ -4,6 +4,86 @@ struct OverlayView: View {
     let coordinator: DictationSessionCoordinator
 
     var body: some View {
+        if usesMinimalLayout {
+            minimalBody
+        } else {
+            fullBody
+        }
+    }
+
+    // MARK: Minimal layout
+
+    /// Minimal mode shows capsules only. Errors and manual-copy results need the full card (message / copy button).
+    private var usesMinimalLayout: Bool {
+        guard coordinator.settingsStore.overlayMinimalMode else { return false }
+        switch coordinator.state {
+        case .manualCopy, .error: return false
+        default: return true
+        }
+    }
+
+    /// Main capsule plus optional translation / web-search capsules. The extras sit on the side facing the screen centre
+    /// (above the main capsule at the bottom of the screen, below it at the top) so the main capsule never moves.
+    private var minimalBody: some View {
+        let extras = VStack(spacing: 6) {
+            if let status = coordinator.webSearchStatus, coordinator.state == .processing {
+                webSearchCapsule(status)
+            }
+            if let target = coordinator.translationTarget {
+                translationCapsule(target)
+            }
+        }
+        return VStack(spacing: 6) {
+            if coordinator.settingsStore.overlayPosition == .topCenter {
+                mainCapsule
+                extras
+            } else {
+                extras
+                mainCapsule
+            }
+        }
+        .padding(8) // room for the window shadow
+    }
+
+    private var mainCapsule: some View {
+        Group {
+            switch coordinator.state {
+            case .recording, .connecting:
+                WaveformView(levels: Array(coordinator.levelHistory.suffix(12)), color: statusColor, spacing: 2)
+                    .frame(width: 56, height: 14)
+            default:
+                statusIcon
+            }
+        }
+        .frame(minWidth: 72, minHeight: 28)
+        .padding(.horizontal, 6)
+        .capsuleBackground()
+    }
+
+    private func translationCapsule(_ target: TranslationLanguage) -> some View {
+        translationPicker(target)
+            .fixedSize()
+            .padding(.horizontal, 14)
+            .frame(minHeight: 30)
+            .capsuleBackground()
+    }
+
+    private func webSearchCapsule(_ status: String) -> some View {
+        Label(status, systemImage: "magnifyingglass")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .frame(minWidth: 300, maxWidth: 420)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 30)
+            .capsuleBackground()
+    }
+
+    // MARK: Full layout
+
+    private var fullBody: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 statusIcon
@@ -189,14 +269,21 @@ struct OverlayView: View {
     }
 }
 
+private extension View {
+    func capsuleBackground() -> some View {
+        background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(.separator.opacity(0.5)))
+    }
+}
+
 private struct WaveformView: View {
     let levels: [Float]
     let color: Color
+    var spacing: CGFloat = 3
 
     var body: some View {
         GeometryReader { proxy in
             let count = levels.count
-            let spacing: CGFloat = 3
             let barWidth = max(2, (proxy.size.width - spacing * CGFloat(count - 1)) / CGFloat(count))
             HStack(alignment: .center, spacing: spacing) {
                 ForEach(levels.indices, id: \.self) { index in

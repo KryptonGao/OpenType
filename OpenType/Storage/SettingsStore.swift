@@ -220,6 +220,8 @@ final class SettingsStore {
     var hotkey: HotkeyConfig { didSet { persistHotkey() } }
     var overlayPosition: OverlayPosition { didSet { defaults.set(overlayPosition.rawValue, forKey: Keys.overlayPosition) } }
     var soundFeedbackEnabled: Bool { didSet { defaults.set(soundFeedbackEnabled, forKey: Keys.soundFeedbackEnabled) } }
+    /// Minimal overlay: a small waveform capsule (no transcript / result), plus extra capsules for translation language and web search.
+    var overlayMinimalMode: Bool { didSet { defaults.set(overlayMinimalMode, forKey: Keys.overlayMinimalMode) } }
 
     // MARK: Speech recognition
     var asrProvider: ASRProvider { didSet { defaults.set(asrProvider.rawValue, forKey: Keys.asrProvider) } }
@@ -298,6 +300,7 @@ final class SettingsStore {
         }
         overlayPosition = raw(Keys.overlayPosition, .bottomCenter)
         soundFeedbackEnabled = bool(Keys.soundFeedbackEnabled, false)
+        overlayMinimalMode = bool(Keys.overlayMinimalMode, false)
 
         asrProvider = raw(Keys.asrProvider, .bailian)
         asrRegion = raw(Keys.asrRegion, .beijing)
@@ -436,6 +439,7 @@ final class SettingsStore {
         static let hotkey = "opentype.hotkey"
         static let overlayPosition = "opentype.overlayPosition"
         static let soundFeedbackEnabled = "opentype.soundFeedbackEnabled"
+        static let overlayMinimalMode = "opentype.overlayMinimalMode"
         static let asrProvider = "opentype.asrProvider"
         static let asrRegion = "opentype.asrRegion"
         static let asrWorkspaceID = "opentype.asrWorkspaceID"

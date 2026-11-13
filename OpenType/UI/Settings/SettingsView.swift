@@ -71,6 +71,9 @@ private struct GeneralSettingsTab: View {
                 Picker("悬浮窗位置", selection: $settingsStore.overlayPosition) {
                     ForEach(OverlayPosition.allCases) { Text($0.displayName).tag($0) }
                 }
+                Toggle("极简悬浮窗", isOn: $settingsStore.overlayMinimalMode)
+                Text("只显示一个带小音波的胶囊，不显示识别文字和结果；翻译时上方多一个选择语言的胶囊，联网搜索 / 读取网页时再多一个显示进度的长胶囊。出错或需要手动复制时仍会展开完整窗口。")
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle("声音反馈", isOn: $settingsStore.soundFeedbackEnabled)
                 Text("开启后，开始录音、结束录音、转写完成及出错时会播放提示音（默认关闭）。")
                     .font(.caption).foregroundStyle(.secondary)
