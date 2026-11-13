@@ -129,7 +129,7 @@ final class SettingsStore {
             hotkey = .default
         }
         overlayPosition = raw(Keys.overlayPosition, .bottomCenter)
-        soundFeedbackEnabled = bool(Keys.soundFeedbackEnabled, true)
+        soundFeedbackEnabled = bool(Keys.soundFeedbackEnabled, false)
 
         asrRegion = raw(Keys.asrRegion, .beijing)
         asrWorkspaceID = defaults.string(forKey: Keys.asrWorkspaceID) ?? ""

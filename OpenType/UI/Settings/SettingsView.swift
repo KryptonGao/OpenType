@@ -60,6 +60,8 @@ private struct GeneralSettingsTab: View {
                     ForEach(OverlayPosition.allCases) { Text($0.displayName).tag($0) }
                 }
                 Toggle("声音反馈", isOn: $settingsStore.soundFeedbackEnabled)
+                Text("开启后，开始录音、结束录音、转写完成及出错时会播放提示音（默认关闭）。")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("文本插入") {
                 Toggle("转写后自动插入文本", isOn: $settingsStore.autoInsertEnabled)

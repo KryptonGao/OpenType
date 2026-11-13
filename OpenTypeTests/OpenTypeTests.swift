@@ -792,6 +792,7 @@ struct SettingsStoreTests {
         #expect(s.asrLanguage == .auto)
         #expect(s.processingLevel == .standard)
         #expect(s.fallbackToRawOnLLMFailure)
+        #expect(!s.soundFeedbackEnabled)
         #expect(s.llmProfiles.count == 1)
         #expect(s.activeProfile != nil)
     }
