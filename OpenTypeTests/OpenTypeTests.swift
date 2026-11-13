@@ -151,24 +151,23 @@ struct LLMAdapterTests {
     }
 
     @Test func reasoningEffortMapsPerFormat() throws {
-        func json(_ format: LLMAPIFormat, _ effort: ReasoningEffort) throws -> [String: Any] {
+        func json(_ format: LLMAPIFormat, _ effort: String) throws -> [String: Any] {
             var p = profile(format)
             p.reasoningEffort = effort
             let request = try LLMRequestBuilder.makeRequest(profile: p, apiKey: "k", transcript: "t", systemPrompt: "S")
             return try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any])
         }
-        #expect((try json(.openAIResponses, .low)["reasoning"] as? [String: String]) == ["effort": "low"])
-        #expect(try json(.openAIChatCompletions, .high)["reasoning_effort"] as? String == "high")
-        #expect(try json(.openAIChatCompletions, .minimal)["reasoning_effort"] as? String == "minimal")
-        #expect((try json(.anthropicMessages, .medium)["output_config"] as? [String: String]) == ["effort": "medium"])
-        #expect((try json(.anthropicMessages, .minimal)["output_config"] as? [String: String]) == ["effort": "low"])
+        #expect((try json(.openAIResponses, " low ")["reasoning"] as? [String: String]) == ["effort": "low"])
+        #expect(try json(.openAIChatCompletions, "xhigh")["reasoning_effort"] as? String == "xhigh")
+        #expect((try json(.anthropicMessages, "medium")["output_config"] as? [String: String]) == ["effort": "medium"])
+        #expect(try json(.openAIChatCompletions, "  ")["reasoning_effort"] == nil)
     }
 
     @Test func legacyProfileWithoutEffortDecodes() throws {
         var legacy = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(LLMProfile.makeDefault())) as? [String: Any])
         legacy.removeValue(forKey: "reasoningEffort")
         let decoded = try JSONDecoder().decode(LLMProfile.self, from: JSONSerialization.data(withJSONObject: legacy))
-        #expect(decoded.reasoningEffort == .automatic)
+        #expect(decoded.reasoningEffort == "")
     }
 
     @Test func openAIResponsesRequestAndParsing() async throws {

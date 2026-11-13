@@ -205,10 +205,9 @@ private struct AIProcessingSettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 TextField("Model ID", text: profile.modelID)
                     .autocorrectionDisabled()
-                Picker("推理强度（effort）", selection: profile.reasoningEffort) {
-                    ForEach(ReasoningEffort.allCases) { Text($0.displayName).tag($0) }
-                }
-                Text("仅对支持推理参数的模型有效；选「默认」时不发送该参数。不支持该参数的模型可能返回错误，请改回「默认」。Anthropic 格式下「最低」按 low 发送。")
+                TextField("推理强度（effort）", text: profile.reasoningEffort, prompt: Text("留空则不发送，如 low / medium / high"))
+                    .autocorrectionDisabled()
+                Text("原样发送，各家模型支持的取值不同，请按所用模型的文档填写；留空时不发送该参数。填写了模型不支持的值可能返回错误。")
                     .font(.caption).foregroundStyle(.secondary)
                 SecretField(
                     title: "API Key",

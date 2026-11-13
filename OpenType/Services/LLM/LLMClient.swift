@@ -136,7 +136,7 @@ enum LLMRequestBuilder {
                 "messages": [["role": "user", "content": userPrompt]]
             ]
         }
-        if let effort = profile.reasoningEffort.apiValue(for: profile.format) {
+        if let effort = profile.effectiveReasoningEffort {
             switch profile.format {
             case .openAIResponses: body["reasoning"] = ["effort": effort]
             case .openAIChatCompletions: body["reasoning_effort"] = effort

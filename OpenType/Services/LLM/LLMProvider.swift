@@ -47,38 +47,6 @@ enum ProcessingLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
-/// Reasoning effort sent to the LLM. `automatic` omits the parameter so the provider / model default applies
-/// (the safe choice for models that do not support reasoning parameters).
-enum ReasoningEffort: String, CaseIterable, Identifiable, Codable, Sendable {
-    case automatic
-    case minimal
-    case low
-    case medium
-    case high
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .automatic: "默认（不发送）"
-        case .minimal: "最低（minimal）"
-        case .low: "低（low）"
-        case .medium: "中（medium）"
-        case .high: "高（high）"
-        }
-    }
-
-    /// The value for the `format`'s effort parameter; `nil` when nothing should be sent.
-    /// Anthropic has no `minimal` level, so it maps to `low`.
-    func apiValue(for format: LLMAPIFormat) -> String? {
-        switch self {
-        case .automatic: nil
-        case .minimal: format == .anthropicMessages ? "low" : "minimal"
-        case .low, .medium, .high: rawValue
-        }
-    }
-}
-
 /// A named LLM configuration. The API key lives in the Keychain under `CredentialAccount.llmProfile(id)`.
 struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
     var id = UUID()
@@ -88,7 +56,15 @@ struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
     var modelID: String
     var systemPrompt: String
     var timeout: Double
-    var reasoningEffort: ReasoningEffort = .automatic
+    /// Free-form reasoning effort value (e.g. `low`, `high`, `xhigh`); model names differ per provider.
+    /// Empty means the parameter is not sent.
+    var reasoningEffort: String = ""
+
+    /// The trimmed effort to send, or `nil` when blank.
+    var effectiveReasoningEffort: String? {
+        let value = reasoningEffort.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
 
     static func makeDefault() -> LLMProfile {
         LLMProfile(
@@ -117,7 +93,8 @@ extension LLMProfile {
         modelID = try c.decode(String.self, forKey: .modelID)
         systemPrompt = try c.decode(String.self, forKey: .systemPrompt)
         timeout = try c.decode(Double.self, forKey: .timeout)
-        reasoningEffort = try c.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort) ?? .automatic
+        reasoningEffort = try c.decodeIfPresent(String.self, forKey: .reasoningEffort) ?? ""
+        if reasoningEffort == "automatic" { reasoningEffort = "" } // value written by an earlier build's picker
     }
 }
 
