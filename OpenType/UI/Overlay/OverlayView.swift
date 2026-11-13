@@ -253,7 +253,7 @@ struct OverlayView: View {
     }
 
     private var statusColor: Color {
-        coordinator.state == .recording ? .red : .secondary
+        coordinator.state == .recording ? .blue : .secondary
     }
 
     private var statusTitle: String {
