@@ -2,6 +2,8 @@
 
 首个公开版本。OpenType 是一款面向 macOS 的全局 AI 语音输入工具：在任意输入框里说话，文字直接落在光标处。
 
+> **系统要求：macOS 26.0+ · Apple 芯片（arm64）**
+
 ## 三种用法
 
 - **听写**：短按快捷键开始说话，再短按一次结束。自动去口头禅、补标点，插入到原来的输入位置。
@@ -41,7 +43,8 @@
 
 ## 系统要求
 
-- macOS 26.0 及以上。
+- **macOS 26.0 及以上**。
+- **仅支持 Apple 芯片（arm64）**，不支持 Intel Mac。
 - 需要在系统设置的「隐私与安全性」中授予 **麦克风**、**辅助功能**、**输入监控** 权限。
 - 需要自备阿里云百炼或 DeepSeek 的 API Key（ASR），以及你所选 LLM 服务的 API Key。
 
@@ -64,5 +67,5 @@ xattr -dr com.apple.quarantine /Applications/OpenType.app
 
 | 文件 | 说明 |
 |---|---|
-| `OpenType-0.1.0.dmg` | 磁盘映像，拖入「应用程序」即可 |
-| `OpenType-0.1.0.zip` | 压缩包，解压即得 `OpenType.app` |
+| `OpenType-0.1.0.dmg` | 磁盘映像，拖入「应用程序」即可（macOS 26.0+，arm64） |
+| `OpenType-0.1.0.zip` | 压缩包，解压即得 `OpenType.app`（macOS 26.0+，arm64） |
