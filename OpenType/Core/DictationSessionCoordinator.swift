@@ -45,6 +45,7 @@ final class DictationSessionCoordinator {
     @ObservationIgnored let hotkeyManager: HotkeyManager
     @ObservationIgnored let translationHotkeyManager: HotkeyManager
     @ObservationIgnored let permissions: PermissionManager
+    @ObservationIgnored let audioInputMonitor: AudioInputMonitor
     @ObservationIgnored let historyStore: HistoryStore
     @ObservationIgnored let dictionaryStore: DictionaryStore
     @ObservationIgnored private let audio: any AudioCapturing
@@ -78,6 +79,7 @@ final class DictationSessionCoordinator {
         hotkeyManager: HotkeyManager = HotkeyManager(),
         translationHotkeyManager: HotkeyManager = HotkeyManager(),
         permissions: PermissionManager = PermissionManager(),
+        audioInputMonitor: AudioInputMonitor? = nil,
         historyStore: HistoryStore = HistoryStore(), // in memory unless the app passes a file-backed one
         dictionaryStore: DictionaryStore = DictionaryStore(packs: []), // empty unless the app passes the real one
         audio: any AudioCapturing = AudioCaptureService(),
@@ -104,6 +106,7 @@ final class DictationSessionCoordinator {
         self.hotkeyManager = hotkeyManager
         self.translationHotkeyManager = translationHotkeyManager
         self.permissions = permissions
+        self.audioInputMonitor = audioInputMonitor ?? AudioInputMonitor()
         self.historyStore = historyStore
         self.dictionaryStore = dictionaryStore
         self.audio = audio
@@ -372,7 +375,8 @@ final class DictationSessionCoordinator {
         // 2. Start capturing immediately; chunks queue in the bounded stream while ASR connects.
         let chunks: AsyncStream<Data>
         do {
-            chunks = try audio.start(
+            chunks = try await audio.start(
+                inputDevice: settingsStore.audioInputTarget,
                 onLevel: { [weak self] level in
                     Task { @MainActor in self?.receiveLevel(level, sessionID: id) }
                 },
@@ -380,10 +384,16 @@ final class DictationSessionCoordinator {
                     Task { @MainActor in self?.audioInterrupted(error, sessionID: id) }
                 }
             )
+        } catch is CancellationError {
+            return
         } catch let error as AudioCaptureError {
             return fail(id, error.userMessage)
         } catch {
             return fail(id, String(localized: "无法启动麦克风：\(error.localizedDescription)"))
+        }
+        guard isCurrent(id) else {
+            audio.stop()
+            return
         }
         timings.captureStartedAt = .now
         if stopRequested { audio.stop() } // stop requested while the permission prompt / startup was in flight

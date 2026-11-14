@@ -1,8 +1,10 @@
 @preconcurrency import AVFoundation
+import CoreAudio
 import Foundation
 
 enum AudioCaptureError: Error, Equatable, Sendable {
     case noInputDevice
+    case inputDeviceUnavailable(String)
     case formatUnavailable
     case backlogOverflow
     case engine(String)
@@ -10,6 +12,8 @@ enum AudioCaptureError: Error, Equatable, Sendable {
     var userMessage: String {
         switch self {
         case .noInputDevice: String(localized: "未检测到可用的麦克风")
+        case .inputDeviceUnavailable(let name):
+            String(localized: "未检测到已锁定的麦克风「\(name)」，请检查连接或切换输入设备")
         case .formatUnavailable: String(localized: "无法创建音频转换器")
         case .backlogOverflow: String(localized: "网络拥塞，音频积压超过上限")
         case .engine(let detail): String(localized: "音频采集中断：\(detail)")
@@ -20,11 +24,13 @@ enum AudioCaptureError: Error, Equatable, Sendable {
 protocol AudioCapturing: Sendable {
     /// Starts capture. The returned stream yields ~100 ms PCM16/16 kHz/mono chunks (3200 bytes) and finishes
     /// after `stop()` (the final partial chunk is flushed first).
+    /// `inputDevice`: when non-nil, locks capture to the specified CoreAudio device UID instead of system default.
     /// `onInterruption` fires (from any thread) when capture ends unexpectedly — device change, backlog overflow.
     func start(
+        inputDevice: AudioInputTarget?,
         onLevel: @escaping @Sendable (Float) -> Void,
         onInterruption: @escaping @Sendable (AudioCaptureError) -> Void
-    ) throws -> AsyncStream<Data>
+    ) async throws -> AsyncStream<Data>
     func stop()
 }
 
@@ -35,59 +41,93 @@ final class AudioCaptureService: AudioCapturing, @unchecked Sendable {
     static let maxBufferedChunks = 600
 
     private let lock = NSLock()
+    private var activeAttemptID: UUID?
     private var engine: AVAudioEngine?
     private var pipeline: AudioPipeline?
     private var observer: NSObjectProtocol?
 
     func start(
+        inputDevice: AudioInputTarget? = nil,
         onLevel: @escaping @Sendable (Float) -> Void,
         onInterruption: @escaping @Sendable (AudioCaptureError) -> Void
-    ) throws -> AsyncStream<Data> {
-        lock.lock()
-        defer { lock.unlock() }
-        stopLocked()
+    ) async throws -> AsyncStream<Data> {
+        let attemptID = UUID()
+        lock.withLock {
+            stopLocked()
+            activeAttemptID = attemptID
+        }
 
         let engine = AVAudioEngine()
-        let inputFormat = engine.inputNode.outputFormat(forBus: 0)
-        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
-            throw AudioCaptureError.noInputDevice
+        if let inputDevice {
+            guard let deviceID = AudioInputDeviceLookup.deviceID(forUID: inputDevice.uid) else {
+                lock.withLock {
+                    if activeAttemptID == attemptID { activeAttemptID = nil }
+                }
+                throw AudioCaptureError.inputDeviceUnavailable(inputDevice.name)
+            }
+            do {
+                try await Self.applyInputDevice(deviceID, to: engine)
+            } catch {
+                lock.withLock {
+                    if activeAttemptID == attemptID { activeAttemptID = nil }
+                }
+                throw error
+            }
         }
 
-        let (stream, continuation) = AsyncStream<Data>.makeStream(
-            bufferingPolicy: .bufferingOldest(Self.maxBufferedChunks)
-        )
-        let pipeline = try AudioPipeline(
-            inputFormat: inputFormat,
-            continuation: continuation,
-            onLevel: onLevel,
-            onOverflow: { onInterruption(.backlogOverflow) }
-        )
-        engine.inputNode.installTap(onBus: 0, bufferSize: 2048, format: inputFormat) { buffer, _ in
-            pipeline.process(buffer)
+        return try lock.withLock {
+            guard activeAttemptID == attemptID, !Task.isCancelled else {
+                let (stream, continuation) = AsyncStream<Data>.makeStream()
+                continuation.finish()
+                return stream
+            }
+            activeAttemptID = nil
+
+            let inputFormat = engine.inputNode.outputFormat(forBus: 0)
+            guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+                if let inputDevice {
+                    throw AudioCaptureError.inputDeviceUnavailable(inputDevice.name)
+                }
+                throw AudioCaptureError.noInputDevice
+            }
+
+            let (stream, continuation) = AsyncStream<Data>.makeStream(
+                bufferingPolicy: .bufferingOldest(Self.maxBufferedChunks)
+            )
+            let pipeline = try AudioPipeline(
+                inputFormat: inputFormat,
+                continuation: continuation,
+                onLevel: onLevel,
+                onOverflow: { onInterruption(.backlogOverflow) }
+            )
+            engine.inputNode.installTap(onBus: 0, bufferSize: 2048, format: inputFormat) { buffer, _ in
+                pipeline.process(buffer)
+            }
+            observer = NotificationCenter.default.addObserver(
+                forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
+            ) { _ in
+                onInterruption(.engine(String(localized: "音频设备配置已变更")))
+            }
+            do {
+                engine.prepare()
+                try engine.start()
+            } catch {
+                engine.inputNode.removeTap(onBus: 0)
+                if let observer { NotificationCenter.default.removeObserver(observer) }
+                observer = nil
+                continuation.finish()
+                throw AudioCaptureError.engine(error.localizedDescription)
+            }
+            self.engine = engine
+            self.pipeline = pipeline
+            return stream
         }
-        observer = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
-        ) { _ in
-            onInterruption(.engine(String(localized: "音频设备配置已变更")))
-        }
-        do {
-            engine.prepare()
-            try engine.start()
-        } catch {
-            engine.inputNode.removeTap(onBus: 0)
-            if let observer { NotificationCenter.default.removeObserver(observer) }
-            observer = nil
-            continuation.finish()
-            throw AudioCaptureError.engine(error.localizedDescription)
-        }
-        self.engine = engine
-        self.pipeline = pipeline
-        return stream
     }
 
     func stop() {
         lock.lock()
         defer { lock.unlock() }
+        activeAttemptID = nil
         stopLocked()
     }
 
@@ -101,6 +141,88 @@ final class AudioCaptureService: AudioCapturing, @unchecked Sendable {
         pipeline?.finish()
         pipeline = nil
         engine = nil
+    }
+
+    /// Pins `engine.inputNode` to `deviceID` before the tap/graph is started and waits for the resulting
+    /// `.AVAudioEngineConfigurationChange` notification to settle so `AVAudioEngine` does not reset mid-start.
+    private static func applyInputDevice(_ deviceID: AudioDeviceID, to engine: AVAudioEngine) async throws {
+        final class WaitState: @unchecked Sendable {
+            private let lock = NSLock()
+            private var continuation: CheckedContinuation<Void, Never>?
+            private var completed = false
+            private var observer: NSObjectProtocol?
+
+            func attachObserver(for engine: AVAudioEngine) {
+                let obs = NotificationCenter.default.addObserver(
+                    forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
+                ) { [weak self] _ in
+                    self?.complete()
+                }
+                lock.withLock {
+                    if completed {
+                        NotificationCenter.default.removeObserver(obs)
+                    } else {
+                        observer = obs
+                    }
+                }
+            }
+
+            func setContinuation(_ cont: CheckedContinuation<Void, Never>) {
+                lock.withLock {
+                    if completed {
+                        cont.resume()
+                    } else {
+                        continuation = cont
+                    }
+                }
+            }
+
+            func complete() {
+                let (cont, obs) = lock.withLock { () -> (CheckedContinuation<Void, Never>?, NSObjectProtocol?) in
+                    guard !completed else { return (nil, nil) }
+                    completed = true
+                    let currentCont = continuation
+                    continuation = nil
+                    let currentObs = observer
+                    observer = nil
+                    return (currentCont, currentObs)
+                }
+                if let obs { NotificationCenter.default.removeObserver(obs) }
+                cont?.resume()
+            }
+        }
+
+        let waiter = WaitState()
+        waiter.attachObserver(for: engine)
+        do {
+            let inputNode = engine.inputNode
+            #if compiler(>=6.4)
+            if #available(macOS 27.0, *) {
+                try inputNode.withAUAudioUnit { try $0.setDeviceID(deviceID) }
+            } else {
+                try inputNode.auAudioUnit.setDeviceID(deviceID)
+            }
+            #else
+            try inputNode.auAudioUnit.setDeviceID(deviceID)
+            #endif
+        } catch {
+            waiter.complete()
+            throw AudioCaptureError.engine(error.localizedDescription)
+        }
+
+        let timeoutTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            waiter.complete()
+        }
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                waiter.setContinuation(continuation)
+            }
+        } onCancel: {
+            waiter.complete()
+        }
+        timeoutTask.cancel()
+        try Task.checkCancellation()
     }
 }
 

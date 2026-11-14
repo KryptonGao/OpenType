@@ -307,6 +307,26 @@ final class SettingsStore {
     var lastNotifiedUpdateVersion: String? { didSet { defaults.set(lastNotifiedUpdateVersion, forKey: Keys.lastNotifiedUpdateVersion) } }
 
     // MARK: Speech recognition
+    /// CoreAudio UID of the locked input device, or `nil` to follow the system default.
+    var audioInputDeviceUID: String? {
+        didSet {
+            if let audioInputDeviceUID, !audioInputDeviceUID.isEmpty {
+                defaults.set(audioInputDeviceUID, forKey: Keys.audioInputDeviceUID)
+            } else {
+                defaults.removeObject(forKey: Keys.audioInputDeviceUID)
+            }
+        }
+    }
+    /// Cached display name of `audioInputDeviceUID` so an unplugged device can still be shown and named.
+    var audioInputDeviceName: String? {
+        didSet {
+            if let audioInputDeviceName, !audioInputDeviceName.isEmpty {
+                defaults.set(audioInputDeviceName, forKey: Keys.audioInputDeviceName)
+            } else {
+                defaults.removeObject(forKey: Keys.audioInputDeviceName)
+            }
+        }
+    }
     var asrProvider: ASRProvider { didSet { defaults.set(asrProvider.rawValue, forKey: Keys.asrProvider) } }
     var asrModel: ASRModel { didSet { defaults.set(asrModel.rawValue, forKey: Keys.asrModel) } }
     /// `qwen-audio-3.1-asr-flash-message` only: let the ASR drop filler words / repeated words and polish the text
@@ -397,6 +417,11 @@ final class SettingsStore {
         lastUpdateCheck = defaults.object(forKey: Keys.lastUpdateCheck) as? Date
         lastNotifiedUpdateVersion = defaults.string(forKey: Keys.lastNotifiedUpdateVersion)
 
+        let storedInputUID = defaults.string(forKey: Keys.audioInputDeviceUID)
+        audioInputDeviceUID = storedInputUID?.isEmpty == false ? storedInputUID : nil
+        let storedInputName = defaults.string(forKey: Keys.audioInputDeviceName)
+        audioInputDeviceName = storedInputName?.isEmpty == false ? storedInputName : nil
+
         asrProvider = raw(Keys.asrProvider, .bailian)
         asrModel = raw(Keys.asrModel, .qwen3Realtime)
         asrDisfluencyRemoval = bool(Keys.asrDisfluencyRemoval, false)
@@ -446,6 +471,16 @@ final class SettingsStore {
         saveHistoryText = bool(Keys.saveHistoryText, true)
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
         Diagnostics.isEnabled = diagnosticsEnabled
+    }
+
+    var audioInputTarget: AudioInputTarget? {
+        guard let uid = audioInputDeviceUID, !uid.isEmpty else { return nil }
+        return AudioInputTarget(uid: uid, name: audioInputDeviceName ?? uid)
+    }
+
+    func selectAudioInputDevice(_ device: AudioInputDevice?) {
+        audioInputDeviceUID = device?.uid
+        audioInputDeviceName = device?.name
     }
 
     // MARK: Profiles
@@ -544,6 +579,8 @@ final class SettingsStore {
         static let autoInstallUpdates = "opentype.autoInstallUpdates"
         static let lastUpdateCheck = "opentype.lastUpdateCheck"
         static let lastNotifiedUpdateVersion = "opentype.lastNotifiedUpdateVersion"
+        static let audioInputDeviceUID = "opentype.audioInputDeviceUID"
+        static let audioInputDeviceName = "opentype.audioInputDeviceName"
         static let asrProvider = "opentype.asrProvider"
         static let asrModel = "opentype.asrModel"
         static let asrDisfluencyRemoval = "opentype.asrDisfluencyRemoval"

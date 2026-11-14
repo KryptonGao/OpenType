@@ -7,6 +7,8 @@ struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
 
     private var permissions: PermissionManager { coordinator.permissions }
+    private var settingsStore: SettingsStore { coordinator.settingsStore }
+    private var audioInputMonitor: AudioInputMonitor { coordinator.audioInputMonitor }
 
     var body: some View {
         Label("听写：\(coordinator.settingsStore.hotkey.displayName)", systemImage: "mic")
@@ -15,6 +17,8 @@ struct MenuBarView: View {
         }
 
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
+
+        microphoneMenu
 
         Divider()
 
@@ -39,7 +43,43 @@ struct MenuBarView: View {
 
         Button("退出 OpenType") { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
-            .onAppear { permissions.refresh() }
+            .onAppear {
+                permissions.refresh()
+                audioInputMonitor.refresh()
+            }
+    }
+
+    private var microphoneMenu: some View {
+        let missing = audioInputMonitor.disconnectedLockedDevice(
+            uid: settingsStore.audioInputDeviceUID,
+            cachedName: settingsStore.audioInputDeviceName
+        )
+        let summary = audioInputMonitor.menuSummaryLabel(
+            lockedUID: settingsStore.audioInputDeviceUID,
+            cachedName: settingsStore.audioInputDeviceName
+        )
+        return Menu {
+            Toggle(audioInputMonitor.systemDefaultLabel(), isOn: Binding(
+                get: { settingsStore.audioInputDeviceUID == nil },
+                set: { if $0 { settingsStore.selectAudioInputDevice(nil) } }
+            ))
+            if !audioInputMonitor.devices.isEmpty {
+                Divider()
+                ForEach(audioInputMonitor.devices) { device in
+                    Toggle(device.displayName, isOn: Binding(
+                        get: { settingsStore.audioInputDeviceUID == device.uid },
+                        set: { if $0 { settingsStore.selectAudioInputDevice(device) } }
+                    ))
+                }
+            }
+            if let missing {
+                Divider()
+                Toggle(String(localized: "\(missing.name)（未连接）"), isOn: .constant(true))
+                    .disabled(true)
+            }
+        } label: {
+            Label(summary, systemImage: "mic.circle")
+        }
     }
 
     @ViewBuilder

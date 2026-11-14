@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 import CoreGraphics
 import Foundation
 import Testing
@@ -539,10 +540,15 @@ private final class FakeAudio: AudioCapturing, @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: AsyncStream<Data>.Continuation?
     private(set) var stopCount = 0
+    private(set) var lastInputDevice: AudioInputTarget?
     var chunksToEmitOnStart = 0
+    var failWith: AudioCaptureError?
 
-    func start(onLevel: @escaping @Sendable (Float) -> Void,
-               onInterruption: @escaping @Sendable (AudioCaptureError) -> Void) throws -> AsyncStream<Data> {
+    func start(inputDevice: AudioInputTarget?,
+               onLevel: @escaping @Sendable (Float) -> Void,
+               onInterruption: @escaping @Sendable (AudioCaptureError) -> Void) async throws -> AsyncStream<Data> {
+        lock.withLock { lastInputDevice = inputDevice }
+        if let failWith { throw failWith }
         let (stream, continuation) = AsyncStream<Data>.makeStream()
         lock.withLock { self.continuation = continuation }
         for _ in 0..<chunksToEmitOnStart { continuation.yield(Data(count: AudioPipeline.chunkSize)) }
@@ -675,6 +681,7 @@ private struct Harness {
         if let profile = settings.activeProfile { try? credentials.save("llm-key", account: CredentialAccount.llmProfile(profile.id)) }
         self.coordinator = DictationSessionCoordinator(
             settingsStore: settings, credentialStore: credentials, permissions: PermissionManager(),
+            audioInputMonitor: AudioInputMonitor(fetchDevices: { [] }, observeSystemChanges: false),
             historyStore: history, dictionaryStore: dictionary, audio: audio, permissionChecker: permissions,
             makeASR: { _ in asr() }, makeLLM: { _, _ in FakeLLM(result: llm, recorder: recorder) },
             inserter: inserter, overlay: nil, notifier: notifier, playsSounds: false
@@ -720,6 +727,39 @@ struct CoordinatorTests {
         await harness.wait { if case .success = c.state { true } else { false } }
         if case .success(let note) = c.state { #expect(note == nil) } else { Issue.record("expected success, got \(c.state)") }
         #expect(c.currentSessionID == nil)
+    }
+
+    @Test func passesLockedAudioInputTargetAndReportsMissingDevice() async {
+        let locked = AudioInputDevice(
+            deviceID: 77,
+            uid: "BuiltInMicrophoneDevice",
+            name: "MacBook Pro 麦克风",
+            transport: .builtIn,
+            isDefault: false
+        )
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) },
+            configure: { $0.selectAudioInputDevice(locked) }
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .hold)
+        await harness.wait { c.state == .recording }
+        #expect(harness.audio.lastInputDevice == AudioInputTarget(uid: "BuiltInMicrophoneDevice", name: "MacBook Pro 麦克风"))
+        c.stopRecording()
+        await harness.wait { if case .success = c.state { true } else { false } }
+
+        let unavailable = Harness(
+            asr: { FakeASR() },
+            configure: { $0.selectAudioInputDevice(locked) }
+        )
+        unavailable.audio.failWith = .inputDeviceUnavailable("MacBook Pro 麦克风")
+        unavailable.coordinator.beginSession(mode: .hold)
+        await unavailable.wait { if case .error = unavailable.coordinator.state { true } else { false } }
+        if case .error(let message) = unavailable.coordinator.state {
+            #expect(message.contains("MacBook Pro 麦克风"))
+        } else {
+            Issue.record("expected error, got \(unavailable.coordinator.state)")
+        }
     }
 
     @Test func finishedSessionIsRecordedInHistory() async {
@@ -1761,6 +1801,86 @@ struct SettingsStoreTests {
         let added = s.addProfile()
         #expect(s.removeProfile(id: added.id) == added.id)
         #expect(s.llmProfiles.count == 1)
+    }
+
+    @Test func audioInputDeviceDefaultsToSystemAndPersistsLock() {
+        let (s, defaults) = makeStore()
+        #expect(s.audioInputDeviceUID == nil)
+        #expect(s.audioInputDeviceName == nil)
+        #expect(s.audioInputTarget == nil)
+
+        let builtIn = AudioInputDevice(
+            deviceID: 77,
+            uid: "BuiltInMicrophoneDevice",
+            name: "MacBook Air 麦克风",
+            transport: .builtIn,
+            isDefault: false
+        )
+        s.selectAudioInputDevice(builtIn)
+        var reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.audioInputDeviceUID == "BuiltInMicrophoneDevice")
+        #expect(reloaded.audioInputDeviceName == "MacBook Air 麦克风")
+        #expect(reloaded.audioInputTarget == AudioInputTarget(uid: "BuiltInMicrophoneDevice", name: "MacBook Air 麦克风"))
+
+        s.selectAudioInputDevice(nil)
+        reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.audioInputDeviceUID == nil)
+        #expect(reloaded.audioInputDeviceName == nil)
+        #expect(reloaded.audioInputTarget == nil)
+    }
+}
+
+// MARK: - Audio input locking
+
+@MainActor
+struct AudioInputDeviceTests {
+    @Test func mapsCoreAudioTransportTypes() {
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeBuiltIn) == .builtIn)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeBluetooth) == .bluetooth)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeBluetoothLE) == .bluetooth)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeUSB) == .usb)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeContinuityCaptureWireless) == .continuity)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeContinuityCaptureWired) == .continuity)
+        #expect(AudioInputTransport(coreAudioTransportType: 0x6363_6164) == .continuity)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeVirtual) == .virtual)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeThunderbolt) == .thunderbolt)
+        #expect(AudioInputTransport(coreAudioTransportType: kAudioDeviceTransportTypeAggregate) == .aggregate)
+        #expect(AudioInputTransport(coreAudioTransportType: 0) == .other)
+    }
+
+    @Test func monitorTracksDefaultDisconnectedAndBluetoothTransport() {
+        let builtIn = AudioInputDevice(
+            deviceID: 77, uid: "BuiltInMicrophoneDevice", name: "MacBook 麦克风",
+            transport: .builtIn, isDefault: false
+        )
+        let airpods = AudioInputDevice(
+            deviceID: 90, uid: "AA-BB-CC:input", name: "AirPods 4",
+            transport: .bluetooth, isDefault: true
+        )
+        let monitor = AudioInputMonitor(fetchDevices: { [builtIn, airpods] }, observeSystemChanges: false)
+
+        #expect(monitor.defaultDevice == airpods)
+        #expect(monitor.activeTransport(lockedUID: nil) == .bluetooth)
+        #expect(monitor.activeTransport(lockedUID: builtIn.uid) == .builtIn)
+        #expect(monitor.disconnectedLockedDevice(uid: builtIn.uid, cachedName: builtIn.name) == nil)
+        #expect(
+            monitor.disconnectedLockedDevice(uid: "missing-usb", cachedName: "Shure MV7")
+                == AudioInputTarget(uid: "missing-usb", name: "Shure MV7")
+        )
+        #expect(monitor.menuSummaryLabel(lockedUID: nil, cachedName: nil).contains("AirPods 4"))
+        #expect(monitor.menuSummaryLabel(lockedUID: builtIn.uid, cachedName: nil).contains("MacBook 麦克风"))
+        #expect(monitor.menuSummaryLabel(lockedUID: "missing-usb", cachedName: "Shure MV7").contains("Shure MV7"))
+    }
+
+    @Test func captureServiceThrowsWhenLockedDeviceIsMissing() async {
+        let service = AudioCaptureService()
+        await #expect(throws: AudioCaptureError.inputDeviceUnavailable("Missing Mic")) {
+            _ = try await service.start(
+                inputDevice: AudioInputTarget(uid: "nonexistent-uid-\(UUID().uuidString)", name: "Missing Mic"),
+                onLevel: { _ in },
+                onInterruption: { _ in }
+            )
+        }
     }
 }
 

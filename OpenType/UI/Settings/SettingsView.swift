@@ -118,10 +118,54 @@ private struct SpeechRecognitionSettingsTab: View {
     @State private var testResult: TestResult = .idle
 
     private var settingsStore: SettingsStore { coordinator.settingsStore }
+    private var audioInputMonitor: AudioInputMonitor { coordinator.audioInputMonitor }
+
+    private var audioInputSelection: Binding<String?> {
+        Binding(
+            get: { settingsStore.audioInputDeviceUID },
+            set: { newUID in
+                guard let newUID else {
+                    settingsStore.selectAudioInputDevice(nil)
+                    return
+                }
+                if let device = audioInputMonitor.devices.first(where: { $0.uid == newUID }) {
+                    settingsStore.selectAudioInputDevice(device)
+                }
+            }
+        )
+    }
 
     var body: some View {
         @Bindable var settingsStore = settingsStore
+        let missing = audioInputMonitor.disconnectedLockedDevice(
+            uid: settingsStore.audioInputDeviceUID,
+            cachedName: settingsStore.audioInputDeviceName
+        )
+        let isBluetooth = audioInputMonitor.activeTransport(lockedUID: settingsStore.audioInputDeviceUID) == .bluetooth
         Form {
+            Section("麦克风") {
+                Picker("输入设备", selection: audioInputSelection) {
+                    Text(audioInputMonitor.systemDefaultLabel()).tag(String?.none)
+                    if !audioInputMonitor.devices.isEmpty {
+                        Divider()
+                        ForEach(audioInputMonitor.devices) { device in
+                            Text(device.displayName).tag(Optional(device.uid))
+                        }
+                    }
+                    if let missing {
+                        Divider()
+                        Text(String(localized: "\(missing.name)（未连接）")).tag(Optional(missing.uid))
+                    }
+                }
+                if isBluetooth {
+                    Label("当前将使用蓝牙麦克风，录音期间蓝牙耳机可能会切换到低音质通话模式；建议改选内置或外接麦克风。", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                Text("锁定为内置或外接麦克风后，即使戴着 AirPods 等蓝牙耳机听歌或开会，触发听写也不会把蓝牙切到低音质通话模式。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("服务商") {
                 Picker("语音识别服务", selection: $settingsStore.asrProvider) {
                     ForEach(ASRProvider.allCases) { Text($0.displayName).tag($0) }
@@ -136,6 +180,7 @@ private struct SpeechRecognitionSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { audioInputMonitor.refresh() }
     }
 
     @ViewBuilder
