@@ -2,7 +2,7 @@ import Observation
 import SwiftUI
 
 enum MainTab: Hashable {
-    case home, history, settings
+    case home, history, dictionary, settings
 }
 
 /// Lets the menu bar and the app menu pick the tab the main window shows.
@@ -24,6 +24,9 @@ struct MainWindowView: View {
             }
             Tab("历史", systemImage: "clock.arrow.circlepath", value: MainTab.history) {
                 HistoryView(coordinator: coordinator)
+            }
+            Tab("词典", systemImage: "character.book.closed", value: MainTab.dictionary) {
+                DictionaryView(store: coordinator.dictionaryStore)
             }
             Tab("设置", systemImage: "gearshape", value: MainTab.settings) {
                 SettingsView(coordinator: coordinator)

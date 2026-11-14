@@ -290,11 +290,24 @@ final class TextProcessor: Sendable {
         transcript: String,
         level: ProcessingLevel,
         basePrompt: String,
+        extraPrompt: String = "",
         provider: (any LLMProvider)?
     ) async throws -> LLMOutput {
         guard level != .raw, let provider else { return LLMOutput(text: transcript) }
-        let prompt = Self.systemPrompt(base: basePrompt, level: level)
+        var prompt = Self.systemPrompt(base: basePrompt, level: level)
+        if !extraPrompt.isEmpty { prompt += "\n" + extraPrompt }
         return try await provider.processWithUsage(transcript: transcript, systemPrompt: prompt)
+    }
+
+    /// Appended to every LLM prompt when the transcript mentions words from the user's dictionary: tells the model the
+    /// correct spelling of the terms speech recognition tends to garble. Returns "" when there is nothing to say.
+    static func dictionaryAddendum(entries: [DictionaryEntry]) -> String {
+        guard !entries.isEmpty else { return "" }
+        let lines = entries.map { entry -> String in
+            let aliases = entry.aliases.prefix(4).joined(separator: "、")
+            return aliases.isEmpty ? "- \(entry.term)" : "- \(entry.term)（常被识别成：\(aliases)）"
+        }
+        return "专有名词词典：下面是用户常用的专业术语、产品名与名称，语音识别经常把它们听成发音相近的词，或写错大小写、空格。当语音内容确实指的是其中某个词时，请按这里的写法输出；与上下文无关的词不要硬套。\n" + lines.joined(separator: "\n")
     }
 
     static func systemPrompt(base: String, level: ProcessingLevel) -> String {

@@ -42,7 +42,8 @@
 - **ASR and LLM are decoupled**: for ASR choose Alibaba Cloud Bailian `qwen3-asr-flash-realtime` / `qwen-audio-3.1-asr-flash-message` (real-time streaming; the latter adds live interim results and optional recognizer-side polishing) or DeepSeek (uploads the whole recording after you stop). The LLM side has built-in adapters for the OpenAI Responses, OpenAI Chat Completions and Anthropic Messages protocols and works with third-party OpenAI-compatible services; multiple profiles and three processing levels (Raw / Standard / Deep cleanup) are supported.
 - **Never lose your words**: if the LLM fails or times out it can fall back to the raw ASR text; if ASR disconnects, what was already recognized is kept for copying; `Esc` cancels at any time and nothing is inserted.
 - **Three-tier insertion**: direct write through Accessibility → simulated paste (the clipboard is backed up and restored automatically) → manual copy from the overlay. It never writes into password fields, secure input mode, or an app you have switched away from, and never presses Return or submits for you.
-- **A proper main window**: a native SwiftUI window with three tabs: Home (typing stats and token usage), History (searchable, copy, delete) and Settings.
+- **A proper main window**: a native SwiftUI window with four tabs: Home (typing stats and token usage), History (searchable, copy, delete), Dictionary and Settings.
+- **Dictionary for programmers**: built-in packs for general coding terms, Git, the keywords and common functions of Swift / Python / JavaScript & TypeScript / Shell / SQL / HTML & CSS, plus AI concepts (Agent Harness, MCP, RAG…) and vendors and products (OpenAI, Anthropic, DeepSeek…). Each pack can be switched on or off, and you can add your own entries (correct spelling plus how it is often misheard). When your speech mentions dictionary words, the AI is told how to spell them, and entries with Auto-Replace are fixed in the recognized text before the AI runs, so it also works in Raw mode.
 - **Privacy first**: API keys are stored as plaintext JSON in `~/.opentype/credentials.json` (mode 0600, no more Keychain password prompts after upgrades); audio is never saved; recognized text lives only in the local history (which you can turn off or clear at any time); logs contain no speech or text.
 
 ## How it works
@@ -188,7 +189,7 @@ The tests cover transcript aggregation, ASR configuration and `session.update` c
 
 ## Roadmap
 
-- Custom dictionary / hot words, multiple prompt presets
+- Multiple prompt presets, dictionary import / export and biasing the speech recognizer with dictionary words
 - Per-app rules
 - More speech models / local ASR
 - Compatibility verification across scenarios (Safari / Chrome / VS Code / Electron / IM / full screen / multiple displays / input method switching), plus Developer ID signing and notarization

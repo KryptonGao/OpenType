@@ -42,7 +42,8 @@
 - **ASR 與 LLM 解耦**：ASR 可選阿里雲百鍊 `qwen3-asr-flash-realtime` / `qwen-audio-3.1-asr-flash-message`（即時串流，後者附即時中間結果與可選的辨識端潤飾）或 DeepSeek（錄完後整段上傳）；LLM 內建 OpenAI Responses、OpenAI Chat Completions、Anthropic Messages 三種協定的轉接器，相容第三方 OpenAI 相容服務；支援多個設定檔、三檔處理等級（原始／標準／深度整理）。
 - **失敗不丟字**：LLM 失敗或逾時時可自動回退為 ASR 原文；ASR 斷線時保留已辨識的內容供複製；`Esc` 隨時取消，取消時不會插入任何文字。
 - **三級插入**：輔助使用直接寫入 → 模擬貼上（自動備份並還原剪貼簿）→ 在懸浮視窗中手動複製。不會向密碼欄位、安全輸入模式或已切換的 App 寫入，也不會自動按下 Return 或送出。
-- **正式主視窗**：原生 SwiftUI 三分頁視窗——首頁（輸入統計與 Token 用量）、歷史（可搜尋、複製、刪除）、設定。
+- **正式主視窗**：原生 SwiftUI 四分頁視窗——首頁（輸入統計與 Token 用量）、歷史（可搜尋、複製、刪除）、詞典、設定。
+- **面向程式設計師的詞典**：內建程式通用詞彙、Git，以及 Swift / Python / JavaScript 與 TypeScript / Shell / SQL / HTML 與 CSS 的關鍵字和常用函式，還有 AI 概念（Agent Harness、MCP、RAG 等）與廠商產品（OpenAI、Anthropic、DeepSeek 等）。每個詞庫可單獨開關，也可以新增自己的詞條（正確寫法 + 常被聽錯的說法）。語音裡提到詞典中的詞時，會告訴 AI 正確寫法；開啟「自動替換」的詞條還會在 AI 處理之前直接修正辨識結果，所以關閉 AI 整理（原文模式）時同樣有效。
 - **隱私優先**：API Key 以純文字 JSON 存於 `~/.opentype/credentials.json`（權限 0600，升級後不再跳出鑰匙圈密碼提示）；不儲存音訊；辨識文字只存在本機歷史中（可隨時關閉或清除）；日誌不含語音與文字內容。
 
 ## 工作流程
@@ -188,7 +189,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -destination 'platform=m
 
 ## 路線圖
 
-- 自訂詞典／熱詞、多組 Prompt 預設
+- 多組 Prompt 預設、詞典匯入匯出、用詞典為語音辨識增強偏置
 - App 層級規則
 - 更多語音模型／本機 ASR
 - 全情境相容性驗證（Safari / Chrome / VS Code / Electron / 通訊軟體 / 全螢幕 / 多螢幕 / 輸入法切換）與 Developer ID 簽署、公證

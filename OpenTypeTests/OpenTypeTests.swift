@@ -658,7 +658,8 @@ private struct Harness {
     let credentials = InMemoryCredentialStore()
 
     init(asr: @escaping @Sendable () -> FakeASR, llm: Result<String, LLMError> = .success("整理后的文字。"),
-         recorder: PromptRecorder? = nil, configure: (SettingsStore) -> Void = { _ in }) {
+         recorder: PromptRecorder? = nil, dictionary: DictionaryStore = DictionaryStore(packs: []),
+         configure: (SettingsStore) -> Void = { _ in }) {
         let suite = "opentype.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         let settings = SettingsStore(defaults: defaults)
@@ -674,7 +675,7 @@ private struct Harness {
         if let profile = settings.activeProfile { try? credentials.save("llm-key", account: CredentialAccount.llmProfile(profile.id)) }
         self.coordinator = DictationSessionCoordinator(
             settingsStore: settings, credentialStore: credentials, permissions: PermissionManager(),
-            historyStore: history, audio: audio, permissionChecker: permissions,
+            historyStore: history, dictionaryStore: dictionary, audio: audio, permissionChecker: permissions,
             makeASR: { _ in asr() }, makeLLM: { _, _ in FakeLLM(result: llm, recorder: recorder) },
             inserter: inserter, overlay: nil, notifier: notifier, playsSounds: false
         )
@@ -1971,5 +1972,83 @@ struct AppLanguageTests {
         for language in AppLanguage.allCases where language != .system {
             #expect(bundled.contains(language.rawValue), "missing \(language.rawValue).lproj")
         }
+    }
+}
+
+// MARK: - Dictionary in the pipeline
+
+@MainActor
+struct DictionaryCoordinatorTests {
+    private func store(_ entries: [DictionaryEntry]) -> DictionaryStore {
+        DictionaryStore(packs: [DictionaryPack(id: "test", entries: entries)])
+    }
+
+    @Test func dictationPromptListsOnlyMentionedWords() async {
+        let recorder = PromptRecorder()
+        let dictionary = store([
+            DictionaryEntry(term: "OpenAI", aliases: ["open ai"]),
+            DictionaryEntry(term: "Kubernetes", aliases: ["k8s"])
+        ])
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "我在用 open ai 的接口")]) },
+            recorder: recorder, dictionary: dictionary
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        let prompt = recorder.calls.first?.prompt ?? ""
+        #expect(prompt.contains("专有名词词典"))
+        #expect(prompt.contains("- OpenAI"))
+        #expect(!prompt.contains("Kubernetes"))
+    }
+
+    @Test func promptIsUnchangedWhenNothingMatches() async {
+        let recorder = PromptRecorder()
+        let dictionary = store([DictionaryEntry(term: "OpenAI", aliases: ["open ai"])])
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "今天天气不错")]) },
+            recorder: recorder, dictionary: dictionary
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(recorder.calls.first?.prompt.contains("专有名词词典") == false)
+    }
+
+    @Test func autoReplaceFixesRawTextEvenWithoutTheLLM() async {
+        let dictionary = store([DictionaryEntry(term: "GitHub", aliases: ["get hub"], autoReplace: true)])
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "push to get hub")]) },
+            dictionary: dictionary,
+            configure: { $0.processingLevel = .raw; $0.llmEnabled = false }
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["push to GitHub"])
+    }
+
+    @Test func translationPromptCarriesTheDictionary() async {
+        let recorder = PromptRecorder()
+        let dictionary = store([DictionaryEntry(term: "DeepSeek", aliases: ["deep seek"])])
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "我喜欢 deep seek")]) },
+            llm: .success("I like DeepSeek"), recorder: recorder, dictionary: dictionary,
+            configure: { $0.translationTargetLanguage = .english }
+        )
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle, translating: true)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        let prompt = recorder.calls.first?.prompt ?? ""
+        #expect(prompt.hasPrefix(TextProcessor.translationSystemPrompt(target: .english)))
+        #expect(prompt.contains("- DeepSeek"))
     }
 }

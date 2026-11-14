@@ -46,6 +46,7 @@ final class DictationSessionCoordinator {
     @ObservationIgnored let translationHotkeyManager: HotkeyManager
     @ObservationIgnored let permissions: PermissionManager
     @ObservationIgnored let historyStore: HistoryStore
+    @ObservationIgnored let dictionaryStore: DictionaryStore
     @ObservationIgnored private let audio: any AudioCapturing
     @ObservationIgnored private let permissionChecker: any PermissionChecking
     @ObservationIgnored private let makeASR: (ASRConfig) -> any ASRService
@@ -78,6 +79,7 @@ final class DictationSessionCoordinator {
         translationHotkeyManager: HotkeyManager = HotkeyManager(),
         permissions: PermissionManager = PermissionManager(),
         historyStore: HistoryStore = HistoryStore(), // in memory unless the app passes a file-backed one
+        dictionaryStore: DictionaryStore = DictionaryStore(packs: []), // empty unless the app passes the real one
         audio: any AudioCapturing = AudioCaptureService(),
         permissionChecker: (any PermissionChecking)? = nil,
         makeASR: @escaping (ASRConfig) -> any ASRService = { config in
@@ -103,6 +105,7 @@ final class DictationSessionCoordinator {
         self.translationHotkeyManager = translationHotkeyManager
         self.permissions = permissions
         self.historyStore = historyStore
+        self.dictionaryStore = dictionaryStore
         self.audio = audio
         self.permissionChecker = permissionChecker ?? permissions
         self.makeASR = makeASR
@@ -449,12 +452,16 @@ final class DictationSessionCoordinator {
         activeASR = nil
         timings.asrFinishedAt = .now
 
-        let rawText = (timedOut ? aggregator.bestEffortText : aggregator.finalText)
+        let recognizedText = (timedOut ? aggregator.bestEffortText : aggregator.finalText)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !rawText.isEmpty else { // no valid speech: skip LLM, insert nothing
+        guard !recognizedText.isEmpty else { // no valid speech: skip LLM, insert nothing
             finishSilently(id)
             return
         }
+        // Dictionary: fix the spelling of known terms right away (works for every mode and for "raw" cleanup),
+        // and tell the LLM which dictionary words the speech mentions.
+        let rawText = dictionaryStore.correct(recognizedText)
+        let dictionaryNote = dictionaryStore.addendum(for: rawText)
 
         // 7. LLM post-processing (with fallback to raw text), or translation
         state = .processing
@@ -483,6 +490,7 @@ final class DictationSessionCoordinator {
                     prompt += "\n" + TextProcessor.helpMeSayTranslationAddendum(target: target, region: translationRegion)
                 }
                 if let level { prompt += "\n" + TextProcessor.webSearchAddendum(for: level) }
+                if !dictionaryNote.isEmpty { prompt += "\n" + dictionaryNote }
                 if let level {
                     webSearchStatus = WebSearchProgress().statusText
                     let result = try await provider.processWithWebSearch(
@@ -523,6 +531,7 @@ final class DictationSessionCoordinator {
                 let output = try await provider.processWithUsage(
                     transcript: rawText,
                     systemPrompt: TextProcessor.translationSystemPrompt(target: target, region: region)
+                        + (dictionaryNote.isEmpty ? "" : "\n" + dictionaryNote)
                 )
                 guard isCurrent(id) else { return }
                 finalText = output.text
@@ -543,6 +552,7 @@ final class DictationSessionCoordinator {
                         transcript: rawText,
                         level: settingsStore.processingLevel,
                         basePrompt: profile.systemPrompt,
+                        extraPrompt: dictionaryNote,
                         provider: provider
                     )
                     guard isCurrent(id) else { return }

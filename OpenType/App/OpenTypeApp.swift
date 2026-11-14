@@ -5,7 +5,10 @@ import SwiftUI
 enum AppContainer {
     static let overlay = OverlayPanelController()
     static let historyStore = HistoryStore(fileURL: HistoryStore.defaultFileURL)
-    static let coordinator = DictationSessionCoordinator(historyStore: historyStore, overlay: overlay)
+    static let dictionaryStore = DictionaryStore(fileURL: DictionaryStore.defaultFileURL)
+    static let coordinator = DictationSessionCoordinator(
+        historyStore: historyStore, dictionaryStore: dictionaryStore, overlay: overlay
+    )
     static let router = MainWindowRouter()
 }
 
