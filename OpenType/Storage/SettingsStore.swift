@@ -436,7 +436,7 @@ final class SettingsStore {
         return profile
     }
 
-    /// Removes a profile (keeps at least one). Returns the removed id so callers can drop its Keychain item.
+    /// Removes a profile (keeps at least one). Returns the removed id so callers can drop its stored API key.
     @discardableResult
     func removeProfile(id: UUID) -> UUID? {
         guard llmProfiles.count > 1, let index = llmProfiles.firstIndex(where: { $0.id == id }) else { return nil }

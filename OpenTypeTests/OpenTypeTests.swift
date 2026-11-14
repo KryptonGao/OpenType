@@ -1764,6 +1764,25 @@ struct SecurityTests {
         #expect(try store.load(account: "a") == nil)
     }
 
+    @Test func fileCredentialStoreRoundTripAndPermissions() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("opentype-cred-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = CredentialStore(directory: dir)
+        #expect(try store.load(account: "a") == nil)
+        try store.save("secret", account: "a")
+        try store.save("other", account: "b")
+        #expect(try CredentialStore(directory: dir).load(account: "a") == "secret")
+        try store.delete(account: "a")
+        #expect(try store.load(account: "a") == nil)
+        #expect(try store.load(account: "b") == "other")
+        let file = dir.appendingPathComponent("credentials.json")
+        let attrs = try FileManager.default.attributesOfItem(atPath: file.path)
+        #expect((attrs[.posixPermissions] as? NSNumber)?.intValue == 0o600)
+        let json = try JSONDecoder().decode([String: String].self, from: Data(contentsOf: file))
+        #expect(json == ["b": "other"])
+    }
+
     @Test func redactionRemovesSecrets() {
         #expect(Diagnostics.redact("Bearer sk-abcdef123 failed", secrets: ["sk-abcdef123"]) == "Bearer *** failed")
     }

@@ -343,7 +343,7 @@ private struct AIProcessingSettingsTab: View {
             }
 
             Section {
-                Text("转写文本会发送到上方配置的 LLM 服务；API Key 仅保存在 macOS Keychain。")
+                Text("转写文本会发送到上方配置的 LLM 服务；API Key 以明文 JSON 保存在 ~/.opentype。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -494,7 +494,7 @@ private struct HelpMeSaySettingsTab: View {
                         .disabled(testResult == .running)
                     TestResultView(result: testResult)
                 }
-                Text("此 Key 单独保存在 Keychain，与语音识别、AI 处理的 Key 互不影响。")
+                Text("此 Key 单独保存，与语音识别、AI 处理的 Key 互不影响。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("System Prompt") {
@@ -559,7 +559,7 @@ private struct PrivacyPermissionsSettingsTab: View {
             }
             Section("隐私") {
                 Text("不会保存原始音频。识别和整理后的文字默认保存在本机「历史」中（不上传），可在历史页关闭或清空；统计只记录次数、字数、时长和 Token 数。")
-                Text("语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 仅存于 Keychain。")
+                Text("语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 以明文 JSON 保存在 ~/.opentype。")
                     .foregroundStyle(.secondary)
                 Toggle("启用诊断日志（仅记录阶段耗时，不含语音与文字内容）", isOn: $settingsStore.diagnosticsEnabled)
                 Button("清除临时数据") { coordinator.clearTemporaryData() }

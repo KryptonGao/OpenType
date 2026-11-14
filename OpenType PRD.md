@@ -15,7 +15,7 @@
 - **音频与 ASR：** `AVAudioEngine` 采集 + 阿里云百炼 `qwen3-asr-flash-realtime` 实时预览与转写。
 - **LLM 后处理：** 内置 OpenAI Responses、OpenAI Chat Completions、Anthropic Messages 三种协议适配器，支持纠错/去口头禅/标点整理与失败回退原文。
 - **文本插入：** Accessibility 直写 → 剪贴板粘贴 → 手动复制 三级策略。
-- **配置与安全：** 原生设置窗口、Keychain 密钥存储、权限检测与错误提示。
+- **配置与安全：** 原生设置窗口、`~/.opentype` JSON 密钥存储、权限检测与错误提示。
 
 ### 后续规划（P1）与非目标
 - **P1：** 切换式录音（按一次开始/结束）、自定义词典/热词、多 Prompt 预设、可选本地历史记录、应用级规则、多语音模型/本地 ASR、翻译模式、多语言 UI。
@@ -96,7 +96,7 @@ idle → connecting → recording → finalizing → processing → inserting �
 | OpenAI Chat Completions | `https://api.openai.com/v1` | `POST /chat/completions`| `Bearer`；`model`, `messages[]`（兼容第三方兼容服务）  | `choices[0].message.content` |
 | Anthropic Messages      | `https://api.anthropic.com/v1`| `POST /messages`      | `x-api-key` + `anthropic-version: 2023-06-01`；顶层 `system` + `messages[]` + `max_tokens` | `content[]` 中 `type = text` |
 
-- **多 Profile 管理：** 支持配置名称、协议格式、规范化 Base URL（防重复拼接 `/v1`）、Model ID、System Prompt、超时时间，API Key 存 Keychain。提供「测试连接」（区分鉴权、模型不存在、网络与格式错误）。
+- **多 Profile 管理：** 支持配置名称、协议格式、规范化 Base URL（防重复拼接 `/v1`）、Model ID、System Prompt、超时时间，API Key 存 `~/.opentype/credentials.json`。提供「测试连接」（区分鉴权、模型不存在、网络与格式错误）。
 
 ### 5.3 默认 Prompt
 - **System Prompt：**
@@ -136,7 +136,7 @@ idle → connecting → recording → finalizing → processing → inserting �
 - **Privacy & Permissions：** 麦克风 / 辅助功能 / 按键监听权限状态与用途说明、诊断日志开关、清除临时数据。
 
 ### 7.2 隐私与网络安全
-- **凭据安全：** 所有 API Key 仅存 macOS Keychain，严禁明文写入 `UserDefaults`、日志、错误提示或导出配置；日志脱敏 `Authorization` 头。
+- **凭据安全：** 所有 API Key 以明文 JSON 存于 `~/.opentype/credentials.json`（目录 0700、文件 0600；为避免 Keychain 在每次升级后弹出密码），严禁写入 `UserDefaults`、日志、错误提示或导出配置；日志脱敏 `Authorization` 头。
 - **数据最小化：** 默认不落盘原始音频和识别记录，临时缓存随会话释放；需向用户明确告知音频发往阿里云、文本发往所选 LLM。
 - **传输安全：** 仅允许正常校验 TLS 的 HTTPS / WSS，不向未配置域名发送密钥。
 
@@ -144,7 +144,7 @@ idle → connecting → recording → finalizing → processing → inserting �
 
 ## 8. 架构概览与性能基线
 
-- **核心组件：** `DictationSessionCoordinator`（全局状态机与 Session ID 隔离）协调 `HotkeyManager`、`AudioCaptureService`、`ASRService`（`BailianRealtimeASR`）、`TextProcessor`（三套 LLM Adapter）与 `TextInsertionService`（`AccessibilityManager`）；`SettingsStore`（`UserDefaults`）+ `CredentialStore`（Keychain）。
+- **核心组件：** `DictationSessionCoordinator`（全局状态机与 Session ID 隔离）协调 `HotkeyManager`、`AudioCaptureService`、`ASRService`（`BailianRealtimeASR`）、`TextProcessor`（三套 LLM Adapter）与 `TextInsertionService`（`AccessibilityManager`）；`SettingsStore`（`UserDefaults`）+ `CredentialStore`（`~/.opentype` JSON）。
 - **性能目标（开发阶段基线）：** 按键到开始采集 P95 ≤ 200 ms；松键到完成插入（良好网络）P50 ≤ 2 s；待机 CPU 接近空闲；正常负载不静默丢音频帧。记录各阶段分段耗时用于排障（不记录语音正文）。
 
 ---
@@ -161,7 +161,7 @@ idle → connecting → recording → finalizing → processing → inserting �
 - 支持按住/松开快捷键稳定完成端到端听写，实时显示 `text + stash` 且最终句不丢失。
 - 百炼 ASR 与三种 LLM 协议独立测试通过，口头禅/自我纠正处理符合预期且不改变原意。
 - 能在主流应用安全插入文本，不注入密码框/错误窗口；任意环节失败或 `Escape` 取消均不丢失已得文本且状态不混乱。
-- Keychain 存储、不落盘语音与待机低占用均达标。
+- API Key 文件存储、不落盘语音与待机低占用均达标。
 
 ---
 

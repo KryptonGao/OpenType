@@ -47,7 +47,7 @@ enum ProcessingLevel: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
-/// A named LLM configuration. The API key lives in the Keychain under `CredentialAccount.llmProfile(id)`.
+/// A named LLM configuration. The API key lives in the credential store under `CredentialAccount.llmProfile(id)`.
 struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
     var id = UUID()
     var name: String

@@ -1938,36 +1938,36 @@
         }
       }
     },
-    "保存到 Keychain 失败": {
+    "保存失败": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存到 Keychain 失败"
+            "value": "保存失败"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Failed to save to Keychain"
+            "value": "Failed to save"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "儲存到鑰匙圈失敗"
+            "value": "儲存失敗"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "キーチェーンへの保存に失敗しました"
+            "value": "保存に失敗しました"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "키체인에 저장하지 못했습니다"
+            "value": "저장하지 못했습니다"
           }
         }
       }
@@ -3978,36 +3978,36 @@
         }
       }
     },
-    "已保存到 Keychain（输入新值以替换）": {
+    "已保存（输入新值以替换）": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已保存到 Keychain（输入新值以替换）"
+            "value": "已保存（输入新值以替换）"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saved to Keychain (enter a new value to replace it)"
+            "value": "Saved (enter a new value to replace it)"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "已儲存到鑰匙圈（輸入新值以取代）"
+            "value": "已儲存（輸入新值以取代）"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "キーチェーンに保存済み（新しい値を入力すると置き換えられます）"
+            "value": "保存済み（新しい値を入力すると置き換えられます）"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "키체인에 저장됨(새 값을 입력하면 교체됩니다)"
+            "value": "저장됨(새 값을 입력하면 교체됩니다)"
           }
         }
       }
@@ -7616,36 +7616,36 @@
         }
       }
     },
-    "此 Key 单独保存在 Keychain，与语音识别、AI 处理的 Key 互不影响。": {
+    "此 Key 单独保存，与语音识别、AI 处理的 Key 互不影响。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此 Key 单独保存在 Keychain，与语音识别、AI 处理的 Key 互不影响。"
+            "value": "此 Key 单独保存，与语音识别、AI 处理的 Key 互不影响。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This key is stored separately in Keychain and is independent of the speech recognition and AI processing keys."
+            "value": "This key is stored separately and is independent of the speech recognition and AI processing keys."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "此 Key 單獨儲存在鑰匙圈，與語音辨識、AI 處理的 Key 互不影響。"
+            "value": "此 Key 單獨儲存，與語音辨識、AI 處理的 Key 互不影響。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このキーはキーチェーンに個別に保存され、音声認識や AI 処理のキーとは互いに影響しません。"
+            "value": "このキーは個別に保存され、音声認識や AI 処理のキーとは互いに影響しません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 Key는 키체인에 별도로 저장되며 음성 인식, AI 처리의 Key와 서로 영향을 주지 않습니다."
+            "value": "이 Key는 별도로 저장되며 음성 인식, AI 처리의 Key와 서로 영향을 주지 않습니다."
           }
         }
       }
@@ -9588,36 +9588,36 @@
         }
       }
     },
-    "语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 仅存于 Keychain。": {
+    "语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 以明文 JSON 保存在 ~/.opentype。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 仅存于 Keychain。"
+            "value": "语音发送至所选的语音识别服务（阿里云百炼或 DeepSeek）；转写文本发送至所配置的 LLM 服务。API Key 以明文 JSON 保存在 ~/.opentype。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Audio is sent to the selected speech recognition service (Alibaba Cloud Bailian or DeepSeek); transcribed text is sent to the configured LLM service. API keys are stored only in Keychain."
+            "value": "Audio is sent to the selected speech recognition service (Alibaba Cloud Bailian or DeepSeek); transcribed text is sent to the configured LLM service. API keys are stored as plain JSON in ~/.opentype."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "語音傳送至所選的語音辨識服務（阿里雲百煉或 DeepSeek）；轉寫文字傳送至所設定的 LLM 服務。API Key 僅存於鑰匙圈。"
+            "value": "語音傳送至所選的語音辨識服務（阿里雲百煉或 DeepSeek）；轉寫文字傳送至所設定的 LLM 服務。API Key 以明文 JSON 儲存在 ~/.opentype。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "音声は選択した音声認識サービス（Alibaba Cloud 百煉（Bailian）または DeepSeek）に送信され、文字起こしテキストは設定した LLM サービスに送信されます。API キーはキーチェーンにのみ保存されます。"
+            "value": "音声は選択した音声認識サービス（Alibaba Cloud 百煉（Bailian）または DeepSeek）に送信され、文字起こしテキストは設定した LLM サービスに送信されます。API キーは平文の JSON として ~/.opentype に保存されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "음성은 선택한 음성 인식 서비스(알리바바 클라우드 바이롄 또는 DeepSeek)로 전송되고, 변환된 텍스트는 설정한 LLM 서비스로 전송됩니다. API Key는 키체인에만 저장됩니다."
+            "value": "음성은 선택한 음성 인식 서비스(알리바바 클라우드 바이롄 또는 DeepSeek)로 전송되고, 변환된 텍스트는 설정한 LLM 서비스로 전송됩니다. API Key는 평문 JSON으로 ~/.opentype에 저장됩니다."
           }
         }
       }
@@ -10438,36 +10438,36 @@
         }
       }
     },
-    "转写文本会发送到上方配置的 LLM 服务；API Key 仅保存在 macOS Keychain。": {
+    "转写文本会发送到上方配置的 LLM 服务；API Key 以明文 JSON 保存在 ~/.opentype。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "转写文本会发送到上方配置的 LLM 服务；API Key 仅保存在 macOS Keychain。"
+            "value": "转写文本会发送到上方配置的 LLM 服务；API Key 以明文 JSON 保存在 ~/.opentype。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transcribed text is sent to the LLM service configured above; API keys are stored only in the macOS Keychain."
+            "value": "Transcribed text is sent to the LLM service configured above; API keys are stored as plain JSON in ~/.opentype."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "轉寫文字會傳送到上方設定的 LLM 服務；API Key 僅儲存在 macOS 鑰匙圈。"
+            "value": "轉寫文字會傳送到上方設定的 LLM 服務；API Key 以明文 JSON 儲存在 ~/.opentype。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "文字起こししたテキストは、上で設定した LLM サービスに送信されます。API キーは macOS のキーチェーンにのみ保存されます。"
+            "value": "文字起こししたテキストは、上で設定した LLM サービスに送信されます。API キーは平文の JSON として ~/.opentype に保存されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "변환된 텍스트는 위에서 설정한 LLM 서비스로 전송됩니다. API Key는 macOS 키체인에만 저장됩니다."
+            "value": "변환된 텍스트는 위에서 설정한 LLM 서비스로 전송됩니다. API Key는 평문 JSON으로 ~/.opentype에 저장됩니다."
           }
         }
       }

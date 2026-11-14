@@ -73,7 +73,7 @@ final class DictationSessionCoordinator {
 
     init(
         settingsStore: SettingsStore = SettingsStore(),
-        credentialStore: any CredentialStoring = CredentialStore(),
+        credentialStore: any CredentialStoring = CredentialStore.makeDefault(),
         hotkeyManager: HotkeyManager = HotkeyManager(),
         translationHotkeyManager: HotkeyManager = HotkeyManager(),
         permissions: PermissionManager = PermissionManager(),

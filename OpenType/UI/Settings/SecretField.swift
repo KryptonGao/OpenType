@@ -13,7 +13,7 @@ struct SecretField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                SecureField(title, text: $draft, prompt: Text(hasValue ? LocalizedStringKey("已保存到 Keychain（输入新值以替换）") : LocalizedStringKey("尚未设置")))
+                SecureField(title, text: $draft, prompt: Text(hasValue ? LocalizedStringKey("已保存（输入新值以替换）") : LocalizedStringKey("尚未设置")))
                     .onSubmit(save)
                 Button("保存", action: save).disabled(draft.isEmpty)
                 Button("清除", role: .destructive) {
@@ -39,7 +39,7 @@ struct SecretField: View {
             errorMessage = nil
             refresh()
         } catch {
-            errorMessage = String(localized: "保存到 Keychain 失败")
+            errorMessage = String(localized: "保存失败")
         }
     }
 
