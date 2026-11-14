@@ -43,10 +43,12 @@ After packaging, you can run `codesign -d -r- build/OpenType.app` to confirm it 
 
 Only when the user asks to publish / ship a release. Replace `<version>` with `MARKETING_VERSION` (e.g. `0.1.0`); the build number is `CURRENT_PROJECT_VERSION` (e.g. `1`). The Release title is `OpenType <version> (<build>)`, e.g. `OpenType 0.1.0 (1)`.
 
-1. **Release notes**: write `release-notes/<version>/release-notes.md` in **Simplified Chinese** (one folder per version under `release-notes/` at the repo root). Base it on `git log` since the previous tag. It must include:
-   - the system requirements line near the top: **macOS 26.0+ · Apple Silicon (arm64)** (also repeated in the requirements section and the download table; the binary is arm64-only, verify with `lipo -archs`);
-   - the install / first-launch (Gatekeeper) instructions for the self-signed build;
-   - the download table with the exact asset names below.
+1. **Release notes**: write `release-notes/<version>/release-notes.md` (one folder per version under `release-notes/` at the repo root). Base it on `git log` since the previous tag.
+   - **Languages**: versions before 0.1.4 (5) were written in Simplified Chinese only. **From 0.1.4 (5) onward, the release notes must be written in all five languages** matching the app's UI languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean. Keep them all in the single `release-notes.md` (it is what `gh release create --notes-file` publishes), one full section per language in this order: 简体中文 → 繁體中文 → English → 日本語 → 한국어, separated by `---` with a language heading on each. Every language section must carry the complete content below (not a truncated summary), and the five must stay equivalent in substance. Use the app's own UI terms from `OpenType/Resources/Localizable.xcstrings` (same as the README).
+   - Each language section must include:
+     - the system requirements line near the top: **macOS 26.0+ · Apple Silicon (arm64)** (also repeated in the requirements section and the download table; the binary is arm64-only, verify with `lipo -archs`);
+     - the install / first-launch (Gatekeeper) instructions for the self-signed build;
+     - the download table with the exact asset names below (asset names are not translated).
 2. **Verify**: run the tests, then build and re-sign the Release `.app` exactly as in the section above. Confirm `codesign --verify --deep --strict build/OpenType.app`, that the designated requirement is not `cdhash`, and that `CFBundleShortVersionString` / `CFBundleVersion` match the intended version.
 3. **Package into `dist/`** (`dist/` is in `.gitignore`). **Asset names must carry the `-arm64` suffix**:
 
