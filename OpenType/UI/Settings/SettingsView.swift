@@ -158,9 +158,11 @@ private struct SpeechRecognitionSettingsTab: View {
             }
         }
         Section("识别") {
-            Picker("识别语言", selection: $settingsStore.asrLanguage) {
+            Picker("默认识别语言", selection: $settingsStore.asrLanguage) {
                 ForEach(ASRLanguage.allCases) { Text($0.displayName).tag($0) }
             }
+            Text("指定后只按该语言识别，能减少混语与误判；不确定时保持「自动识别」。")
+                .font(.caption).foregroundStyle(.secondary)
             Picker("断句模式", selection: $settingsStore.asrTurnDetection) {
                 ForEach(ASRTurnDetection.allCases) { Text($0.displayName).tag($0) }
             }
@@ -197,7 +199,7 @@ private struct SpeechRecognitionSettingsTab: View {
                     .disabled(testResult == .running)
                 TestResultView(result: testResult)
             }
-            Text("语言自动识别，支持中文、粤语、英语、日语、韩语等 21 种语言。")
+            Text("DeepSeek 没有语种参数，只能根据音频自动识别（支持中文、粤语、英语、日语、韩语等 21 种语言），因此「默认识别语言」对它不生效；如需指定语言，请改用阿里云百炼。")
                 .font(.caption).foregroundStyle(.secondary)
         }
         Section {

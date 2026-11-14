@@ -66,19 +66,46 @@ enum ASRTurnDetection: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
+/// Default recognition language. Raw values are the codes accepted by Bailian's
+/// `input_audio_transcription.language` (27 languages). DeepSeek has no language parameter and always auto-detects.
 enum ASRLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
-    case auto, zh, en, ja, yue, ko
+    case auto
+    case zh, yue, en, ja, ko
+    case de, fr, es, pt, it, ru, ar, hi, id, th, tr, uk, vi
+    case cs, da, fil, fi, `is`, ms, no, pl, sv
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .auto: "自动识别"
-        case .zh: "中文"
+        case .zh: "中文（普通话、四川话、闽南语、吴语）"
+        case .yue: "粤语"
         case .en: "English"
         case .ja: "日本語"
-        case .yue: "粤语"
         case .ko: "한국어"
+        case .de: "Deutsch"
+        case .fr: "Français"
+        case .es: "Español"
+        case .pt: "Português"
+        case .it: "Italiano"
+        case .ru: "Русский"
+        case .ar: "العربية"
+        case .hi: "हिन्दी"
+        case .id: "Bahasa Indonesia"
+        case .th: "ไทย"
+        case .tr: "Türkçe"
+        case .uk: "Українська"
+        case .vi: "Tiếng Việt"
+        case .cs: "Čeština"
+        case .da: "Dansk"
+        case .fil: "Filipino"
+        case .fi: "Suomi"
+        case .is: "Íslenska"
+        case .ms: "Bahasa Melayu"
+        case .no: "Norsk"
+        case .pl: "Polski"
+        case .sv: "Svenska"
         }
     }
 

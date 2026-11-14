@@ -170,6 +170,13 @@ struct ASRConfigTests {
         let transcription = try #require(session["input_audio_transcription"] as? [String: Any])
         #expect(transcription["language"] == nil)
     }
+
+    @Test func asrLanguageCoversBailianCodes() {
+        let codes = ["zh", "yue", "en", "ja", "de", "ko", "ru", "fr", "pt", "ar", "it", "es", "hi", "id", "th", "tr",
+                     "uk", "vi", "cs", "da", "fil", "fi", "is", "ms", "no", "pl", "sv"]
+        #expect(Set(ASRLanguage.allCases.compactMap(\.apiValue)) == Set(codes))
+        #expect(ASRLanguage.auto.apiValue == nil)
+    }
 }
 
 // MARK: - LLM adapters
