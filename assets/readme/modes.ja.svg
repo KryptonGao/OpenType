@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" lang="ja" xml:lang="ja" role="img" aria-labelledby="t d">
+  <title id="t">3 つの音声セッション</title>
+  <desc id="d">音声入力：⌃⌥ Space を短く押して開始・終了。翻訳：⌃⌥ T。代わりに話す：音声入力のショートカットを約 0.45 秒長押しして開始し、離すと終了。</desc>
+  <defs>
+    <linearGradient id="caret" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFB547"/></linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="28" fill="#0B1331"/>
+  <rect x="0.5" y="0.5" width="1199" height="299" rx="27.5" fill="none" stroke="#22305F"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif">
+    <!-- Card 1 -->
+    <g transform="translate(40 40)">
+      <rect width="350" height="220" rx="20" fill="#121C44" stroke="#2A3A70"/>
+      <g fill="#63A4FF"><rect x="30" y="38" width="8" height="16" rx="4"/><rect x="46" y="30" width="8" height="32" rx="4"/><rect x="62" y="24" width="8" height="44" rx="4"/><rect x="78" y="32" width="8" height="28" rx="4"/></g>
+      <text x="106" y="56" font-size="34" font-weight="800" fill="#F4F7FF">音声入力</text>
+      <text x="30" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="600" fill="#FFC15E">短く押す ⌃⌥ Space</text>
+      <text x="30" y="156" font-size="20" fill="#C4CFF0">言い淀みを除き句読点を補い</text>
+      <text x="30" y="188" font-size="20" fill="#C4CFF0">元のカーソル位置に挿入</text>
+    </g>
+    <!-- Card 2 -->
+    <g transform="translate(425 40)">
+      <rect width="350" height="220" rx="20" fill="#121C44" stroke="#2A3A70"/>
+      <g fill="none" stroke="#63A4FF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M30 40 H76 M64 28 L76 40 L64 52"/><path d="M80 62 H34 M46 50 L34 62 L46 74" transform="translate(0 -6)"/>
+      </g>
+      <text x="106" y="56" font-size="34" font-weight="800" fill="#F4F7FF">翻訳</text>
+      <text x="30" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="600" fill="#FFC15E">押す ⌃⌥ T</text>
+      <text x="30" y="156" font-size="20" fill="#C4CFF0">整えてから翻訳、</text>
+      <text x="30" y="188" font-size="20" fill="#C4CFF0">15 の言語に対応</text>
+    </g>
+    <!-- Card 3 -->
+    <g transform="translate(810 40)">
+      <rect width="350" height="220" rx="20" fill="#121C44" stroke="#FFC15E" stroke-opacity="0.7"/>
+      <g fill="url(#caret)"><rect x="46" y="22" width="6" height="44" rx="3"/><rect x="36" y="22" width="26" height="5" rx="2.5"/><rect x="36" y="61" width="26" height="5" rx="2.5"/></g>
+      <text x="106" y="56" font-size="34" font-weight="800" fill="#F4F7FF">代わりに話す</text>
+      <text x="30" y="110" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="600" fill="#FFC15E">長押し ⌃⌥ Space</text>
+      <text x="30" y="156" font-size="20" fill="#C4CFF0">ふと口にした一言を</text>
+      <text x="30" y="188" font-size="20" fill="#C4CFF0">そのまま送れる文章に</text>
+    </g>
+  </g>
+</svg>

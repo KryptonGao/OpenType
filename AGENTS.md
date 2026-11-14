@@ -4,6 +4,10 @@
 
 Unless the user explicitly asks for a PR, commit changes directly to the `main` branch (do not create a new branch or open a PR). Only follow the branch + PR flow when the user explicitly says "submit a PR / open a PR".
 
+## README languages
+
+The README exists in five languages, matching the app's UI languages: `README.md` (English, the GitHub default), `README.zh-Hans.md`, `README.zh-Hant.md`, `README.ja.md`, `README.ko.md`. When you change user-facing README content, update all five. Each has its own localized hero / modes images in `assets/readme/` (`hero.<lang>.svg`, `modes.<lang>.svg`). Use the app's own UI terms from `OpenType/Resources/Localizable.xcstrings` (e.g. 帮我说 / 幫我說 / Say It for Me / 代わりに話す / 대신 말하기).
+
 ## Package a new .app after making changes
 
 After every code change (once the build/tests pass), you must package a new Release `.app` for the user to test, unless the user explicitly says "don't package".

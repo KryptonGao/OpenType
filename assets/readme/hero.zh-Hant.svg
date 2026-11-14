@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" lang="zh-Hant" xml:lang="zh-Hant" role="img" aria-labelledby="t d">
+  <title id="t">OpenType</title>
+  <desc id="d">OpenType 應用程式圖示（藍色圓角方塊，白色聲波與琥珀色文字游標）、專案名稱，以及一段語音經「幫我說」整理成請假訊息並落在輸入游標處的範例。</desc>
+  <defs>
+    <linearGradient id="bgTile" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#63A4FF"/><stop offset="0.55" stop-color="#3A6BF0"/><stop offset="1" stop-color="#2A3FC9"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="caret" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFB547"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0D1738"/><stop offset="1" stop-color="#08102A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="420" rx="28" fill="url(#page)"/>
+  <rect x="0.5" y="0.5" width="1199" height="419" rx="27.5" fill="none" stroke="#22305F"/>
+
+  <!-- Left: identity -->
+  <g id="identity">
+    <text x="64" y="68" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" letter-spacing="3" fill="#8FA0D0">MACOS · 全域 AI 語音輸入</text>
+
+    <!-- App icon (from Design/AppIcon.svg) -->
+    <g transform="translate(64 96) scale(0.1553) translate(-100 -100)">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bgTile)"/>
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#sheen)"/>
+      <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" fill="none" stroke="#fff" stroke-opacity="0.22" stroke-width="3"/>
+      <g fill="#fff">
+        <rect x="204" y="447" width="46" height="130" rx="23"/>
+        <rect x="299" y="387" width="46" height="250" rx="23"/>
+        <rect x="394" y="327" width="46" height="370" rx="23"/>
+        <rect x="584" y="357" width="46" height="310" rx="23"/>
+        <rect x="679" y="412" width="46" height="200" rx="23"/>
+        <rect x="774" y="462" width="46" height="100" rx="23"/>
+      </g>
+      <g fill="url(#caret)">
+        <rect x="489" y="262" width="46" height="500" rx="23"/>
+        <rect x="447" y="262" width="130" height="44" rx="22"/>
+        <rect x="447" y="718" width="130" height="44" rx="22"/>
+      </g>
+    </g>
+
+    <text x="216" y="164" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="68" font-weight="800" fill="#F4F7FF" letter-spacing="-1">OpenType</text>
+    <text x="218" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="24" font-weight="600" fill="#FFC15E">聽寫 · 翻譯 · 幫我說</text>
+
+    <text x="64" y="288" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="40" font-weight="700" fill="#F4F7FF">在任何輸入框裡說話，</text>
+    <text x="64" y="340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="40" font-weight="700" fill="#F4F7FF">文字直接落在<tspan fill="#FFC15E">游標</tspan>處。</text>
+
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#B7C3EA">
+      <rect x="64" y="364" width="128" height="34" rx="17" fill="#16224D"/><text x="128" y="387" text-anchor="middle">macOS 26+</text>
+      <rect x="204" y="364" width="104" height="34" rx="17" fill="#16224D"/><text x="256" y="387" text-anchor="middle">Swift 6</text>
+      <rect x="320" y="364" width="136" height="34" rx="17" fill="#16224D"/><text x="388" y="387" text-anchor="middle">Apache-2.0</text>
+    </g>
+  </g>
+
+  <!-- Right: proof -->
+  <g id="proof" transform="translate(640 44)">
+    <rect width="496" height="332" rx="22" fill="#121C44" stroke="#2A3A70"/>
+    <circle cx="30" cy="30" r="6" fill="#3A4A80"/><circle cx="50" cy="30" r="6" fill="#3A4A80"/><circle cx="70" cy="30" r="6" fill="#3A4A80"/>
+    <text x="466" y="37" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="18" fill="#8FA0D0">範例 · 任何應用程式的輸入框</text>
+
+    <text x="28" y="86" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="18" fill="#8FA0D0">你隨口說</text>
+    <g fill="#63A4FF">
+      <rect x="388" y="66" width="8" height="14" rx="4"/><rect x="404" y="58" width="8" height="30" rx="4"/>
+      <rect x="420" y="48" width="8" height="50" rx="4"/><rect x="436" y="62" width="8" height="22" rx="4"/>
+      <rect x="452" y="54" width="8" height="38" rx="4"/><rect x="468" y="66" width="8" height="14" rx="4"/>
+    </g>
+    <text x="28" y="130" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="24" font-weight="600" fill="#F4F7FF">“跟老師說我明天發燒了想請一天假”</text>
+
+    <rect x="28" y="156" width="104" height="36" rx="18" fill="#FFC15E"/>
+    <text x="80" y="181" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="20" font-weight="700" fill="#2A1B00">幫我說</text>
+    <path d="M150 174 H236 M226 164 L238 174 L226 184" fill="none" stroke="#FFC15E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="28" y="212" width="440" height="92" rx="14" fill="#0A1230" stroke="#4F86F7" stroke-width="2"/>
+    <text x="48" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="22" fill="#F4F7FF">老師您好，我明天發燒了，想請一天假，</text>
+    <text x="48" y="282" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif" font-size="22" fill="#F4F7FF">給您添麻煩了，謝謝老師。</text>
+    <g fill="url(#caret)">
+      <rect x="315" y="262" width="4" height="26" rx="2"/>
+      <rect x="309" y="262" width="16" height="3" rx="1.5"/>
+      <rect x="309" y="285" width="16" height="3" rx="1.5"/>
+    </g>
+  </g>
+</svg>

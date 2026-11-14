@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" lang="ja" xml:lang="ja" role="img" aria-labelledby="t d">
+  <title id="t">OpenType</title>
+  <desc id="d">OpenType のアプリアイコン（青い角丸の四角に白い音波と琥珀色のテキストカーソル）、プロジェクト名、そして話した一言が「代わりに話す」で欠席連絡に整えられ、入力カーソルの位置に挿入される例。</desc>
+  <defs>
+    <linearGradient id="bgTile" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#63A4FF"/><stop offset="0.55" stop-color="#3A6BF0"/><stop offset="1" stop-color="#2A3FC9"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="caret" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFB547"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0D1738"/><stop offset="1" stop-color="#08102A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="420" rx="28" fill="url(#page)"/>
+  <rect x="0.5" y="0.5" width="1199" height="419" rx="27.5" fill="none" stroke="#22305F"/>
+
+  <!-- Left: identity -->
+  <g id="identity">
+    <text x="64" y="68" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" letter-spacing="3" fill="#8FA0D0">MACOS · グローバル AI 音声入力</text>
+
+    <!-- App icon (from Design/AppIcon.svg) -->
+    <g transform="translate(64 96) scale(0.1553) translate(-100 -100)">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bgTile)"/>
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#sheen)"/>
+      <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" fill="none" stroke="#fff" stroke-opacity="0.22" stroke-width="3"/>
+      <g fill="#fff">
+        <rect x="204" y="447" width="46" height="130" rx="23"/>
+        <rect x="299" y="387" width="46" height="250" rx="23"/>
+        <rect x="394" y="327" width="46" height="370" rx="23"/>
+        <rect x="584" y="357" width="46" height="310" rx="23"/>
+        <rect x="679" y="412" width="46" height="200" rx="23"/>
+        <rect x="774" y="462" width="46" height="100" rx="23"/>
+      </g>
+      <g fill="url(#caret)">
+        <rect x="489" y="262" width="46" height="500" rx="23"/>
+        <rect x="447" y="262" width="130" height="44" rx="22"/>
+        <rect x="447" y="718" width="130" height="44" rx="22"/>
+      </g>
+    </g>
+
+    <text x="216" y="164" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="68" font-weight="800" fill="#F4F7FF" letter-spacing="-1">OpenType</text>
+    <text x="218" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="24" font-weight="600" fill="#FFC15E">音声入力 · 翻訳 · 代わりに話す</text>
+
+    <text x="64" y="288" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="40" font-weight="700" fill="#F4F7FF">どの入力欄でも、話すだけ。</text>
+    <text x="64" y="340" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="40" font-weight="700" fill="#F4F7FF">文字は<tspan fill="#FFC15E">カーソル</tspan>の位置へ。</text>
+
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#B7C3EA">
+      <rect x="64" y="364" width="128" height="34" rx="17" fill="#16224D"/><text x="128" y="387" text-anchor="middle">macOS 26+</text>
+      <rect x="204" y="364" width="104" height="34" rx="17" fill="#16224D"/><text x="256" y="387" text-anchor="middle">Swift 6</text>
+      <rect x="320" y="364" width="136" height="34" rx="17" fill="#16224D"/><text x="388" y="387" text-anchor="middle">Apache-2.0</text>
+    </g>
+  </g>
+
+  <!-- Right: proof -->
+  <g id="proof" transform="translate(640 44)">
+    <rect width="496" height="332" rx="22" fill="#121C44" stroke="#2A3A70"/>
+    <circle cx="30" cy="30" r="6" fill="#3A4A80"/><circle cx="50" cy="30" r="6" fill="#3A4A80"/><circle cx="70" cy="30" r="6" fill="#3A4A80"/>
+    <text x="466" y="37" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="18" fill="#8FA0D0">例 · 任意のアプリの入力欄</text>
+
+    <text x="28" y="86" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="18" fill="#8FA0D0">思いつくまま話す</text>
+    <g fill="#63A4FF">
+      <rect x="388" y="66" width="8" height="14" rx="4"/><rect x="404" y="58" width="8" height="30" rx="4"/>
+      <rect x="420" y="48" width="8" height="50" rx="4"/><rect x="436" y="62" width="8" height="22" rx="4"/>
+      <rect x="452" y="54" width="8" height="38" rx="4"/><rect x="468" y="66" width="8" height="14" rx="4"/>
+    </g>
+    <text x="28" y="112" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#F4F7FF">“先生に、明日熱が出たので</text>
+    <text x="28" y="138" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#F4F7FF">一日休みたいと伝えて”</text>
+
+    <rect x="28" y="156" width="148" height="36" rx="18" fill="#FFC15E"/>
+    <text x="102" y="181" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="20" font-weight="700" fill="#2A1B00">代わりに話す</text>
+    <path d="M194 174 H280 M270 164 L282 174 L270 184" fill="none" stroke="#FFC15E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="28" y="212" width="440" height="92" rx="14" fill="#0A1230" stroke="#4F86F7" stroke-width="2"/>
+    <text x="48" y="248" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="22" fill="#F4F7FF">先生、明日は熱が出たため、</text>
+    <text x="48" y="282" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif" font-size="22" fill="#F4F7FF">一日お休みをいただきたく存じます。</text>
+    <g fill="url(#caret)">
+      <rect x="423" y="262" width="4" height="26" rx="2"/>
+      <rect x="417" y="262" width="16" height="3" rx="1.5"/>
+      <rect x="417" y="285" width="16" height="3" rx="1.5"/>
+    </g>
+  </g>
+</svg>
