@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>OpenType</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#63A4FF"/>
+      <stop offset="0.55" stop-color="#3A6BF0"/>
+      <stop offset="1" stop-color="#2A3FC9"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.28"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="caret" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#FFB547"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="228" fill="url(#sheen)"/>
+  <g fill="#fff">
+    <rect x="204" y="447" width="46" height="130" rx="23"/>
+    <rect x="299" y="387" width="46" height="250" rx="23"/>
+    <rect x="394" y="327" width="46" height="370" rx="23"/>
+    <rect x="584" y="357" width="46" height="310" rx="23"/>
+    <rect x="679" y="412" width="46" height="200" rx="23"/>
+    <rect x="774" y="462" width="46" height="100" rx="23"/>
+  </g>
+  <g fill="url(#caret)">
+    <rect x="489" y="262" width="46" height="500" rx="23"/>
+    <rect x="447" y="262" width="130" height="44" rx="22"/>
+    <rect x="447" y="718" width="130" height="44" rx="22"/>
+  </g>
+</svg>

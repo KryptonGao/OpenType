@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenType — 面向 macOS 的全局 AI 语音输入工具</title>
+  <meta name="description" content="在任意输入框里说话，文字经整理后直接落在当前光标处；支持听写、15 种语言语音翻译与「帮我说」联网润色。macOS 26.0+ · Apple Silicon。" />
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Sticky Top Nav -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="brand" href="#">
+        <svg viewBox="0 0 1024 1024" aria-hidden="true">
+          <defs>
+            <linearGradient id="hdBg" x1="0" y1="0" x2="0.35" y2="1">
+              <stop offset="0" stop-color="#63A4FF"/><stop offset="0.55" stop-color="#3A6BF0"/><stop offset="1" stop-color="#2A3FC9"/>
+            </linearGradient>
+            <linearGradient id="hdCaret" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFB547"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="228" fill="url(#hdBg)"/>
+          <g fill="#fff">
+            <rect x="204" y="447" width="46" height="130" rx="23"/>
+            <rect x="299" y="387" width="46" height="250" rx="23"/>
+            <rect x="394" y="327" width="46" height="370" rx="23"/>
+            <rect x="584" y="357" width="46" height="310" rx="23"/>
+            <rect x="679" y="412" width="46" height="200" rx="23"/>
+            <rect x="774" y="462" width="46" height="100" rx="23"/>
+          </g>
+          <g fill="url(#hdCaret)">
+            <rect x="489" y="262" width="46" height="500" rx="23"/>
+            <rect x="447" y="262" width="130" height="44" rx="22"/>
+            <rect x="447" y="718" width="130" height="44" rx="22"/>
+          </g>
+        </svg>
+        <span>OpenType</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#modes" data-i18n="navModes">三种用法</a></li>
+        <li><a href="#workflow" data-i18n="navWorkflow">工作流</a></li>
+        <li><a href="#surfaces" data-i18n="navSurfaces">应用界面</a></li>
+        <li><a href="#scenarios" data-i18n="navScenarios">实际示例</a></li>
+      </ul>
+
+      <div class="header-actions">
+        <div class="lang-switcher" id="langSwitcher">
+          <button
+            class="btn btn-hero-ghost btn-sm lang-btn"
+            id="langBtn"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-label="选择页面语言"
+            data-i18n-aria="langSwitcherAria"
+          >
+            <svg class="lang-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9.5"/>
+              <path d="M2.8 12h18.4"/>
+              <path d="M12 2.5a14.5 14.5 0 0 1 0 19"/>
+              <path d="M12 2.5a14.5 14.5 0 0 0 0 19"/>
+            </svg>
+            <span class="lang-label-full" id="langCurrentLabel">简体中文</span>
+            <span class="lang-label-short" id="langCurrentShort">简中</span>
+            <svg class="lang-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4.2 6.2 8 10l3.8-3.8"/>
+            </svg>
+          </button>
+          <div class="lang-menu" id="langMenu" role="menu" aria-label="语言列表" data-i18n-aria="langMenuAria">
+            <button class="lang-option is-active" type="button" role="menuitemradio" aria-checked="true" data-lang-option="zh-Hans">
+              <span>简体中文</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="zh-Hant">
+              <span>繁體中文</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="en">
+              <span>English</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="ja">
+              <span>日本語</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="ko">
+              <span>한국어</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+          </div>
+        </div>
+        <a class="btn btn-hero-ghost btn-sm header-github-btn" href="https://github.com/KryptonGao/OpenType" target="_blank" rel="noreferrer">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="#download" data-i18n="headerDownload">下载 macOS 版</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Full-Bleed Sky Gradient Hero -->
+    <section class="hero-backdrop">
+      <div class="mesh-blob blob-left"></div>
+      <div class="mesh-blob blob-right"></div>
+      <div class="mesh-blob blob-center"></div>
+      <div class="hero-fade-bottom"></div>
+
+      <div class="container hero-content">
+        <div class="hero-icon hero-anim-1">
+          <svg viewBox="0 0 1024 1024" aria-hidden="true">
+            <defs>
+              <linearGradient id="hrBg" x1="0" y1="0" x2="0.35" y2="1">
+                <stop offset="0" stop-color="#63A4FF"/><stop offset="0.55" stop-color="#3A6BF0"/><stop offset="1" stop-color="#2A3FC9"/>
+              </linearGradient>
+              <linearGradient id="hrSheen" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="hrCaret" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFB547"/>
+              </linearGradient>
+            </defs>
+            <rect width="1024" height="1024" rx="230" fill="url(#hrBg)"/>
+            <rect width="1024" height="1024" rx="230" fill="url(#hrSheen)"/>
+            <g fill="#fff">
+              <rect x="204" y="447" width="46" height="130" rx="23"/>
+              <rect x="299" y="387" width="46" height="250" rx="23"/>
+              <rect x="394" y="327" width="46" height="370" rx="23"/>
+              <rect x="584" y="357" width="46" height="310" rx="23"/>
+              <rect x="679" y="412" width="46" height="200" rx="23"/>
+              <rect x="774" y="462" width="46" height="100" rx="23"/>
+            </g>
+            <g fill="url(#hrCaret)" class="caret-pulse">
+              <rect x="489" y="262" width="46" height="500" rx="23"/>
+              <rect x="447" y="262" width="130" height="44" rx="22"/>
+              <rect x="447" y="718" width="130" height="44" rx="22"/>
+            </g>
+          </svg>
+        </div>
+
+        <h1 class="hero-anim-2" data-i18n="heroTitle">用 OpenType 在任何地方说话成文</h1>
+        <p class="hero-sub hero-anim-3" data-i18n="heroSub">
+          面向 macOS 的全局 AI 语音输入工具。在任意输入框里说话，文字经整理后直接落在当前光标处；支持听写、语音翻译与「帮我说」。
+        </p>
+
+        <div class="hero-ctas hero-anim-4">
+          <a class="btn btn-primary" href="#download" data-i18n="heroDownload">下载 macOS 版</a>
+          <a class="btn btn-hero-ghost" href="https://github.com/KryptonGao/OpenType" target="_blank" rel="noreferrer" data-i18n="heroGithub">查看 GitHub</a>
+        </div>
+
+        <!-- Monochrome Ecosystem Strip -->
+        <div class="trust-strip hero-anim-5">
+          <div class="trust-label" data-i18n="trustLabel">原生兼容主流语音识别与大模型协议</div>
+          <div class="trust-logos">
+            <span class="trust-wordmark" data-i18n="trustBailian">阿里云百炼</span>
+            <span class="trust-wordmark">DeepSeek</span>
+            <span class="trust-wordmark">OpenAI API</span>
+            <span class="trust-wordmark">Anthropic</span>
+            <span class="trust-wordmark mono">macOS 26+</span>
+          </div>
+        </div>
+
+        <!-- Floating macOS Window Showcase -->
+        <div class="hero-window-wrap hero-anim-6" id="heroWindowWrap">
+          <div class="macos-window-placeholder" data-slot="hero-main">
+            <div class="window-titlebar">
+              <div class="traffic-lights">
+                <span class="tl-red"></span>
+                <span class="tl-yellow"></span>
+                <span class="tl-green"></span>
+              </div>
+              <span class="window-title-text" data-i18n="windowTitle">OpenType · 主界面 / 悬浮窗演示</span>
+              <span style="width: 48px;"></span>
+            </div>
+            <div class="window-body-placeholder">
+              <img class="slot-img" src="./assets/screenshots/hero-main.png" alt="OpenType 桌面语音输入与悬浮窗实际效果截图" data-i18n-alt="heroImgAlt" />
+              <div class="placeholder-inner">
+                <div class="mini-waveform" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="placeholder-tag">assets/screenshots/hero-main.png</span>
+                <div class="placeholder-title" data-i18n="heroPlaceholderTitle">主展示屏幕截图占位</div>
+                <div class="placeholder-desc" data-i18n="heroPlaceholderDesc">放置：在任意输入场景下唤起 OpenType Liquid Glass 悬浮窗进行语音输入时的真实桌面截图</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 1: 3-Column Mode Cards -->
+    <section class="container section" id="modes">
+      <div class="section-header">
+        <h2 data-i18n="modesTitle">开始使用</h2>
+        <p data-i18n="modesSub">三种语音会话模式共用一条流水线，按你的表达意图选择触发方式。</p>
+      </div>
+
+      <div class="cards-3">
+        <div class="mode-card">
+          <div>
+            <h3 data-i18n="mode1Title">听写</h3>
+            <p class="mode-desc" data-i18n="mode1Desc">
+              说完自动去除口头禅、补全标点符号，并直接插入原来的输入位置。支持「原始 / 标准 / 深度整理」三档处理等级。
+            </p>
+          </div>
+          <div>
+            <div class="mode-shortcut" data-i18n="mode1Shortcut">默认 ⌃⌥ Space</div>
+            <div class="mode-hint" data-i18n="mode1Hint">短按开始，再短按一次结束（可在设置中自定义）</div>
+            <a class="btn btn-primary" href="#workflow" data-i18n="mode1Btn">了解听写流程</a>
+          </div>
+        </div>
+
+        <div class="mode-card">
+          <div>
+            <h3 data-i18n="mode2Title">语音翻译</h3>
+            <p class="mode-desc" data-i18n="mode2Desc">
+              先理顺口语再翻译成目标语言，支持 15 种语言；录音过程中可在悬浮窗里临时切换语种与地区用语（台湾/港澳、巴西/葡萄牙）。
+            </p>
+          </div>
+          <div>
+            <div class="mode-shortcut" data-i18n="mode2Shortcut">默认 ⌃⌥ T</div>
+            <div class="mode-hint" data-i18n="mode2Hint">短按开始，再按一次结束（支持自定义或清除）</div>
+            <a class="btn btn-primary" href="#workflow" data-i18n="mode2Btn">查看支持语种</a>
+          </div>
+        </div>
+
+        <div class="mode-card">
+          <div>
+            <h3 data-i18n="mode3Title">帮我说</h3>
+            <p class="mode-desc" data-i18n="mode3Desc">
+              模型不只是纠错，而是将你的随口念头细化、补全为可直接发出的成品。不编造未提及的人名、数字或日期，可开启联网搜索。
+            </p>
+          </div>
+          <div>
+            <div class="mode-shortcut" data-i18n="mode3Shortcut">长按约 0.45s</div>
+            <div class="mode-hint" data-i18n="mode3Hint">按住你的听写键或翻译键（翻译帮我说），松开结束</div>
+            <a class="btn btn-primary" href="#scenarios" data-i18n="mode3Btn">查看成稿示例</a>
+          </div>
+        </div>
+      </div>
+
+      <p class="footnote" data-i18n="modesFootnote">听写与翻译快捷键均可完全自定义，支持单键、组合键、左右独立修饰键（如右 ⌥）或 fn 键；Esc 保留为取消键，取消时不插入文字。</p>
+    </section>
+
+    <!-- Section 2: Staggered 1:2 / 2:1 Feature Showcases -->
+    <section class="container section" id="workflow">
+      <div class="section-header">
+        <h2 data-i18n="workflowTitle">为顺滑的日常表达而打造</h2>
+      </div>
+
+      <div class="showcase-stack">
+        <!-- Row 1: Text Left, Screenshot Right -->
+        <div class="showcase-row">
+          <div class="showcase-copy">
+            <h3 data-i18n="row1Title">不抢焦点的非激活式悬浮窗</h3>
+            <p data-i18n="row1Desc">
+              悬浮窗采用非激活式 NSPanel，弹出与识别期间原应用的光标焦点始终保持不变。实时呈现音量波形以及「已确认文字 + 浅色未稳定部分」，并可按模式单独选择 Liquid Glass 或毛玻璃材质。
+            </p>
+            <div class="showcase-meta">
+              <span class="meta-pill">Liquid Glass</span>
+              <span class="meta-pill" data-i18n="row1Pill2">毛玻璃</span>
+              <span class="meta-pill" data-i18n="row1Pill3">不抢焦点</span>
+            </div>
+          </div>
+          <div class="showcase-media">
+            <div class="placeholder-frame ratio-16-10" data-slot="01-overlay">
+              <img class="slot-img" src="./assets/screenshots/01-overlay.png" alt="OpenType 非激活式悬浮窗实时波形与中间转写截图" data-i18n-alt="row1ImgAlt" />
+              <div class="placeholder-inner">
+                <span class="placeholder-tag">assets/screenshots/01-overlay.png</span>
+                <div class="placeholder-title" data-i18n="row1PlaceholderTitle">悬浮窗材质与实时波形截图占位</div>
+                <div class="placeholder-desc" data-i18n="row1PlaceholderDesc">放置：Liquid Glass 完整悬浮窗实机截图（显示音量波形、已确认与浅色未稳定文字）</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Screenshot Left, Text Right -->
+        <div class="showcase-row is-reversed">
+          <div class="showcase-copy">
+            <h3 data-i18n="row2Title">ASR 与 LLM 完全解耦</h3>
+            <p data-i18n="row2Desc">
+              语音识别可选阿里云百炼实时流式（qwen3-asr-flash-realtime / qwen-audio-3.1-asr-flash-message）或 DeepSeek 整段上传；文本处理内置 OpenAI Responses、Chat Completions 与 Anthropic Messages 三种协议适配器，支持多套 Profile 随时切换。
+            </p>
+            <div class="showcase-meta">
+              <span class="meta-pill" data-i18n="row2Pill1">阿里云百炼 WebSocket</span>
+              <span class="meta-pill" data-i18n="row2Pill2">DeepSeek ASR</span>
+              <span class="meta-pill" data-i18n="row2Pill3">多 Profile</span>
+            </div>
+          </div>
+          <div class="showcase-media">
+            <div class="placeholder-frame ratio-16-10" data-slot="02-asr-llm-settings">
+              <img class="slot-img" src="./assets/screenshots/02-asr-llm-settings.png" alt="OpenType 设置中的语音识别与 AI 处理配置界面" data-i18n-alt="row2ImgAlt" />
+              <div class="placeholder-inner">
+                <span class="placeholder-tag">assets/screenshots/02-asr-llm-settings.png</span>
+                <div class="placeholder-title" data-i18n="row2PlaceholderTitle">「设置 → 语音识别 / AI 处理」截图占位</div>
+                <div class="placeholder-desc" data-i18n="row2PlaceholderDesc">放置：AI 处理多协议 Profile 配置页面（或语音识别设置页）截图</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Text Left, Screenshot Right -->
+        <div class="showcase-row">
+          <div class="showcase-copy">
+            <h3 data-i18n="row3Title">「帮我说」支持联网搜索</h3>
+            <p data-i18n="row3Desc">
+              在「设置 → 帮我说」中开启 DeepSeek 联网搜索后，可通过 0–100% 滑块调节搜索积极度。搜索与网页读取在服务端完成，悬浮窗实时展示“正在搜索 · 已搜到 N 条结果 · 已读取 M 个网页”。
+            </p>
+            <div class="showcase-meta">
+              <span class="meta-pill">deepseek_web_search</span>
+              <span class="meta-pill" data-i18n="row3Pill2">积极度 0–100%</span>
+            </div>
+          </div>
+          <div class="showcase-media">
+            <div class="placeholder-frame ratio-16-10" data-slot="03-web-search">
+              <img class="slot-img" src="./assets/screenshots/03-web-search.png" alt="OpenType 帮我说联网搜索设置或搜索状态悬浮窗截图" data-i18n-alt="row3ImgAlt" />
+              <div class="placeholder-inner">
+                <span class="placeholder-tag">assets/screenshots/03-web-search.png</span>
+                <div class="placeholder-title" data-i18n="row3PlaceholderTitle">联网搜索进度与结果反馈截图占位</div>
+                <div class="placeholder-desc" data-i18n="row3PlaceholderDesc">放置：「帮我说」联网搜索进行中提示条或「设置 → 帮我说」页面截图</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 4: Screenshot Left, Text Right -->
+        <div class="showcase-row is-reversed">
+          <div class="showcase-copy">
+            <h3 data-i18n="row4Title">三级安全插入与本地隐私</h3>
+            <p data-i18n="row4Desc">
+              依次尝试 Accessibility 直写、自动备份恢复剪贴板的模拟粘贴与悬浮窗手动复制，绝不向密码框、安全输入模式或已切换的应用误写。不落盘原始音频，API Key 以 0600 权限存于 ~/.opentype/credentials.json。
+            </p>
+            <div class="showcase-meta">
+              <span class="meta-pill" data-i18n="row4Pill1">失败不丢字</span>
+              <span class="meta-pill" data-i18n="row4Pill2">0600 本地凭证</span>
+            </div>
+          </div>
+          <div class="showcase-media">
+            <div class="placeholder-frame ratio-16-10" data-slot="04-privacy-permissions">
+              <img class="slot-img" src="./assets/screenshots/04-privacy-permissions.png" alt="OpenType 设置中的隐私与权限管理界面" data-i18n-alt="row4ImgAlt" />
+              <div class="placeholder-inner">
+                <span class="placeholder-tag">assets/screenshots/04-privacy-permissions.png</span>
+                <div class="placeholder-title" data-i18n="row4PlaceholderTitle">「设置 → 隐私与权限」截图占位</div>
+                <div class="placeholder-desc" data-i18n="row4PlaceholderDesc">放置：麦克风 / 辅助功能 / 输入监控授权状态与本地隐私面板截图</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: 4-Column Surface Cards -->
+    <section class="container section" id="surfaces">
+      <div class="section-header">
+        <h2 data-i18n="surfacesTitle">原生打磨的每一处界面</h2>
+        <p data-i18n="surfacesSub">从后台静默驻留到统计与历史检索，完全遵循 SwiftUI 与 AppKit 原生体验。</p>
+        <div class="cta-wrap">
+          <a class="btn btn-primary" id="readmeLink" href="https://github.com/KryptonGao/OpenType/blob/main/README.zh-Hans.md" target="_blank" rel="noreferrer" data-i18n="surfacesCta">
+            阅读完整使用说明 ↗
+          </a>
+        </div>
+      </div>
+
+      <div class="cards-4">
+        <div class="surface-card">
+          <div class="placeholder-frame ratio-16-10" data-slot="surface-1-home">
+            <img class="slot-img" src="./assets/screenshots/surface-1-home.png" alt="OpenType 首页输入统计与 Token 用量看板" data-i18n-alt="surface1ImgAlt" />
+            <div class="placeholder-inner">
+              <span class="placeholder-tag">surface-1-home.png</span>
+              <div class="placeholder-desc" data-i18n="surface1PlaceholderDesc">首页统计看板</div>
+            </div>
+          </div>
+          <div class="surface-body">
+            <h3 data-i18n="surface1Title">首页统计</h3>
+            <p data-i18n="surface1Desc">直观记录输入次数、累计字数、录音时长与 Token 用量。</p>
+            <span class="surface-link" data-i18n="surface1Link">SwiftUI 原生主窗口</span>
+          </div>
+        </div>
+
+        <div class="surface-card">
+          <div class="placeholder-frame ratio-16-10" data-slot="surface-2-history">
+            <img class="slot-img" src="./assets/screenshots/surface-2-history.png" alt="OpenType 本地历史记录检索界面" data-i18n-alt="surface2ImgAlt" />
+            <div class="placeholder-inner">
+              <span class="placeholder-tag">surface-2-history.png</span>
+              <div class="placeholder-desc" data-i18n="surface2PlaceholderDesc">本地历史记录</div>
+            </div>
+          </div>
+          <div class="surface-body">
+            <h3 data-i18n="surface2Title">历史记录</h3>
+            <p data-i18n="surface2Desc">识别与整理文本仅存本机，支持全文搜索、一键复制与随时清空。</p>
+            <span class="surface-link mono">~/Library/Application Support/OpenType</span>
+          </div>
+        </div>
+
+        <div class="surface-card">
+          <div class="placeholder-frame ratio-16-10" data-slot="surface-3-menubar">
+            <img class="slot-img" src="./assets/screenshots/surface-3-menubar.png" alt="OpenType 菜单栏下拉控制面板" data-i18n-alt="surface3ImgAlt" />
+            <div class="placeholder-inner">
+              <span class="placeholder-tag">surface-3-menubar.png</span>
+              <div class="placeholder-desc" data-i18n="surface3PlaceholderDesc">菜单栏下拉面板</div>
+            </div>
+          </div>
+          <div class="surface-body">
+            <h3 data-i18n="surface3Title">菜单栏控制</h3>
+            <p data-i18n="surface3Desc">快速查看听写与翻译快捷键、暂停全局监听、检查三项系统权限状态。</p>
+            <span class="surface-link mono">MenuBarExtra</span>
+          </div>
+        </div>
+
+        <div class="surface-card">
+          <div class="placeholder-frame ratio-16-10" data-slot="surface-4-languages">
+            <img class="slot-img" src="./assets/screenshots/surface-4-languages.png" alt="OpenType 设置通用中的五语本地化设置" data-i18n-alt="surface4ImgAlt" />
+            <div class="placeholder-inner">
+              <span class="placeholder-tag">surface-4-languages.png</span>
+              <div class="placeholder-desc" data-i18n="surface4PlaceholderDesc">五语本地化设置</div>
+            </div>
+          </div>
+          <div class="surface-body">
+            <h3 data-i18n="surface4Title">五语界面</h3>
+            <p data-i18n="surface4Desc">支持简中、繁中、English、日本語、한국어，跟随系统或手动切换。</p>
+            <span class="surface-link" data-i18n="surface4Link">设置 → 通用 → 界面语言</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Horizontal Scenario / Output Cards -->
+    <section class="container section" id="scenarios">
+      <div class="carousel-head">
+        <h2 data-i18n="scenariosTitle">从随口一句到得体成品</h2>
+        <div class="carousel-controls">
+          <button class="icon-btn" id="prevBtn" type="button" aria-label="向左滚动" data-i18n-aria="prevBtnAria">←</button>
+          <button class="icon-btn" id="nextBtn" type="button" aria-label="向右滚动" data-i18n-aria="nextBtnAria">→</button>
+        </div>
+      </div>
+
+      <div class="carousel-track" id="carouselTrack">
+        <article class="quote-card">
+          <blockquote>
+            <span data-i18n="quote1Spoken">口述：“跟老师说我明天发烧了想请一天假”</span><br /><br />
+            <span data-i18n="quote1Typed">落字：“老师您好，我明天发烧了，想请一天假，给您添麻烦了，谢谢老师。”</span>
+          </blockquote>
+          <div class="quote-meta">
+            <strong data-i18n="quote1Title">帮我说 · 长按听写快捷键（默认 ⌃⌥ Space）</strong>
+            <span data-i18n="quote1Meta">自动理顺语气，不编造未提及信息</span>
+          </div>
+        </article>
+
+        <article class="quote-card">
+          <blockquote>
+            <span data-i18n="quote2Spoken">口述：“帮我问下这个报错怎么解决”</span><br /><br />
+            <span data-i18n="quote2Typed">落字：自动组织成包含当前现象、触发条件与期望结果的清晰技术提问。</span>
+          </blockquote>
+          <div class="quote-meta">
+            <strong data-i18n="quote2Title">帮我说 · 深度细化</strong>
+            <span data-i18n="quote2Meta">适合 IM、Issue 与论坛提问</span>
+          </div>
+        </article>
+
+        <article class="quote-card">
+          <blockquote>
+            <span data-i18n="quote3Spoken">口述：“下周二之前我们会把新版发到 GitHub 上”</span><br /><br />
+            <span data-i18n="quote3Typed">落字：“We will publish the new release on GitHub before next Tuesday.”</span>
+          </blockquote>
+          <div class="quote-meta">
+            <strong data-i18n="quote3Title">语音翻译 · 翻译快捷键（默认 ⌃⌥ T）</strong>
+            <span data-i18n="quote3Meta">支持 15 种目标语言及地区用语</span>
+          </div>
+        </article>
+
+        <article class="quote-card">
+          <blockquote data-i18n="quote4Body">
+            设为仅修饰键（如 fn 或右 ⌥）时，轻点松开即触发；按住期间若同时按下 ⌘C 或 ⌥ + 点击，自动取消触发，避免日常操作冲突。
+          </blockquote>
+          <div class="quote-meta">
+            <strong data-i18n="quote4Title">CGEventTap 状态机</strong>
+            <span data-i18n="quote4Meta">极低误触的全局快捷键</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Section 5: Bottom Closing CTA -->
+    <section class="container closing-cta" id="download">
+      <div class="closing-icon">
+        <svg viewBox="0 0 1024 1024" aria-hidden="true">
+          <defs>
+            <linearGradient id="ftBg" x1="0" y1="0" x2="0.35" y2="1">
+              <stop offset="0" stop-color="#63A4FF"/><stop offset="0.55" stop-color="#3A6BF0"/><stop offset="1" stop-color="#2A3FC9"/>
+            </linearGradient>
+            <linearGradient id="ftCaret" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFB547"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="1024" rx="230" fill="url(#ftBg)"/>
+          <g fill="#fff">
+            <rect x="204" y="447" width="46" height="130" rx="23"/>
+            <rect x="299" y="387" width="46" height="250" rx="23"/>
+            <rect x="394" y="327" width="46" height="370" rx="23"/>
+            <rect x="584" y="357" width="46" height="310" rx="23"/>
+            <rect x="679" y="412" width="46" height="200" rx="23"/>
+            <rect x="774" y="462" width="46" height="100" rx="23"/>
+          </g>
+          <g fill="url(#ftCaret)">
+            <rect x="489" y="262" width="46" height="500" rx="23"/>
+            <rect x="447" y="262" width="130" height="44" rx="22"/>
+            <rect x="447" y="718" width="130" height="44" rx="22"/>
+          </g>
+        </svg>
+      </div>
+      <h2 data-i18n="closingTitle">开始使用 OpenType</h2>
+      <p data-i18n="closingSub">macOS 26.0+ · Apple Silicon (arm64) · 开源免费、自备 API Key</p>
+      <div class="hero-ctas" style="margin-top: 0;">
+        <a class="btn btn-primary" href="https://github.com/KryptonGao/OpenType/releases/latest" target="_blank" rel="noreferrer" data-i18n="closingLatest">下载最新 Release ↗</a>
+        <a class="btn btn-secondary" href="https://github.com/KryptonGao/OpenType/releases" target="_blank" rel="noreferrer" data-i18n="closingAll">查看全部版本</a>
+      </div>
+      <div class="gatekeeper-tip">
+        <span data-i18n="gatekeeperTip">首次打开如遇 Gatekeeper 拦截，可拖入「应用程序」后执行：</span>
+        <code id="gatekeeperCmd">xattr -dr com.apple.quarantine /Applications/OpenType.app</code>
+        <button class="copy-cmd-btn" id="copyCmdBtn" type="button" data-i18n="copyBtn">复制</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>OpenType · Apache License 2.0</span>
+      <div class="footer-links">
+        <a href="https://github.com/KryptonGao/OpenType" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/KryptonGao/OpenType/releases" target="_blank" rel="noreferrer">Releases</a>
+        <div class="footer-lang-switcher" id="footerLangSwitcher">
+          <button
+            class="footer-lang-btn-trigger"
+            id="footerLangBtn"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-controls="footerLangMenu"
+            aria-label="选择页面语言"
+            data-i18n-aria="langSwitcherAria"
+          >
+            <span id="footerLangCurrentLabel">简体中文</span>
+            <svg class="lang-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4.2 9.8 8 6l3.8 3.8"/>
+            </svg>
+          </button>
+          <div class="lang-menu footer-lang-menu" id="footerLangMenu" role="menu" aria-label="语言列表" data-i18n-aria="langMenuAria">
+            <button class="lang-option is-active" type="button" role="menuitemradio" aria-checked="true" data-lang-option="zh-Hans">
+              <span>简体中文</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="zh-Hant">
+              <span>繁體中文</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="en">
+              <span>English</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="ja">
+              <span>日本語</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+            <button class="lang-option" type="button" role="menuitemradio" aria-checked="false" data-lang-option="ko">
+              <span>한국어</span>
+              <span class="lang-check" aria-hidden="true">✓</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Lightbox for full-resolution screenshot inspection -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="截图放大预览" data-i18n-aria="lightboxAria">
+    <button class="lightbox-close" id="lightboxClose" type="button" aria-label="关闭预览" data-i18n-aria="lightboxCloseAria">×</button>
+    <img id="lightboxImg" src="" alt="" />
+  </div>
+
+  <script src="./i18n.js"></script>
+  <script src="./main.js"></script>
+</body>
+</html>
