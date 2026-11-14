@@ -43,14 +43,20 @@ After packaging, you can run `codesign -d -r- build/OpenType.app` to confirm it 
 
 Only when the user asks to publish / ship a release. Replace `<version>` with `MARKETING_VERSION` (e.g. `0.1.0`); the build number is `CURRENT_PROJECT_VERSION` (e.g. `1`). The Release title is `OpenType <version> (<build>)`, e.g. `OpenType 0.1.0 (1)`.
 
-1. **Release notes**: write `release-notes/<version>/release-notes.md` (one folder per version under `release-notes/` at the repo root). Base it on `git log` since the previous tag.
-   - **Languages**: versions before 0.1.4 (5) were written in Simplified Chinese only. **From 0.1.4 (5) onward, the release notes must be written in all five languages** matching the app's UI languages: English, Simplified Chinese, Traditional Chinese, Japanese, Korean. **English is the default**: it comes first and is what readers see by default. Keep all five in the single `release-notes.md` (it is what `gh release create --notes-file` publishes), laid out as:
-     1. At the very top, above the English section, a one-line language switcher of anchor links to the other languages, e.g. `**Languages:** [简体中文](#简体中文) · [繁體中文](#繁體中文) · [日本語](#日本語) · [한국어](#한국어)`. English is the default so it needs no link.
-     2. The English section, with the heading `## English`.
-     3. One section per remaining language in this order: `## 简体中文` → `## 繁體中文` → `## 日本語` → `## 한국어`, each separated by `---`. Use exactly these plain headings (no emoji or extra words) so the GitHub-generated anchors match the links in the switcher. Optionally add a `[↑ English](#english)` link at the end of each non-English section to jump back.
+1. **Release notes**: write the notes under `release-notes/<version>/` (one folder per version under `release-notes/` at the repo root). Base them on `git log` since the previous tag.
+   - **Languages and files**: versions before 0.1.4 (5) have a single Simplified Chinese `release-notes.md`. **From 0.1.4 (5) onward, every version folder holds five files, one per language, matching the app's UI languages and the README naming** (never put several languages in one file):
 
-     Every language section must carry the complete content below (not a truncated summary), and the five must stay equivalent in substance. Use the app's own UI terms from `OpenType/Resources/Localizable.xcstrings` (same as the README). After publishing, open the Release page once and click the switcher links to confirm they jump correctly.
-   - Each language section must include:
+     | File | Language |
+     | --- | --- |
+     | `release-notes.md` | English (the default) |
+     | `release-notes.zh-Hans.md` | 简体中文 |
+     | `release-notes.zh-Hant.md` | 繁體中文 |
+     | `release-notes.ja.md` | 日本語 |
+     | `release-notes.ko.md` | 한국어 |
+
+   - **The Release uses the English file**: `gh release create --notes-file release-notes/<version>/release-notes.md` (see step 5). The other four files are only committed to the repo and reached through links.
+   - **Language switcher**: at the very top of every one of the five files (above everything else), put one line with five hyperlinks, in this order, one per language, including the file's own language: `[English](…) · [简体中文](…) · [繁體中文](…) · [日本語](…) · [한국어](…)`. Because the English file is also rendered on the GitHub Release page, where relative links do not resolve, **use absolute URLs pinned to the version tag**, e.g. `https://github.com/KryptonGao/OpenType/blob/v<version>/release-notes/<version>/release-notes.zh-Hans.md` (the tag is pushed in step 4, before the Release is created in step 5). After publishing, open the Release page once and click all five links to confirm they resolve.
+   - **Content**: each of the five files carries the complete notes (not a truncated summary) and they must stay equivalent in substance. Use the app's own UI terms from `OpenType/Resources/Localizable.xcstrings` (same as the README). Each file must include:
      - the system requirements line near the top: **macOS 26.0+ · Apple Silicon (arm64)** (also repeated in the requirements section and the download table; the binary is arm64-only, verify with `lipo -archs`);
      - the install / first-launch (Gatekeeper) instructions for the self-signed build;
      - the download table with the exact asset names below (asset names are not translated).
