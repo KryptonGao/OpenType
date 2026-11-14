@@ -19,6 +19,16 @@ struct OverlayView: View {
         }
     }
 
+    /// The full window follows the full-window setting, except in minimal mode, where it is the expanded form of the
+    /// capsule (error / manual copy) and keeps the capsule's material.
+    private var fullMaterial: OverlayMaterial {
+        coordinator.settingsStore.overlayMinimalMode
+            ? coordinator.settingsStore.overlayMinimalMaterial
+            : coordinator.settingsStore.overlayMaterial
+    }
+
+    private var minimalMaterial: OverlayMaterial { coordinator.settingsStore.overlayMinimalMaterial }
+
     // MARK: Minimal layout
 
     /// Minimal mode shows capsules only. Errors and manual-copy results need the full card (message / copy button).
@@ -74,7 +84,7 @@ struct OverlayView: View {
         .frame(minWidth: 72, minHeight: coordinator.isHelpMeSay ? 46 : 28)
         .padding(.horizontal, 10)
         .padding(.vertical, coordinator.isHelpMeSay ? 4 : 0)
-        .capsuleBackground()
+        .overlayBackground(minimalMaterial, in: Capsule())
     }
 
     private func translationCapsule(_ target: TranslationLanguage) -> some View {
@@ -82,7 +92,7 @@ struct OverlayView: View {
             .fixedSize()
             .padding(.horizontal, 14)
             .frame(minHeight: 30)
-            .capsuleBackground()
+            .overlayBackground(minimalMaterial, in: Capsule())
     }
 
     private func webSearchCapsule(_ status: String) -> some View {
@@ -95,7 +105,7 @@ struct OverlayView: View {
             .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 16)
             .frame(minHeight: 30)
-            .capsuleBackground()
+            .overlayBackground(minimalMaterial, in: Capsule())
     }
 
     // MARK: Full layout
@@ -161,8 +171,7 @@ struct OverlayView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .frame(width: 420)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.separator.opacity(0.5)))
+        .overlayBackground(fullMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(8) // room for the window shadow
     }
 
@@ -287,9 +296,15 @@ struct OverlayView: View {
 }
 
 private extension View {
-    func capsuleBackground() -> some View {
-        background(.regularMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(.separator.opacity(0.5)))
+    @ViewBuilder
+    func overlayBackground(_ material: OverlayMaterial, in shape: some InsettableShape) -> some View {
+        switch material {
+        case .blur:
+            background(.regularMaterial, in: shape)
+                .overlay(shape.strokeBorder(.separator.opacity(0.5)))
+        case .liquidGlass:
+            glassEffect(.regular, in: shape)
+        }
     }
 }
 

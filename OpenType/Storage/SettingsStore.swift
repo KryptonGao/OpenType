@@ -71,6 +71,21 @@ enum OverlayPosition: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
+/// Background material of the dictation overlay. Chosen separately for the full window and the minimal capsules.
+enum OverlayMaterial: String, CaseIterable, Identifiable, Codable, Sendable {
+    case blur
+    case liquidGlass
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .blur: String(localized: "毛玻璃")
+        case .liquidGlass: "Liquid Glass"
+        }
+    }
+}
+
 enum ASRTurnDetection: String, CaseIterable, Identifiable, Codable, Sendable {
     case serverVAD
     case manual
@@ -278,6 +293,9 @@ final class SettingsStore {
     var soundFeedbackEnabled: Bool { didSet { defaults.set(soundFeedbackEnabled, forKey: Keys.soundFeedbackEnabled) } }
     /// Minimal overlay: a small waveform capsule (no transcript / result), plus extra capsules for translation language and web search.
     var overlayMinimalMode: Bool { didSet { defaults.set(overlayMinimalMode, forKey: Keys.overlayMinimalMode) } }
+    /// Material of the full overlay window (default Liquid Glass) and of the minimal capsules (default frosted blur).
+    var overlayMaterial: OverlayMaterial { didSet { defaults.set(overlayMaterial.rawValue, forKey: Keys.overlayMaterial) } }
+    var overlayMinimalMaterial: OverlayMaterial { didSet { defaults.set(overlayMinimalMaterial.rawValue, forKey: Keys.overlayMinimalMaterial) } }
 
     // MARK: Speech recognition
     var asrProvider: ASRProvider { didSet { defaults.set(asrProvider.rawValue, forKey: Keys.asrProvider) } }
@@ -363,6 +381,8 @@ final class SettingsStore {
         overlayPosition = raw(Keys.overlayPosition, .bottomCenter)
         soundFeedbackEnabled = bool(Keys.soundFeedbackEnabled, false)
         overlayMinimalMode = bool(Keys.overlayMinimalMode, false)
+        overlayMaterial = raw(Keys.overlayMaterial, .liquidGlass)
+        overlayMinimalMaterial = raw(Keys.overlayMinimalMaterial, .blur)
 
         asrProvider = raw(Keys.asrProvider, .bailian)
         asrModel = raw(Keys.asrModel, .qwen3Realtime)
@@ -505,6 +525,8 @@ final class SettingsStore {
         static let overlayPosition = "opentype.overlayPosition"
         static let soundFeedbackEnabled = "opentype.soundFeedbackEnabled"
         static let overlayMinimalMode = "opentype.overlayMinimalMode"
+        static let overlayMaterial = "opentype.overlayMaterial"
+        static let overlayMinimalMaterial = "opentype.overlayMinimalMaterial"
         static let asrProvider = "opentype.asrProvider"
         static let asrModel = "opentype.asrModel"
         static let asrDisfluencyRemoval = "opentype.asrDisfluencyRemoval"

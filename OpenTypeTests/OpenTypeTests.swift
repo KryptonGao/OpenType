@@ -1642,6 +1642,17 @@ struct SettingsStoreTests {
         #expect(s.activeProfile != nil)
     }
 
+    @Test func overlayMaterialsDefaultSeparatelyAndPersist() {
+        let (s, defaults) = makeStore()
+        #expect(s.overlayMaterial == .liquidGlass)
+        #expect(s.overlayMinimalMaterial == .blur)
+        s.overlayMaterial = .blur
+        s.overlayMinimalMaterial = .liquidGlass
+        let reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.overlayMaterial == .blur)
+        #expect(reloaded.overlayMinimalMaterial == .liquidGlass)
+    }
+
     @Test func translationSettingsDefaultAndPersist() {
         let (s, defaults) = makeStore()
         #expect(s.translationTargetLanguage == .english)
