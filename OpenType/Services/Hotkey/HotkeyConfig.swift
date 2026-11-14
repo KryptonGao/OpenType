@@ -24,10 +24,10 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
 
     /// Physical modifier keys: flag, device-dependent "this side is down" bit, display name.
     static let modifierKeys: [Int64: (flag: CGEventFlags, deviceBit: UInt64, name: String)] = [
-        54: (.maskCommand, 0x10, "右 ⌘"), 55: (.maskCommand, 0x08, "左 ⌘"),
-        56: (.maskShift, 0x02, "左 ⇧"), 60: (.maskShift, 0x04, "右 ⇧"),
-        58: (.maskAlternate, 0x20, "左 ⌥"), 61: (.maskAlternate, 0x40, "右 ⌥"),
-        59: (.maskControl, 0x01, "左 ⌃"), 62: (.maskControl, 0x2000, "右 ⌃"),
+        54: (.maskCommand, 0x10, String(localized: "右 ⌘")), 55: (.maskCommand, 0x08, String(localized: "左 ⌘")),
+        56: (.maskShift, 0x02, String(localized: "左 ⇧")), 60: (.maskShift, 0x04, String(localized: "右 ⇧")),
+        58: (.maskAlternate, 0x20, String(localized: "左 ⌥")), 61: (.maskAlternate, 0x40, String(localized: "右 ⌥")),
+        59: (.maskControl, 0x01, String(localized: "左 ⌃")), 62: (.maskControl, 0x2000, String(localized: "右 ⌃")),
         63: (.maskSecondaryFn, 0, "fn")
     ]
 
@@ -49,9 +49,9 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
 
     var validation: Validation {
         if let keyCode {
-            return keyCode == Self.escapeKeyCode ? .invalid("Esc 已保留为取消键") : .ok
+            return keyCode == Self.escapeKeyCode ? .invalid(String(localized: "Esc 已保留为取消键")) : .ok
         }
-        return modifiers.isEmpty ? .invalid("请按下至少一个按键") : .ok
+        return modifiers.isEmpty ? .invalid(String(localized: "请按下至少一个按键")) : .ok
     }
 
     /// Non-blocking warning shown under the recorder.
@@ -59,11 +59,11 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
         if let keyCode {
             let hasModifier = !modifiers.intersection(Self.classicModifiers).isEmpty
             if !hasModifier, !Self.functionKeys.contains(keyCode) {
-                return "该按键会被快捷键独占，无法再正常输入这个字符；建议搭配修饰键。"
+                return String(localized: "该按键会被快捷键独占，无法再正常输入这个字符；建议搭配修饰键。")
             }
             return nil
         }
-        return "仅修饰键的快捷键在松开时触发（轻点即可），按住期间若按了其它键或鼠标则不触发（避免和 ⌘C 等组合键冲突）。"
+        return String(localized: "仅修饰键的快捷键在松开时触发（轻点即可），按住期间若按了其它键或鼠标则不触发（避免和 ⌘C 等组合键冲突）。")
     }
 
     var displayName: String {
@@ -75,11 +75,11 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
         if modifiers.contains(.maskCommand) { text += "⌘" }
         guard let keyCode else {
             if let modifierKeyCode, let name = Self.modifierKeys[modifierKeyCode]?.name {
-                return modifierKeyCode == 63 ? "fn（仅修饰键）" : "\(name) 键（单独按下）"
+                return modifierKeyCode == 63 ? String(localized: "fn（仅修饰键）") : String(localized: "\(name) 键（单独按下）")
             }
-            return text.trimmingCharacters(in: .whitespaces) + "（仅修饰键）"
+            return text.trimmingCharacters(in: .whitespaces) + String(localized: "（仅修饰键）")
         }
-        let key = Self.keyNames[keyCode] ?? "键码 \(keyCode)"
+        let key = Self.keyNames[keyCode] ?? String(localized: "键码 \(keyCode)")
         return text.isEmpty ? key : text + (text.hasSuffix(" ") ? "" : " ") + key
     }
 

@@ -27,9 +27,9 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .dictation: "听写"
-        case .translation: "翻译"
-        case .helpMeSay: "帮我说"
+        case .dictation: String(localized: "听写")
+        case .translation: String(localized: "翻译")
+        case .helpMeSay: String(localized: "帮我说")
         }
     }
 

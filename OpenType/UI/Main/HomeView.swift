@@ -8,9 +8,9 @@ private enum StatsRange: Int, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .week: "近 7 天"
-        case .month: "近 30 天"
-        case .quarter: "近 90 天"
+        case .week: String(localized: "近 7 天")
+        case .month: String(localized: "近 30 天")
+        case .quarter: String(localized: "近 90 天")
         }
     }
 }
@@ -20,6 +20,13 @@ private enum ChartMetric: String, CaseIterable, Identifiable {
     case words = "字数"
 
     var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .tokens: "Token"
+        case .words: "字数"
+        }
+    }
 }
 
 /// Input statistics and LLM token usage.
@@ -47,8 +54,8 @@ struct HomeView: View {
                         StatCard(title: "录音时长", value: StatsFormat.duration(stats.range.recordingSeconds),
                                  caption: "累计 \(StatsFormat.duration(stats.allTime.recordingSeconds))")
                         StatCard(title: "平均语速",
-                                 value: stats.range.wordsPerMinute.map { "\(Int($0.rounded())) 字/分" } ?? "—",
-                                 caption: "累计 " + (stats.allTime.wordsPerMinute.map { "\(Int($0.rounded())) 字/分" } ?? "—"))
+                                 value: stats.range.wordsPerMinute.map { String(localized: "\(Int($0.rounded())) 字/分") } ?? "—",
+                                 caption: "累计 \(stats.allTime.wordsPerMinute.map { String(localized: "\(Int($0.rounded())) 字/分") } ?? "—")")
                     }
                 }
 
@@ -98,9 +105,9 @@ struct HomeView: View {
     }
 
     private var statusLine: String {
-        if coordinator.settingsStore.hotkeysPaused { return "全局快捷键已暂停" }
-        guard coordinator.hotkeyActive else { return "全局快捷键未启用" }
-        return "按 \(coordinator.settingsStore.hotkey.displayName) 开始语音输入"
+        if coordinator.settingsStore.hotkeysPaused { return String(localized: "全局快捷键已暂停") }
+        guard coordinator.hotkeyActive else { return String(localized: "全局快捷键未启用") }
+        return String(localized: "按 \(coordinator.settingsStore.hotkey.displayName) 开始语音输入")
     }
 
     private var permissionBanner: some View {
@@ -114,7 +121,7 @@ struct HomeView: View {
         .background(.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
     }
 
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title).font(.headline)
             content()
@@ -127,7 +134,7 @@ struct HomeView: View {
                 Text("每日趋势").font(.headline)
                 Spacer()
                 Picker("指标", selection: $metric) {
-                    ForEach(ChartMetric.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(ChartMetric.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -138,9 +145,9 @@ struct HomeView: View {
                     switch metric {
                     case .tokens:
                         BarMark(x: .value("日期", day.date, unit: .day), y: .value("Token", day.totals.usage.inputTokens))
-                            .foregroundStyle(by: .value("类型", "输入"))
+                            .foregroundStyle(by: .value("类型", String(localized: "输入")))
                         BarMark(x: .value("日期", day.date, unit: .day), y: .value("Token", day.totals.usage.outputTokens))
-                            .foregroundStyle(by: .value("类型", "输出"))
+                            .foregroundStyle(by: .value("类型", String(localized: "输出")))
                     case .words:
                         BarMark(x: .value("日期", day.date, unit: .day), y: .value("字数", day.totals.words))
                             .foregroundStyle(.tint)
@@ -153,7 +160,7 @@ struct HomeView: View {
                     AxisValueLabel(format: .dateTime.month(.defaultDigits).day(), centered: true)
                 }
             }
-            .chartForegroundStyleScale(["输入": Color.accentColor, "输出": Color.orange])
+            .chartForegroundStyleScale([String(localized: "输入"): Color.accentColor, String(localized: "输出"): Color.orange])
             .chartLegend(metric == .tokens ? .visible : .hidden)
             .frame(height: 200)
             .overlay {
@@ -195,9 +202,9 @@ struct HomeView: View {
 }
 
 private struct StatCard: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
-    let caption: String
+    let caption: LocalizedStringKey
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

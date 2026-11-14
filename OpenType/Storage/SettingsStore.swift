@@ -11,8 +11,8 @@ enum ASRProvider: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .bailian: "阿里云百炼（实时流式）"
-        case .deepseek: "DeepSeek（录完后整段识别）"
+        case .bailian: String(localized: "阿里云百炼（实时流式）")
+        case .deepseek: String(localized: "DeepSeek（录完后整段识别）")
         }
     }
 }
@@ -44,8 +44,8 @@ enum ASRRegion: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .beijing: "北京 (cn-beijing)"
-        case .singapore: "新加坡 (ap-southeast-1)"
+        case .beijing: String(localized: "北京 (cn-beijing)")
+        case .singapore: String(localized: "新加坡 (ap-southeast-1)")
         }
     }
 
@@ -65,8 +65,8 @@ enum OverlayPosition: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .bottomCenter: "屏幕底部居中"
-        case .topCenter: "屏幕顶部居中"
+        case .bottomCenter: String(localized: "屏幕底部居中")
+        case .topCenter: String(localized: "屏幕顶部居中")
         }
     }
 }
@@ -79,8 +79,8 @@ enum ASRTurnDetection: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .serverVAD: "服务端 VAD（自动断句）"
-        case .manual: "手动提交（松键时 commit）"
+        case .serverVAD: String(localized: "服务端 VAD（自动断句）")
+        case .manual: String(localized: "手动提交（松键时 commit）")
         }
     }
 }
@@ -97,9 +97,9 @@ enum ASRLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .auto: "自动识别"
-        case .zh: "中文（普通话、四川话、闽南语、吴语）"
-        case .yue: "粤语"
+        case .auto: String(localized: "自动识别")
+        case .zh: String(localized: "中文（普通话、四川话、闽南语、吴语）")
+        case .yue: String(localized: "粤语")
         case .en: "English"
         case .ja: "日本語"
         case .ko: "한국어"
@@ -154,10 +154,10 @@ enum TranslationRegion: String, CaseIterable, Identifiable, Codable, Sendable {
     /// Short name shown in menus.
     var displayName: String {
         switch self {
-        case .brazil: "巴西"
-        case .portugal: "葡萄牙"
-        case .taiwan: "台湾"
-        case .hongKongMacau: "港澳"
+        case .brazil: String(localized: "巴西")
+        case .portugal: String(localized: "葡萄牙")
+        case .taiwan: String(localized: "台湾")
+        case .hongKongMacau: String(localized: "港澳")
         }
     }
 
@@ -239,7 +239,7 @@ enum TranslationLanguage: String, CaseIterable, Identifiable, Codable, Sendable 
     /// Menu label including the region, e.g. "繁體中文（台湾）".
     func displayName(region: TranslationRegion?) -> String {
         guard let region, regions.contains(region) else { return displayName }
-        return "\(displayName)（\(region.displayName)）"
+        return String(localized: "\(displayName)（\(region.displayName)）")
     }
 
     /// Name used inside the translation prompt.
@@ -430,7 +430,7 @@ final class SettingsStore {
     func addProfile(from template: LLMProfile? = nil) -> LLMProfile {
         var profile = template ?? LLMProfile.makeDefault()
         profile.id = UUID()
-        profile.name = template == nil ? "新配置" : "\(template!.name) 副本"
+        profile.name = template == nil ? String(localized: "新配置") : String(localized: "\(template!.name) 副本")
         llmProfiles.append(profile)
         activeProfileID = profile.id
         return profile

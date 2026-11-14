@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Write-only API key field. The stored secret is never read back into the UI — only its presence is shown.
 struct SecretField: View {
-    let title: String
+    let title: LocalizedStringKey
     let account: String
     let credentials: any CredentialStoring
 
@@ -13,14 +13,14 @@ struct SecretField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                SecureField(title, text: $draft, prompt: Text(hasValue ? "已保存到 Keychain（输入新值以替换）" : "尚未设置"))
+                SecureField(title, text: $draft, prompt: Text(hasValue ? LocalizedStringKey("已保存到 Keychain（输入新值以替换）") : LocalizedStringKey("尚未设置")))
                     .onSubmit(save)
                 Button("保存", action: save).disabled(draft.isEmpty)
                 Button("清除", role: .destructive) {
                     do {
                         try credentials.delete(account: account)
                         refresh()
-                    } catch { errorMessage = "清除失败" }
+                    } catch { errorMessage = String(localized: "清除失败") }
                 }
                 .disabled(!hasValue)
             }
@@ -39,7 +39,7 @@ struct SecretField: View {
             errorMessage = nil
             refresh()
         } catch {
-            errorMessage = "保存到 Keychain 失败"
+            errorMessage = String(localized: "保存到 Keychain 失败")
         }
     }
 

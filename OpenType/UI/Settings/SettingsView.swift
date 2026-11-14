@@ -12,12 +12,12 @@ struct SettingsView: View {
 
         var title: String {
             switch self {
-            case .general: "通用"
-            case .speech: "语音识别"
-            case .ai: "AI 处理"
-            case .translation: "翻译"
-            case .helpMeSay: "帮我说"
-            case .privacy: "隐私与权限"
+            case .general: String(localized: "通用")
+            case .speech: String(localized: "语音识别")
+            case .ai: String(localized: "AI 处理")
+            case .translation: String(localized: "翻译")
+            case .helpMeSay: String(localized: "帮我说")
+            case .privacy: String(localized: "隐私与权限")
             }
         }
     }
@@ -66,7 +66,7 @@ private struct GeneralSettingsTab: View {
                             try settingsStore.setLaunchAtLogin(newValue)
                             launchError = nil
                         } catch {
-                            launchError = "设置开机启动失败：\(error.localizedDescription)"
+                            launchError = String(localized: "设置开机启动失败：\(error.localizedDescription)")
                         }
                         launchAtLogin = settingsStore.launchAtLogin
                     }
@@ -79,7 +79,7 @@ private struct GeneralSettingsTab: View {
                     title: "全局快捷键",
                     hotkey: Binding(get: { settingsStore.hotkey }, set: { settingsStore.hotkey = $0 ?? .default }),
                     defaultHotkey: .default,
-                    conflict: { $0 == settingsStore.translationHotkey ? "与翻译快捷键相同，请换一个" : nil },
+                    conflict: { $0 == settingsStore.translationHotkey ? String(localized: "与翻译快捷键相同，请换一个") : nil },
                     coordinator: coordinator
                 )
                 Toggle("暂停全局快捷键", isOn: $settingsStore.hotkeysPaused)
@@ -229,7 +229,7 @@ private struct SpeechRecognitionSettingsTab: View {
         Task {
             do {
                 try await coordinator.testASRConnection()
-                testResult = .success("连接成功")
+                testResult = .success(String(localized: "连接成功"))
             } catch let error as ASRError {
                 testResult = .failure(error.userMessage)
             } catch {
@@ -333,7 +333,7 @@ private struct AIProcessingSettingsTab: View {
 
     private func endpointPreview(_ profile: LLMProfile) -> String {
         (try? LLMRequestBuilder.endpoint(format: profile.format, baseURL: profile.baseURL).absoluteString)
-            ?? "（Base URL 无效，必须为 https）"
+            ?? String(localized: "（Base URL 无效，必须为 https）")
     }
 
     private func test(_ profile: LLMProfile) {
@@ -341,7 +341,7 @@ private struct AIProcessingSettingsTab: View {
         Task {
             do {
                 let output = try await coordinator.testLLMConnection(profile: profile)
-                testResult = .success("连接成功，示例输出：\(output)")
+                testResult = .success(String(localized: "连接成功，示例输出：\(output)"))
             } catch let error as LLMError {
                 testResult = .failure(error.userMessage)
             } catch {
@@ -389,7 +389,7 @@ private struct TranslationSettingsTab: View {
                     hotkey: $settingsStore.translationHotkey,
                     defaultHotkey: .defaultTranslation,
                     allowsClear: true,
-                    conflict: { $0 == settingsStore.hotkey ? "与听写快捷键相同，请换一个" : nil },
+                    conflict: { $0 == settingsStore.hotkey ? String(localized: "与听写快捷键相同，请换一个") : nil },
                     coordinator: coordinator
                 )
                 Text("说出一段话，结束后会先整理再翻译成目标语言并插入。也可以从菜单栏的「开始语音翻译」触发。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。")
@@ -413,7 +413,7 @@ private struct HelpMeSaySettingsTab: View {
 
     private var eagernessLabel: String {
         let value = settingsStore.helpMeSayWebSearchEagerness
-        guard let level = WebSearchLevel(eagerness: value) else { return "\(value)%（不搜索）" }
+        guard let level = WebSearchLevel(eagerness: value) else { return String(localized: "\(value)%（不搜索）") }
         return "\(value)%（\(level.displayName)）"
     }
 
@@ -422,7 +422,7 @@ private struct HelpMeSaySettingsTab: View {
         Task {
             do {
                 let output = try await coordinator.testWebSearchConnection()
-                testResult = .success("连接成功，示例输出：\(output)")
+                testResult = .success(String(localized: "连接成功，示例输出：\(output)"))
             } catch let error as LLMError {
                 testResult = .failure(error.userMessage)
             } catch {
@@ -553,7 +553,7 @@ private struct PrivacyPermissionsSettingsTab: View {
     }
 
     private func permissionRow(
-        _ title: String, _ detail: String, status: PermissionStatus,
+        _ title: LocalizedStringKey, _ detail: LocalizedStringKey, status: PermissionStatus,
         request: @escaping () -> Void, pane: PermissionManager.Pane
     ) -> some View {
         HStack {

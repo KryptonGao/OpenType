@@ -359,10 +359,10 @@ final class DictationSessionCoordinator {
         } catch let error as ASRError {
             return fail(id, error.userMessage)
         } catch {
-            return fail(id, "无法读取语音识别配置")
+            return fail(id, String(localized: "无法读取语音识别配置"))
         }
         guard await permissionChecker.ensureMicrophone() else {
-            return fail(id, "未授予麦克风权限，请在「系统设置 → 隐私与安全性 → 麦克风」中允许 OpenType")
+            return fail(id, String(localized: "未授予麦克风权限，请在「系统设置 → 隐私与安全性 → 麦克风」中允许 OpenType"))
         }
         guard isCurrent(id) else { return }
 
@@ -380,7 +380,7 @@ final class DictationSessionCoordinator {
         } catch let error as AudioCaptureError {
             return fail(id, error.userMessage)
         } catch {
-            return fail(id, "无法启动麦克风：\(error.localizedDescription)")
+            return fail(id, String(localized: "无法启动麦克风：\(error.localizedDescription)"))
         }
         timings.captureStartedAt = .now
         if stopRequested { audio.stop() } // stop requested while the permission prompt / startup was in flight
@@ -463,7 +463,7 @@ final class DictationSessionCoordinator {
         var modelName: String?
         var notes: [String] = []
         if let interruptionNote { notes.append(interruptionNote) }
-        if timedOut { notes.append("语音识别收尾超时，已使用当前识别内容") }
+        if timedOut { notes.append(String(localized: "语音识别收尾超时，已使用当前识别内容")) }
         if isHelpMeSay {
             // Always needs the LLM (like translation), regardless of the cleanup switches.
             do {
@@ -496,7 +496,7 @@ final class DictationSessionCoordinator {
                     finalText = result.text
                     usage = result.usage
                     modelName = LLMProfile.deepSeekWebSearchModel
-                    notes.append(result.progress.madeAnyCall ? "已联网搜索：\(result.progress.summary)" : "模型未联网搜索")
+                    notes.append(result.progress.madeAnyCall ? String(localized: "已联网搜索：\(result.progress.summary)") : String(localized: "模型未联网搜索"))
                 } else {
                     let output = try await provider.processWithUsage(transcript: rawText, systemPrompt: prompt)
                     guard isCurrent(id) else { return }
@@ -511,9 +511,9 @@ final class DictationSessionCoordinator {
                 let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
                 // Like plain translation, never insert untranslated text silently.
                 if settingsStore.fallbackToRawOnLLMFailure, translationTarget == nil {
-                    notes.append("帮我说失败，已使用识别原文（\(reason)）")
+                    notes.append(String(localized: "帮我说失败，已使用识别原文（\(reason)）"))
                 } else {
-                    return fail(id, "\(helpMeSayName)失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
+                    return fail(id, String(localized: "\(helpMeSayName)失败：\(reason)。已保留识别原文，可复制后重试"), recoverableText: rawText)
                 }
             }
         } else if let target = translationTarget { // language and region are locked from here on (state is .processing)
@@ -534,7 +534,7 @@ final class DictationSessionCoordinator {
                 guard isCurrent(id) else { return }
                 // Never insert untranslated text silently: keep the recognised text for manual copy instead.
                 let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
-                return fail(id, "翻译失败：\(reason)。已保留识别原文，可复制后重试", recoverableText: rawText)
+                return fail(id, String(localized: "翻译失败：\(reason)。已保留识别原文，可复制后重试"), recoverableText: rawText)
             }
         } else {
             do {
@@ -556,9 +556,9 @@ final class DictationSessionCoordinator {
                 guard isCurrent(id) else { return }
                 let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
                 if settingsStore.fallbackToRawOnLLMFailure {
-                    notes.append("AI 整理失败，已使用原文（\(reason)）")
+                    notes.append(String(localized: "AI 整理失败，已使用原文（\(reason)）"))
                 } else {
-                    return fail(id, "AI 整理失败：\(reason)", recoverableText: rawText)
+                    return fail(id, String(localized: "AI 整理失败：\(reason)"), recoverableText: rawText)
                 }
             }
         }
@@ -569,7 +569,7 @@ final class DictationSessionCoordinator {
         let record = makeRecord(rawText: rawText, finalText: finalText, usage: usage, model: modelName)
         guard settingsStore.autoInsertEnabled else {
             history(record, delivery: .manualCopy)
-            return showManualCopy(id, text: finalText, reason: "已关闭自动插入", notes: notes)
+            return showManualCopy(id, text: finalText, reason: String(localized: "已关闭自动插入"), notes: notes)
         }
         state = .inserting
         let outcome = await inserter.insert(finalText, into: target)
@@ -585,9 +585,9 @@ final class DictationSessionCoordinator {
         case .focusLost(let reason):
             // Focus left the input box: never write elsewhere. Put the result on the clipboard and tell the user.
             history(record, delivery: .manualCopy)
-            showManualCopy(id, text: finalText, reason: reason + "，结果已复制到剪贴板", notes: notes)
+            showManualCopy(id, text: finalText, reason: String(localized: "\(reason)，结果已复制到剪贴板"), notes: notes)
             copyPendingText()
-            notifier.notify(title: "OpenType：结果已复制到剪贴板", body: "\(reason)。按 ⌘V 即可粘贴。")
+            notifier.notify(title: String(localized: "OpenType：结果已复制到剪贴板"), body: String(localized: "\(reason)。按 ⌘V 即可粘贴。"))
             playSound("Glass")
         }
     }
@@ -642,8 +642,8 @@ final class DictationSessionCoordinator {
         guard isCurrent(id) else { return }
         let recovered = aggregator.bestEffortText.trimmingCharacters(in: .whitespacesAndNewlines)
         var message = error.userMessage
-        if !recovered.isEmpty { message += "。已保留已识别的内容，可复制后重试" }
-        else { message += "，请重试" }
+        if !recovered.isEmpty { message += String(localized: "。已保留已识别的内容，可复制后重试") }
+        else { message += String(localized: "，请重试") }
         fail(id, message, recoverableText: recovered)
     }
 
@@ -684,7 +684,7 @@ final class DictationSessionCoordinator {
         guard isCurrent(id) else { return }
         finishActiveWork()
         pendingText = text
-        let extra = notes.isEmpty ? "" : "（\(notes.joined(separator: "；"))）"
+        let extra = notes.isEmpty ? "" : String(localized: "（\(notes.joined(separator: String(localized: "；")))）")
         state = .manualCopy(reason: reason + extra)
         logTimings()
         currentSessionID = nil
@@ -735,7 +735,7 @@ final class DictationSessionCoordinator {
     }
 
     /// "帮我说", or "翻译帮我说" when the session also translates.
-    var helpMeSayName: String { translationTarget == nil ? "帮我说" : "翻译帮我说" }
+    var helpMeSayName: String { translationTarget == nil ? String(localized: "帮我说") : String(localized: "翻译帮我说") }
 
     private func isCurrent(_ id: UUID) -> Bool { currentSessionID == id }
 
@@ -744,7 +744,7 @@ final class DictationSessionCoordinator {
     func asrConfig() throws -> ASRConfig {
         if settingsStore.asrProvider == .deepseek {
             guard let key = try? credentialStore.load(account: CredentialAccount.deepseekASRAPIKey), !key.isEmpty else {
-                throw ASRError.invalidConfig("请先在设置中填写 DeepSeek API Key")
+                throw ASRError.invalidConfig(String(localized: "请先在设置中填写 DeepSeek API Key"))
             }
             return ASRConfig(url: DeepSeekASR.endpoint, apiKey: key, language: nil, turnDetection: .manual, provider: .deepseek)
         }
@@ -755,7 +755,7 @@ final class DictationSessionCoordinator {
             model: settingsStore.asrModel
         )
         guard let key = try? credentialStore.load(account: CredentialAccount.bailianAPIKey), !key.isEmpty else {
-            throw ASRError.invalidConfig("请先在设置中填写百炼 API Key")
+            throw ASRError.invalidConfig(String(localized: "请先在设置中填写百炼 API Key"))
         }
         let detection: ASRConfig.TurnDetection = switch settingsStore.asrTurnDetection {
         case .serverVAD: .serverVAD(threshold: settingsStore.asrVADThreshold, silenceDurationMS: settingsStore.asrSilenceDurationMS)
@@ -785,7 +785,7 @@ final class DictationSessionCoordinator {
 
     /// The active profile's provider, regardless of the AI-processing switches (translation always needs the LLM).
     private func resolveProvider() throws -> (any LLMProvider, LLMProfile) {
-        guard let profile = settingsStore.activeProfile else { throw LLMError.invalidConfig("未配置 AI 处理 Profile") }
+        guard let profile = settingsStore.activeProfile else { throw LLMError.invalidConfig(String(localized: "未配置 AI 处理 Profile")) }
         guard let key = try? credentialStore.load(account: CredentialAccount.llmProfile(profile.id)), !key.isEmpty else {
             throw LLMError.missingAPIKey
         }
@@ -795,7 +795,7 @@ final class DictationSessionCoordinator {
     /// Fixed DeepSeek endpoint / model with the dedicated web-search API key.
     private func resolveWebSearchProvider() throws -> any LLMProvider {
         guard let key = try? credentialStore.load(account: CredentialAccount.deepseekWebSearchAPIKey), !key.isEmpty else {
-            throw LLMError.invalidConfig("未填写联网搜索的 DeepSeek API Key")
+            throw LLMError.invalidConfig(String(localized: "未填写联网搜索的 DeepSeek API Key"))
         }
         return makeLLM(LLMProfile.makeDeepSeekWebSearch(), key)
     }

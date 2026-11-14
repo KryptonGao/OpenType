@@ -43,7 +43,7 @@ final class TextInsertionService: TextInserting {
         let element = isAccessibilityTrusted() ? focusedElement(ofPID: app.processIdentifier) : nil
         return InsertionTarget(
             pid: app.processIdentifier,
-            appName: app.localizedName ?? "未知应用",
+            appName: app.localizedName ?? String(localized: "未知应用"),
             element: element,
             isSecure: element.map(Self.isSecureField) ?? false
         )
@@ -52,30 +52,30 @@ final class TextInsertionService: TextInserting {
     // MARK: Insertion
 
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
-        guard !text.isEmpty else { return .requiresManualCopy(reason: "文本为空") }
-        guard let target else { return .requiresManualCopy(reason: "未能确定目标输入框") }
+        guard !text.isEmpty else { return .requiresManualCopy(reason: String(localized: "文本为空")) }
+        guard let target else { return .requiresManualCopy(reason: String(localized: "未能确定目标输入框")) }
         guard !target.isSecure else {
-            return .requiresManualCopy(reason: "目标是密码/安全输入框，已禁止自动写入")
+            return .requiresManualCopy(reason: String(localized: "目标是密码/安全输入框，已禁止自动写入"))
         }
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.pid else {
-            return .focusLost(reason: "录音期间已切换应用，无法写回「\(target.appName)」")
+            return .focusLost(reason: String(localized: "录音期间已切换应用，无法写回「\(target.appName)」"))
         }
         guard isAccessibilityTrusted() else {
-            return .requiresManualCopy(reason: "未授予辅助功能权限，无法自动插入")
+            return .requiresManualCopy(reason: String(localized: "未授予辅助功能权限，无法自动插入"))
         }
         guard !IsSecureEventInputEnabled() else {
-            return .requiresManualCopy(reason: "系统处于安全输入模式（可能有密码框处于焦点）")
+            return .requiresManualCopy(reason: String(localized: "系统处于安全输入模式（可能有密码框处于焦点）"))
         }
 
         // Re-validate the focused control: it must still be the one captured at the start.
         let current = focusedElement(ofPID: target.pid)
         if let original = target.element {
             guard let current, CFEqual(original, current) else {
-                return .focusLost(reason: "输入焦点已离开原输入框")
+                return .focusLost(reason: String(localized: "输入焦点已离开原输入框"))
             }
         }
         if let current, Self.isSecureField(current) {
-            return .requiresManualCopy(reason: "目标是密码/安全输入框，已禁止自动写入")
+            return .requiresManualCopy(reason: String(localized: "目标是密码/安全输入框，已禁止自动写入"))
         }
 
         if let element = target.element ?? current, await insertViaAccessibility(text, element: element) {
@@ -84,7 +84,7 @@ final class TextInsertionService: TextInserting {
         if await insertViaPasteboard(text) {
             return .insertedViaPasteboard
         }
-        return .requiresManualCopy(reason: "目标控件不支持自动插入")
+        return .requiresManualCopy(reason: String(localized: "目标控件不支持自动插入"))
     }
 
     // MARK: Tier 1 — Accessibility

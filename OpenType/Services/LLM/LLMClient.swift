@@ -14,16 +14,16 @@ enum LLMError: Error, Equatable, Sendable {
 
     var userMessage: String {
         switch self {
-        case .invalidConfig(let detail): "配置无效：\(detail)"
-        case .missingAPIKey: "未配置 API Key"
-        case .auth(let code): "鉴权失败（HTTP \(code)），请检查 API Key"
-        case .modelNotFound(let detail): "模型不存在或不可用：\(detail)"
-        case .rateLimited: "请求被限流（429）"
-        case .timeout: "请求超时"
-        case .network(let detail): "网络错误：\(detail)"
-        case .server(let code, let detail): "服务端错误（HTTP \(code)）：\(detail)"
-        case .badResponse(let detail): "响应格式错误：\(detail)"
-        case .emptyOutput: "模型返回了空内容"
+        case .invalidConfig(let detail): String(localized: "配置无效：\(detail)")
+        case .missingAPIKey: String(localized: "未配置 API Key")
+        case .auth(let code): String(localized: "鉴权失败（HTTP \(code)），请检查 API Key")
+        case .modelNotFound(let detail): String(localized: "模型不存在或不可用：\(detail)")
+        case .rateLimited: String(localized: "请求被限流（429）")
+        case .timeout: String(localized: "请求超时")
+        case .network(let detail): String(localized: "网络错误：\(detail)")
+        case .server(let code, let detail): String(localized: "服务端错误（HTTP \(code)）：\(detail)")
+        case .badResponse(let detail): String(localized: "响应格式错误：\(detail)")
+        case .emptyOutput: String(localized: "模型返回了空内容")
         }
     }
 }
@@ -73,7 +73,7 @@ struct URLSessionTransport: HTTPTransport {
         do {
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else {
-                throw LLMError.badResponse("非 HTTP 响应")
+                throw LLMError.badResponse(String(localized: "非 HTTP 响应"))
             }
             return (data, http)
         } catch {
@@ -87,7 +87,7 @@ struct URLSessionTransport: HTTPTransport {
         do {
             let (bytes, response) = try await session.bytes(for: request)
             guard let http = response as? HTTPURLResponse else {
-                throw LLMError.badResponse("非 HTTP 响应")
+                throw LLMError.badResponse(String(localized: "非 HTTP 响应"))
             }
             guard (200..<300).contains(http.statusCode) else {
                 var body = Data()
@@ -124,13 +124,13 @@ enum LLMRequestBuilder {
         guard !base.isEmpty, let components = URLComponents(string: base),
               components.scheme?.lowercased() == "https",
               let host = components.host, !host.isEmpty else {
-            throw LLMError.invalidConfig("Base URL 必须是有效的 https 地址")
+            throw LLMError.invalidConfig(String(localized: "Base URL 必须是有效的 https 地址"))
         }
         guard components.user == nil, components.password == nil, components.query == nil else {
-            throw LLMError.invalidConfig("Base URL 不能包含凭据或查询参数")
+            throw LLMError.invalidConfig(String(localized: "Base URL 不能包含凭据或查询参数"))
         }
         guard let url = URL(string: base + format.path) else {
-            throw LLMError.invalidConfig("Base URL 无法解析")
+            throw LLMError.invalidConfig(String(localized: "Base URL 无法解析"))
         }
         return url
     }
@@ -143,7 +143,7 @@ enum LLMRequestBuilder {
         webSearch: WebSearchLevel? = nil
     ) throws -> URLRequest {
         guard !profile.modelID.trimmingCharacters(in: .whitespaces).isEmpty else {
-            throw LLMError.invalidConfig("未填写 Model ID")
+            throw LLMError.invalidConfig(String(localized: "未填写 Model ID"))
         }
         var request = URLRequest(url: try endpoint(format: profile.format, baseURL: profile.baseURL))
         request.httpMethod = "POST"
@@ -215,7 +215,7 @@ enum LLMRequestBuilder {
 enum LLMResponseParser {
     static func extractText(format: LLMAPIFormat, data: Data) throws -> String {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw LLMError.badResponse("不是有效的 JSON 对象")
+            throw LLMError.badResponse(String(localized: "不是有效的 JSON 对象"))
         }
         let text: String?
         switch format {
@@ -242,7 +242,7 @@ enum LLMResponseParser {
                 .compactMap { $0["text"] as? String }
             text = parts.isEmpty ? nil : parts.joined()
         }
-        guard let text else { throw LLMError.badResponse("未找到文本输出") }
+        guard let text else { throw LLMError.badResponse(String(localized: "未找到文本输出")) }
         let cleaned = clean(text)
         guard !cleaned.isEmpty else { throw LLMError.emptyOutput }
         return cleaned
@@ -309,7 +309,7 @@ enum LLMResponseParser {
     }
 
     static func mapFailure(status: Int, data: Data, secrets: [String]) -> LLMError {
-        let raw = errorMessage(from: data) ?? "无详细信息"
+        let raw = errorMessage(from: data) ?? String(localized: "无详细信息")
         let message = String(Diagnostics.redact(raw, secrets: secrets).prefix(200))
         switch status {
         case 401, 403: return .auth(status)
@@ -348,7 +348,7 @@ struct ChatStreamAccumulator {
         guard !line.isEmpty, line != "[DONE]",
               let root = (try? JSONSerialization.jsonObject(with: Data(line.utf8))) as? [String: Any] else { return false }
         if let error = root["error"] as? [String: Any] {
-            errorMessage = (error["message"] as? String) ?? "流式响应出错"
+            errorMessage = (error["message"] as? String) ?? String(localized: "流式响应出错")
             return false
         }
         let reported = LLMResponseParser.usage(format: .openAIChatCompletions, root: root)

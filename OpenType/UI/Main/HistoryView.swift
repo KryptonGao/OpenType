@@ -113,8 +113,8 @@ struct HistoryView: View {
 
     private static func dayTitle(_ day: Date) -> String {
         let calendar = Calendar.current
-        if calendar.isDateInToday(day) { return "今天" }
-        if calendar.isDateInYesterday(day) { return "昨天" }
+        if calendar.isDateInToday(day) { return String(localized: "今天") }
+        if calendar.isDateInYesterday(day) { return String(localized: "昨天") }
         return day.formatted(.dateTime.year().month().day())
     }
 
@@ -151,7 +151,7 @@ private struct HistoryRow: View {
                 .frame(width: 18)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 3) {
-                Text(record.finalText ?? "（未保存文字）")
+                Text(record.finalText ?? String(localized: "（未保存文字）"))
                     .lineLimit(2)
                     .foregroundStyle(record.finalText == nil ? .secondary : .primary)
                 HStack(spacing: 6) {
@@ -194,10 +194,10 @@ private struct HistoryDetail: View {
                     meta("时间", record.date.formatted(date: .abbreviated, time: .standard))
                     meta("字数", "\(record.wordCount)")
                     meta("录音时长", StatsFormat.duration(record.recordingSeconds))
-                    meta("去向", record.delivery == .inserted ? "已插入光标处" : "需手动复制")
+                    meta("去向", record.delivery == .inserted ? String(localized: "已插入光标处") : String(localized: "需手动复制"))
                     if let model = record.model { meta("模型", model) }
                     if !record.usage.isEmpty {
-                        meta("Token", "输入 \(record.usage.inputTokens.formatted()) · 输出 \(record.usage.outputTokens.formatted()) · 合计 \(record.usage.total.formatted())")
+                        meta("Token", String(localized: "输入 \(record.usage.inputTokens.formatted()) · 输出 \(record.usage.outputTokens.formatted()) · 合计 \(record.usage.total.formatted())"))
                     }
                 }
                 .font(.callout)
@@ -212,7 +212,7 @@ private struct HistoryDetail: View {
         return record.kind.displayName
     }
 
-    private func block(_ title: String, _ text: String, secondary: Bool = false) -> some View {
+    private func block(_ title: LocalizedStringKey, _ text: String, secondary: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.subheadline).foregroundStyle(.secondary)
             Text(text)
@@ -224,7 +224,7 @@ private struct HistoryDetail: View {
         }
     }
 
-    private func meta(_ name: String, _ value: String) -> some View {
+    private func meta(_ name: LocalizedStringKey, _ value: String) -> some View {
         GridRow {
             Text(name).foregroundStyle(.secondary)
             Text(value).textSelection(.enabled)

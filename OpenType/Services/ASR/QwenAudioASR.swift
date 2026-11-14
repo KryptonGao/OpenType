@@ -31,7 +31,7 @@ actor QwenAudioMessageASR: ASRService {
 
     func connect() async throws {
         guard config.url.scheme?.lowercased() == "wss" else {
-            throw ASRError.invalidConfig("仅允许 wss:// 连接")
+            throw ASRError.invalidConfig(String(localized: "仅允许 wss:// 连接"))
         }
         var request = URLRequest(url: config.url)
         request.timeoutInterval = 10
@@ -74,7 +74,7 @@ actor QwenAudioMessageASR: ASRService {
     }
 
     func sendAudio(_ pcm: Data) async throws {
-        guard let socket, !closed else { throw ASRError.disconnected("连接已关闭") }
+        guard let socket, !closed else { throw ASRError.disconnected(String(localized: "连接已关闭")) }
         do {
             try await socket.send(.data(pcm))
         } catch {
@@ -170,7 +170,7 @@ actor QwenAudioMessageASR: ASRService {
     // MARK: Internals
 
     private func sendJSON(_ payload: [String: Any]) async throws {
-        guard let socket, !closed else { throw ASRError.disconnected("连接已关闭") }
+        guard let socket, !closed else { throw ASRError.disconnected(String(localized: "连接已关闭")) }
         let data = try JSONSerialization.data(withJSONObject: payload)
         guard let text = String(data: data, encoding: .utf8) else { return }
         do {
@@ -252,7 +252,7 @@ actor QwenAudioMessageASR: ASRService {
         let header = object["header"] as? [String: Any]
         let message = header?["error_message"] as? String
             ?? (object["payload"] as? [String: Any])?["message"] as? String
-            ?? "未知错误"
+            ?? String(localized: "未知错误")
         if let code = header?["error_code"] as? String { return "\(message) (\(code))" }
         return message
     }

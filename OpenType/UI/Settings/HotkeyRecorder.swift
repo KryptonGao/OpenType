@@ -119,7 +119,7 @@ final class HotkeyRecorderModel {
 }
 
 struct HotkeyRecorderRow: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var hotkey: HotkeyConfig?
     let defaultHotkey: HotkeyConfig
     /// Shows a "清除" button (the shortcut may be unset).
@@ -176,8 +176,8 @@ struct HotkeyRecorderRow: View {
 
     private var buttonTitle: String {
         if model.isRecording {
-            return model.liveModifiers.isEmpty ? "请按下快捷键…" : HotkeyConfig.describe(modifiers: model.liveModifiers) + " …"
+            return model.liveModifiers.isEmpty ? String(localized: "请按下快捷键…") : HotkeyConfig.describe(modifiers: model.liveModifiers) + " …"
         }
-        return hotkey?.displayName ?? "未设置"
+        return hotkey?.displayName ?? String(localized: "未设置")
     }
 }

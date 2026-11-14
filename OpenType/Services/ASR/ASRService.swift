@@ -11,13 +11,13 @@ enum ASRError: Error, Equatable, Sendable {
 
     var userMessage: String {
         switch self {
-        case .invalidConfig(let detail): "语音识别配置无效：\(detail)"
-        case .auth(let code): "语音识别鉴权失败（HTTP \(code)），请检查 API Key（百炼还需检查 Workspace ID）"
-        case .rateLimited: "语音识别被限流（429），请稍后重试"
-        case .timeout: "连接语音识别服务超时"
-        case .disconnected(let detail): "语音识别连接中断：\(detail)"
-        case .server(let detail): "语音识别服务错误：\(detail)"
-        case .transcriptionFailed(let detail): "语音识别失败：\(detail)"
+        case .invalidConfig(let detail): String(localized: "语音识别配置无效：\(detail)")
+        case .auth(let code): String(localized: "语音识别鉴权失败（HTTP \(code)），请检查 API Key（百炼还需检查 Workspace ID）")
+        case .rateLimited: String(localized: "语音识别被限流（429），请稍后重试")
+        case .timeout: String(localized: "连接语音识别服务超时")
+        case .disconnected(let detail): String(localized: "语音识别连接中断：\(detail)")
+        case .server(let detail): String(localized: "语音识别服务错误：\(detail)")
+        case .transcriptionFailed(let detail): String(localized: "语音识别失败：\(detail)")
         }
     }
 }
@@ -59,21 +59,21 @@ struct ASRConfig: Sendable, Equatable {
                   components.host?.isEmpty == false,
                   components.user == nil, components.password == nil,
                   let url = components.url else {
-                throw ASRError.invalidConfig("自定义地址必须是有效的 wss:// URL")
+                throw ASRError.invalidConfig(String(localized: "自定义地址必须是有效的 wss:// URL"))
             }
             return url
         }
         let workspace = workspaceID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !workspace.isEmpty else { throw ASRError.invalidConfig("请填写 Workspace ID") }
+        guard !workspace.isEmpty else { throw ASRError.invalidConfig(String(localized: "请填写 Workspace ID")) }
         guard workspace.range(of: "^[A-Za-z0-9-]+$", options: .regularExpression) != nil else {
-            throw ASRError.invalidConfig("Workspace ID 只能包含字母、数字和连字符")
+            throw ASRError.invalidConfig(String(localized: "Workspace ID 只能包含字母、数字和连字符"))
         }
         let host = "wss://\(workspace).\(region.hostSegment).maas.aliyuncs.com"
         let string = switch model {
         case .qwen3Realtime: "\(host)/api-ws/v1/realtime?model=\(model.apiName)"
         case .qwenAudio31Message: "\(host)/api-ws/v1/inference" // model goes into run-task
         }
-        guard let url = URL(string: string) else { throw ASRError.invalidConfig("无法生成连接地址") }
+        guard let url = URL(string: string) else { throw ASRError.invalidConfig(String(localized: "无法生成连接地址")) }
         return url
     }
 }
@@ -133,7 +133,7 @@ actor BailianRealtimeASR: ASRService {
 
     func connect() async throws {
         guard config.url.scheme?.lowercased() == "wss" else {
-            throw ASRError.invalidConfig("仅允许 wss:// 连接")
+            throw ASRError.invalidConfig(String(localized: "仅允许 wss:// 连接"))
         }
         var request = URLRequest(url: config.url)
         request.timeoutInterval = 10
@@ -231,7 +231,7 @@ actor BailianRealtimeASR: ASRService {
     // MARK: Internals
 
     private func send(_ payload: [String: Any]) async throws {
-        guard let socket, !closed else { throw ASRError.disconnected("连接已关闭") }
+        guard let socket, !closed else { throw ASRError.disconnected(String(localized: "连接已关闭")) }
         let data = try JSONSerialization.data(withJSONObject: payload)
         guard let text = String(data: data, encoding: .utf8) else { return }
         do {
@@ -331,10 +331,10 @@ actor BailianRealtimeASR: ASRService {
 
     private static func errorText(_ object: [String: Any]) -> String {
         if let error = object["error"] as? [String: Any] {
-            let message = error["message"] as? String ?? "未知错误"
+            let message = error["message"] as? String ?? String(localized: "未知错误")
             if let code = error["code"] as? String { return "\(message) (\(code))" }
             return message
         }
-        return object["message"] as? String ?? "未知错误"
+        return object["message"] as? String ?? String(localized: "未知错误")
     }
 }

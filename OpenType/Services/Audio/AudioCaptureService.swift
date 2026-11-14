@@ -9,10 +9,10 @@ enum AudioCaptureError: Error, Equatable, Sendable {
 
     var userMessage: String {
         switch self {
-        case .noInputDevice: "未检测到可用的麦克风"
-        case .formatUnavailable: "无法创建音频转换器"
-        case .backlogOverflow: "网络拥塞，音频积压超过上限"
-        case .engine(let detail): "音频采集中断：\(detail)"
+        case .noInputDevice: String(localized: "未检测到可用的麦克风")
+        case .formatUnavailable: String(localized: "无法创建音频转换器")
+        case .backlogOverflow: String(localized: "网络拥塞，音频积压超过上限")
+        case .engine(let detail): String(localized: "音频采集中断：\(detail)")
         }
     }
 }
@@ -68,7 +68,7 @@ final class AudioCaptureService: AudioCapturing, @unchecked Sendable {
         observer = NotificationCenter.default.addObserver(
             forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
         ) { _ in
-            onInterruption(.engine("音频设备配置已变更"))
+            onInterruption(.engine(String(localized: "音频设备配置已变更")))
         }
         do {
             engine.prepare()

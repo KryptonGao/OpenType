@@ -40,12 +40,12 @@ actor DeepSeekASR: ASRService {
     /// There is no connection to open; this only validates that the key can be sent safely.
     func connect() async throws {
         guard config.url.scheme?.lowercased() == "https" else {
-            throw ASRError.invalidConfig("仅允许 https:// 连接")
+            throw ASRError.invalidConfig(String(localized: "仅允许 https:// 连接"))
         }
     }
 
     func sendAudio(_ pcm: Data) async throws {
-        guard !closed else { throw ASRError.disconnected("连接已关闭") }
+        guard !closed else { throw ASRError.disconnected(String(localized: "连接已关闭")) }
         buffer.append(pcm)
     }
 
@@ -53,7 +53,7 @@ actor DeepSeekASR: ASRService {
     func commit() async throws {}
 
     func finish() async throws {
-        guard !closed else { throw ASRError.disconnected("连接已关闭") }
+        guard !closed else { throw ASRError.disconnected(String(localized: "连接已关闭")) }
         let pcm = buffer
         buffer = Data()
         transcribeTask = Task { [weak self] in
@@ -109,7 +109,7 @@ actor DeepSeekASR: ASRService {
             throw Self.map(error)
         }
         guard let http = response as? HTTPURLResponse else {
-            throw ASRError.server("无效的响应")
+            throw ASRError.server(String(localized: "无效的响应"))
         }
         guard (200..<300).contains(http.statusCode) else {
             throw Self.error(forStatus: http.statusCode)
@@ -176,7 +176,7 @@ actor DeepSeekASR: ASRService {
     static func parseTranscript(_ data: Data) throws -> String {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let text = object["text"] as? String else {
-            throw ASRError.server("响应格式无法识别")
+            throw ASRError.server(String(localized: "响应格式无法识别"))
         }
         return text
     }
@@ -186,9 +186,9 @@ actor DeepSeekASR: ASRService {
         case 401, 403: .auth(status)
         case 408: .timeout
         case 429: .rateLimited
-        case 400: .server("音频格式无效或缺少音频（HTTP 400）")
-        case 413: .server("录音过大（HTTP 413）")
-        case 503: .server("服务繁忙，请稍后重试（HTTP 503）")
+        case 400: .server(String(localized: "音频格式无效或缺少音频（HTTP 400）"))
+        case 413: .server(String(localized: "录音过大（HTTP 413）"))
+        case 503: .server(String(localized: "服务繁忙，请稍后重试（HTTP 503）"))
         case 504: .timeout
         default: .server("HTTP \(status)")
         }

@@ -266,21 +266,21 @@ struct OverlayView: View {
 
     private var statusTitle: String {
         switch coordinator.state {
-        case .idle: "待机"
-        case .connecting: coordinator.isHelpMeSay ? "\(coordinator.helpMeSayName) · 正在连接…" : "正在连接…"
+        case .idle: String(localized: "待机")
+        case .connecting: coordinator.isHelpMeSay ? String(localized: "\(coordinator.helpMeSayName) · 正在连接…") : String(localized: "正在连接…")
         case .recording:
             switch (coordinator.isHelpMeSay, coordinator.sessionMode) {
-            case (true, .hold): "\(coordinator.helpMeSayName) · 正在聆听…（松开结束）"
-            case (true, .toggle): "\(coordinator.helpMeSayName) · 正在聆听…（再按一次结束）"
-            case (false, .hold): "正在聆听…（松开结束）"
-            case (false, .toggle): "正在聆听…（再按一次结束）"
+            case (true, .hold): String(localized: "\(coordinator.helpMeSayName) · 正在聆听…（松开结束）")
+            case (true, .toggle): String(localized: "\(coordinator.helpMeSayName) · 正在聆听…（再按一次结束）")
+            case (false, .hold): String(localized: "正在聆听…（松开结束）")
+            case (false, .toggle): String(localized: "正在聆听…（再按一次结束）")
             }
-        case .finalizing: "正在收尾…"
+        case .finalizing: String(localized: "正在收尾…")
         case .processing:
-            coordinator.isHelpMeSay ? (coordinator.translationTarget == nil ? "正在帮你说…" : "正在帮你说并翻译…") : coordinator.translationTarget == nil ? "正在整理文本…" : "正在翻译…"
-        case .inserting: "正在插入…"
-        case .success(let note): note.map { "已插入 · \($0)" } ?? "已插入"
-        case .manualCopy(let reason): "未自动插入：\(reason)"
+            coordinator.isHelpMeSay ? (coordinator.translationTarget == nil ? String(localized: "正在帮你说…") : String(localized: "正在帮你说并翻译…")) : coordinator.translationTarget == nil ? String(localized: "正在整理文本…") : String(localized: "正在翻译…")
+        case .inserting: String(localized: "正在插入…")
+        case .success(let note): note.map { String(localized: "已插入 · \($0)") } ?? String(localized: "已插入")
+        case .manualCopy(let reason): String(localized: "未自动插入：\(reason)")
         case .error(let message): message
         }
     }

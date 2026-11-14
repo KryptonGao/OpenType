@@ -77,20 +77,17 @@ struct UsageStats: Equatable, Sendable {
 }
 
 enum StatsFormat {
-    /// 1 234 → "1,234"; 12 345 → "1.2 万"; 123 456 789 → "1.2 亿".
+    /// 1 234 → "1,234"; 12 345 → "1.2万" (zh / ja) or "12.3K" (en); the unit follows the locale.
     static func compact(_ value: Int) -> String {
-        switch value {
-        case ..<10_000: value.formatted(.number)
-        case ..<100_000_000: (Double(value) / 10_000).formatted(.number.precision(.fractionLength(0...1))) + " 万"
-        default: (Double(value) / 100_000_000).formatted(.number.precision(.fractionLength(0...2))) + " 亿"
-        }
+        if value < 10_000 { return value.formatted(.number) }
+        return value.formatted(.number.notation(.compactName).precision(.fractionLength(0...1)))
     }
 
     static func duration(_ seconds: Double) -> String {
         let total = Int(seconds.rounded())
-        if total < 60 { return "\(total) 秒" }
+        if total < 60 { return String(localized: "\(total) 秒") }
         let minutes = total / 60
-        if minutes < 60 { return "\(minutes) 分 \(total % 60) 秒" }
-        return "\(minutes / 60) 小时 \(minutes % 60) 分"
+        if minutes < 60 { return String(localized: "\(minutes) 分 \(total % 60) 秒") }
+        return String(localized: "\(minutes / 60) 小时 \(minutes % 60) 分")
     }
 }

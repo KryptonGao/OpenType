@@ -18,9 +18,9 @@ struct MenuBarView: View {
         Divider()
 
         Section("权限状态") {
-            permissionRow("麦克风", permissions.microphone)
-            permissionRow("辅助功能", permissions.accessibility)
-            permissionRow("按键监听", permissions.inputMonitoring)
+            permissionRow(String(localized: "麦克风"), permissions.microphone)
+            permissionRow(String(localized: "辅助功能"), permissions.accessibility)
+            permissionRow(String(localized: "按键监听"), permissions.inputMonitoring)
             if !coordinator.hotkeyActive {
                 Text("⚠︎ 全局快捷键未启用（需要上述权限）")
             }

@@ -40,9 +40,9 @@ enum ProcessingLevel: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .raw: "原始模式（跳过 AI）"
-        case .standard: "标准模式"
-        case .deep: "深度整理"
+        case .raw: String(localized: "原始模式（跳过 AI）")
+        case .standard: String(localized: "标准模式")
+        case .deep: String(localized: "深度整理")
         }
     }
 }
@@ -74,7 +74,7 @@ struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
 
     static func makeDeepSeekWebSearch() -> LLMProfile {
         LLMProfile(
-            name: "DeepSeek 联网搜索",
+            name: String(localized: "DeepSeek 联网搜索"),
             format: .openAIChatCompletions,
             baseURL: deepSeekWebSearchBaseURL,
             modelID: deepSeekWebSearchModel,
@@ -85,7 +85,7 @@ struct LLMProfile: Codable, Identifiable, Equatable, Sendable {
 
     static func makeDefault() -> LLMProfile {
         LLMProfile(
-            name: "默认配置",
+            name: String(localized: "默认配置"),
             format: .openAIChatCompletions,
             baseURL: LLMAPIFormat.openAIChatCompletions.defaultBaseURL,
             modelID: "gpt-4.1-mini",
@@ -152,9 +152,9 @@ enum WebSearchLevel: String, Sendable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .conservative: "保守"
-        case .balanced: "适中"
-        case .aggressive: "积极"
+        case .conservative: String(localized: "保守")
+        case .balanced: String(localized: "适中")
+        case .aggressive: String(localized: "积极")
         }
     }
 
@@ -202,22 +202,22 @@ struct WebSearchProgress: Equatable, Sendable {
     /// Counts only, e.g. "搜索 2 次，共 15 条结果，读取 1 个网页".
     var summary: String {
         var parts: [String] = []
-        if searches > 0 { parts.append("搜索 \(searches) 次，共 \(results) 条结果") }
-        if pages > 0 { parts.append("读取 \(pages) 个网页") }
+        if searches > 0 { parts.append(String(localized: "搜索 \(searches) 次，共 \(results) 条结果")) }
+        if pages > 0 { parts.append(String(localized: "读取 \(pages) 个网页")) }
         return parts.joined(separator: "，")
     }
 
     /// Live line shown in the overlay.
     var statusText: String {
         var counts: [String] = []
-        if searches > 0 { counts.append("已搜到 \(results) 条结果") }
-        if pages > 0 { counts.append("已读取 \(pages) 个网页") }
+        if searches > 0 { counts.append(String(localized: "已搜到 \(results) 条结果")) }
+        if pages > 0 { counts.append(String(localized: "已读取 \(pages) 个网页")) }
         if let activity {
             // Mid-call, only mention results once there are some (a first search shouldn't read "已搜到 0 条").
-            return (["正在\(activity)"] + (results > 0 || pages > 0 ? counts : [])).joined(separator: " · ")
+            return ([String(localized: "正在\(activity)")] + (results > 0 || pages > 0 ? counts : [])).joined(separator: " · ")
         }
-        if counts.isEmpty { return "已开启联网搜索，模型思考中…" }
-        return (["搜索 \(searches) 次"] + counts + ["正在整理…"]).joined(separator: " · ")
+        if counts.isEmpty { return String(localized: "已开启联网搜索，模型思考中…") }
+        return ([String(localized: "搜索 \(searches) 次")] + counts + [String(localized: "正在整理…")]).joined(separator: " · ")
     }
 
     private enum CallKind { case search, page, find }
@@ -237,16 +237,16 @@ struct WebSearchProgress: Equatable, Sendable {
                 currentKind = .search
                 let queries = (action["queries"] as? [String] ?? []).filter { !$0.isEmpty }
                 let shown = queries.prefix(2).joined(separator: "、")
-                activity = shown.isEmpty ? "搜索" : "搜索「\(Self.truncate(shown))」"
+                activity = shown.isEmpty ? String(localized: "搜索") : String(localized: "搜索「\(Self.truncate(shown))」")
             case "open_page", "read_link":
                 currentKind = .page
-                activity = "读取网页 \(Self.host(action["url"] as? String))"
+                activity = String(localized: "读取网页 \(Self.host(action["url"] as? String))")
             case "find_in_page":
                 currentKind = .find
-                activity = "在网页中查找"
+                activity = String(localized: "在网页中查找")
             default:
                 currentKind = nil
-                activity = "查询资料"
+                activity = String(localized: "查询资料")
             }
             return true
         case "call_completed":
