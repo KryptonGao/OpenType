@@ -54,6 +54,8 @@ private struct GeneralSettingsTab: View {
     private var settingsStore: SettingsStore { coordinator.settingsStore }
     @State private var launchAtLogin = false
     @State private var launchError: String?
+    /// The language picked now vs. the one the running process was launched with.
+    @State private var language = AppLanguage.stored()
 
     var body: some View {
         @Bindable var settingsStore = settingsStore
@@ -73,6 +75,24 @@ private struct GeneralSettingsTab: View {
                 ))
                 if let launchError { Text(launchError).font(.caption).foregroundStyle(.red) }
                 Toggle("在 Dock 中显示图标", isOn: $settingsStore.showDockIcon)
+            }
+            Section("界面语言") {
+                Picker("界面语言", selection: Binding(
+                    get: { language },
+                    set: { newValue in
+                        language = newValue
+                        AppLanguage.store(newValue)
+                    }
+                )) {
+                    ForEach(AppLanguage.allCases) { Text($0.displayName).tag($0) }
+                }
+                if language != AppLanguage.atLaunch {
+                    HStack {
+                        Text("更改语言后需重启 OpenType 才会生效。").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Button("重启 OpenType") { coordinator.permissions.relaunch() }
+                    }
+                }
             }
             Section("快捷键（按一下开始，再按一下结束）") {
                 HotkeyRecorderRow(
@@ -392,7 +412,7 @@ private struct TranslationSettingsTab: View {
                     conflict: { $0 == settingsStore.hotkey ? String(localized: "与听写快捷键相同，请换一个") : nil },
                     coordinator: coordinator
                 )
-                Text("说出一段话，结束后会先整理再翻译成目标语言并插入。也可以从菜单栏的「开始语音翻译」触发。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。")
+                Text("说出一段话，结束后会先整理再翻译成目标语言并插入。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
@@ -436,9 +456,9 @@ private struct HelpMeSaySettingsTab: View {
         Form {
             Section("帮我说") {
                 Toggle("长按快捷键触发「帮我说」/「翻译帮我说」", isOn: $settingsStore.helpMeSayEnabled)
-                Text("按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。也可以从菜单栏的「开始帮我说」触发（按一次开始，再按一次结束）。")
+                Text("按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。")
                     .font(.caption).foregroundStyle(.secondary)
-                Text("翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。也可以从菜单栏的「开始翻译帮我说」触发。")
+                Text("翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("例：说「跟老师说我明天发烧了想请一天假」，会得到一段完整、礼貌的请假消息；说「帮我问下这个报错怎么解决」，会被整理成问题明确、条件完整的提问。")
                     .font(.caption).foregroundStyle(.secondary)

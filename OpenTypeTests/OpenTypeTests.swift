@@ -1918,3 +1918,28 @@ struct OverlayPanelStressTests {
         }
     }
 }
+
+// MARK: - AppLanguage
+
+struct AppLanguageTests {
+    @Test func storesAndClearsTheLanguageOverride() throws {
+        let suite = "OpenTypeTests.AppLanguage.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        #expect(AppLanguage.stored(in: defaults, domain: suite) == .system)
+        AppLanguage.store(.japanese, in: defaults)
+        #expect(AppLanguage.stored(in: defaults, domain: suite) == .japanese)
+        AppLanguage.store(.traditionalChinese, in: defaults)
+        #expect(AppLanguage.stored(in: defaults, domain: suite) == .traditionalChinese)
+        AppLanguage.store(.system, in: defaults)
+        #expect(AppLanguage.stored(in: defaults, domain: suite) == .system)
+    }
+
+    @Test func everyConcreteLanguageHasABundledLocalization() {
+        let bundled = Set(Bundle.main.localizations)
+        for language in AppLanguage.allCases where language != .system {
+            #expect(bundled.contains(language.rawValue), "missing \(language.rawValue).lproj")
+        }
+    }
+}

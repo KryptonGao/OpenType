@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        _ = AppLanguage.atLaunch
         let coordinator = AppContainer.coordinator
         updateDockVisibility(showDockIcon: coordinator.settingsStore.showDockIcon)
         coordinator.start()

@@ -5372,36 +5372,36 @@
         }
       }
     },
-    "按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。也可以从菜单栏的「开始帮我说」触发（按一次开始，再按一次结束）。": {
+    "按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。也可以从菜单栏的「开始帮我说」触发（按一次开始，再按一次结束）。"
+            "value": "按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hold the dictation shortcut set under “General” until the overlay shows “Say It for Me”, then speak; release to finish. After recognition the model does more than tidy up the text: it works out what you mean, then refines, completes and organizes it into a message ready to send, and inserts it automatically. A light tap of the shortcut is still ordinary dictation. You can also trigger it from the menu bar item “Start Say It for Me” (press once to start, again to finish)."
+            "value": "Hold the dictation shortcut set under “General” until the overlay shows “Say It for Me”, then speak; release to finish. After recognition the model does more than tidy up the text: it works out what you mean, then refines, completes and organizes it into a message ready to send, and inserts it automatically. A light tap of the shortcut is still ordinary dictation."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "按住「一般」中設定的聽寫快速鍵不放，直到懸浮視窗顯示「幫我說」後開始說話，放開即結束。辨識完成後，模型不只是整理文字，還會弄清楚你想表達的意思，將它細化、補全、理順，寫成可以直接送出的成品，再自動插入。輕按一下快速鍵仍是一般聽寫。也可以從選單列的「開始幫我說」觸發（按一次開始，再按一次結束）。"
+            "value": "按住「一般」中設定的聽寫快速鍵不放，直到懸浮視窗顯示「幫我說」後開始說話，放開即結束。辨識完成後，模型不只是整理文字，還會弄清楚你想表達的意思，將它細化、補全、理順，寫成可以直接送出的成品，再自動插入。輕按一下快速鍵仍是一般聽寫。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「一般」で設定した音声入力のショートカットを押し続け、オーバーレイに「代わりに話す」と表示されたら話し始め、離すと終了します。認識が終わると、モデルは単にテキストを整えるだけでなく、あなたの言いたいことを汲み取り、具体化・補完・整理して、そのまま送れる仕上がりの文章にし、自動で挿入します。ショートカットを軽く押した場合は通常の音声入力です。メニューバーの「代わりに話すを開始」から開始することもできます（1 回押して開始、もう 1 回押して終了）。"
+            "value": "「一般」で設定した音声入力のショートカットを押し続け、オーバーレイに「代わりに話す」と表示されたら話し始め、離すと終了します。認識が終わると、モデルは単にテキストを整えるだけでなく、あなたの言いたいことを汲み取り、具体化・補完・整理して、そのまま送れる仕上がりの文章にし、自動で挿入します。ショートカットを軽く押した場合は通常の音声入力です。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "'일반'에서 설정한 받아쓰기 단축키를 누른 채 오버레이 창에 '대신 말하기'가 표시되면 말하기 시작하고, 손을 떼면 종료됩니다. 인식이 끝나면 모델은 텍스트를 다듬는 데 그치지 않고 하려는 말의 의도를 파악해 구체화·보완·정리하여 바로 보낼 수 있는 완성본으로 만든 뒤 자동으로 삽입합니다. 단축키를 가볍게 한 번 누르면 일반 받아쓰기입니다. 메뉴 막대의 '대신 말하기 시작'으로도 실행할 수 있습니다(한 번 누르면 시작, 다시 누르면 종료)."
+            "value": "'일반'에서 설정한 받아쓰기 단축키를 누른 채 오버레이 창에 '대신 말하기'가 표시되면 말하기 시작하고, 손을 떼면 종료됩니다. 인식이 끝나면 모델은 텍스트를 다듬는 데 그치지 않고 하려는 말의 의도를 파악해 구체화·보완·정리하여 바로 보낼 수 있는 완성본으로 만든 뒤 자동으로 삽입합니다. 단축키를 가볍게 한 번 누르면 일반 받아쓰기입니다."
           }
         }
       }
@@ -6320,6 +6320,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "전역 단축키 일시 중지"
+          }
+        }
+      }
+    },
+    "更改语言后需重启 OpenType 才会生效。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更改语言后需重启 OpenType 才会生效。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart OpenType for the language change to take effect."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更改語言後需重新啟動 OpenType 才會生效。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語の変更は OpenType を再起動すると反映されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "언어 변경은 OpenType을 다시 시작해야 적용됩니다."
           }
         }
       }
@@ -8092,6 +8126,40 @@
         }
       }
     },
+    "界面语言": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面语言"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "介面語言"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示言語"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인터페이스 언어"
+          }
+        }
+      }
+    },
     "留空则不发送，如 low / medium / high": {
       "localizations": {
         "zh-Hans": {
@@ -8806,36 +8874,36 @@
         }
       }
     },
-    "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。也可以从菜单栏的「开始翻译帮我说」触发。": {
+    "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。也可以从菜单栏的「开始翻译帮我说」触发。"
+            "value": "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Translate & Say It for Me: hold the translation shortcut set under the “Translation” tab to do the same thing, but the finished message is written directly in the target language (you can switch the language and regional wording temporarily in the overlay). For example, hold the translation shortcut and say “Tell my landlord the pipe will leak next month and needs fixing, and ask when it’s convenient” to get a complete, polite message in the target language. It shares the web search (searching and page reading) and System Prompt settings below with “Say It for Me”; if the model call fails, untranslated text is not inserted and the recognized text stays in the overlay for you to copy. You can also trigger it from the menu bar item “Start Translate & Say It for Me”."
+            "value": "Translate & Say It for Me: hold the translation shortcut set under the “Translation” tab to do the same thing, but the finished message is written directly in the target language (you can switch the language and regional wording temporarily in the overlay). For example, hold the translation shortcut and say “Tell my landlord the pipe will leak next month and needs fixing, and ask when it’s convenient” to get a complete, polite message in the target language. It shares the web search (searching and page reading) and System Prompt settings below with “Say It for Me”; if the model call fails, untranslated text is not inserted and the recognized text stays in the overlay for you to copy."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "翻譯幫我說：長按「翻譯」標籤頁中設定的翻譯快速鍵，做同樣的事，但成品直接以翻譯目標語言寫出（懸浮視窗中可暫時切換語言與地區用語）。例：按住翻譯快速鍵說「跟房東說下個月水管漏水要修，問他什麼時候方便」，會得到一段完整、得體的目標語言訊息。它與「幫我說」共用下方的網路搜尋（搜尋與讀取網頁）和 System Prompt 設定；模型呼叫失敗時不會插入未翻譯的文字，辨識原文會保留在懸浮視窗中供複製。也可以從選單列的「開始翻譯幫我說」觸發。"
+            "value": "翻譯幫我說：長按「翻譯」標籤頁中設定的翻譯快速鍵，做同樣的事，但成品直接以翻譯目標語言寫出（懸浮視窗中可暫時切換語言與地區用語）。例：按住翻譯快速鍵說「跟房東說下個月水管漏水要修，問他什麼時候方便」，會得到一段完整、得體的目標語言訊息。它與「幫我說」共用下方的網路搜尋（搜尋與讀取網頁）和 System Prompt 設定；模型呼叫失敗時不會插入未翻譯的文字，辨識原文會保留在懸浮視窗中供複製。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "翻訳して代わりに話す：「翻訳」タブで設定した翻訳ショートカットを長押しすると同じ処理を行いますが、仕上がりは翻訳先の言語で直接書かれます（オーバーレイで言語や地域ごとの表現を一時的に切り替えられます）。例：翻訳ショートカットを押しながら「大家さんに、来月水道管から水漏れするので修理が必要だと伝えて、いつ都合がいいか聞いて」と話すと、翻訳先の言語で丁寧にまとまったメッセージが得られます。下のウェブ検索（検索とページの読み取り）と System Prompt の設定は「代わりに話す」と共通です。モデルの呼び出しに失敗した場合は未翻訳のテキストは挿入されず、認識原文はオーバーレイに残るのでコピーできます。メニューバーの「翻訳して代わりに話すを開始」から開始することもできます。"
+            "value": "翻訳して代わりに話す：「翻訳」タブで設定した翻訳ショートカットを長押しすると同じ処理を行いますが、仕上がりは翻訳先の言語で直接書かれます（オーバーレイで言語や地域ごとの表現を一時的に切り替えられます）。例：翻訳ショートカットを押しながら「大家さんに、来月水道管から水漏れするので修理が必要だと伝えて、いつ都合がいいか聞いて」と話すと、翻訳先の言語で丁寧にまとまったメッセージが得られます。下のウェブ検索（検索とページの読み取り）と System Prompt の設定は「代わりに話す」と共通です。モデルの呼び出しに失敗した場合は未翻訳のテキストは挿入されず、認識原文はオーバーレイに残るのでコピーできます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "번역해서 대신 말하기: '번역' 탭에서 설정한 번역 단축키를 길게 누르면 같은 일을 하되, 결과물이 번역 대상 언어로 바로 작성됩니다(오버레이 창에서 언어와 지역별 표현을 임시로 바꿀 수 있음). 예: 번역 단축키를 누른 채 '집주인에게 다음 달에 수도관이 새서 수리가 필요하다고 말하고 언제 편한지 물어봐 줘'라고 말하면 대상 언어로 완결되고 정중한 메시지가 만들어집니다. 아래의 웹 검색(검색 및 웹페이지 읽기)과 System Prompt 설정은 '대신 말하기'와 공유합니다. 모델 호출이 실패하면 번역되지 않은 텍스트는 삽입되지 않으며, 인식 원문은 오버레이 창에 남아 복사할 수 있습니다. 메뉴 막대의 '번역해서 대신 말하기 시작'으로도 실행할 수 있습니다."
+            "value": "번역해서 대신 말하기: '번역' 탭에서 설정한 번역 단축키를 길게 누르면 같은 일을 하되, 결과물이 번역 대상 언어로 바로 작성됩니다(오버레이 창에서 언어와 지역별 표현을 임시로 바꿀 수 있음). 예: 번역 단축키를 누른 채 '집주인에게 다음 달에 수도관이 새서 수리가 필요하다고 말하고 언제 편한지 물어봐 줘'라고 말하면 대상 언어로 완결되고 정중한 메시지가 만들어집니다. 아래의 웹 검색(검색 및 웹페이지 읽기)과 System Prompt 설정은 '대신 말하기'와 공유합니다. 모델 호출이 실패하면 번역되지 않은 텍스트는 삽입되지 않으며, 인식 원문은 오버레이 창에 남아 복사할 수 있습니다."
           }
         }
       }
@@ -9860,36 +9928,36 @@
         }
       }
     },
-    "说出一段话，结束后会先整理再翻译成目标语言并插入。也可以从菜单栏的「开始语音翻译」触发。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。": {
+    "说出一段话，结束后会先整理再翻译成目标语言并插入。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "说出一段话，结束后会先整理再翻译成目标语言并插入。也可以从菜单栏的「开始语音翻译」触发。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。"
+            "value": "说出一段话，结束后会先整理再翻译成目标语言并插入。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Speak a passage; when you finish, it is cleaned up, translated into the target language and inserted. You can also trigger it from the menu bar item “Start Voice Translation”. Holding this shortcut triggers “Translate & Say It for Me” (see the “Say It for Me” tab)."
+            "value": "Speak a passage; when you finish, it is cleaned up, translated into the target language and inserted. Holding this shortcut triggers “Translate & Say It for Me” (see the “Say It for Me” tab)."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "說出一段話，結束後會先整理再翻譯成目標語言並插入。也可以從選單列的「開始語音翻譯」觸發。長按這個快速鍵則是「翻譯幫我說」（見「幫我說」標籤頁）。"
+            "value": "說出一段話，結束後會先整理再翻譯成目標語言並插入。長按這個快速鍵則是「翻譯幫我說」（見「幫我說」標籤頁）。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "話し終えると、内容が整形されてから目標言語に翻訳され、挿入されます。メニューバーの「音声翻訳を開始」から開始することもできます。このショートカットを長押しすると「翻訳して代わりに話す」になります（「代わりに話す」タブを参照）。"
+            "value": "話し終えると、内容が整形されてから目標言語に翻訳され、挿入されます。このショートカットを長押しすると「翻訳して代わりに話す」になります（「代わりに話す」タブを参照）。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "말을 마치면 먼저 정리한 뒤 대상 언어로 번역하여 삽입합니다. 메뉴 막대의 '음성 번역 시작'으로도 실행할 수 있습니다. 이 단축키를 길게 누르면 '번역해서 대신 말하기'가 실행됩니다('대신 말하기' 탭 참조)."
+            "value": "말을 마치면 먼저 정리한 뒤 대상 언어로 번역하여 삽입합니다. 이 단축키를 길게 누르면 '번역해서 대신 말하기'가 실행됩니다('대신 말하기' 탭 참조)."
           }
         }
       }
@@ -10298,6 +10366,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "시간 제한: %lld초"
+          }
+        }
+      }
+    },
+    "跟随系统": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Default"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟隨系統"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムに従う"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정 따르기"
           }
         }
       }
