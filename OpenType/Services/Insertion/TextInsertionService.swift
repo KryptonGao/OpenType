@@ -7,6 +7,9 @@ enum InsertionOutcome: Equatable, Sendable {
     case insertedViaAccessibility
     case insertedViaPasteboard
     case requiresManualCopy(reason: String)
+    /// The user moved focus away from the original input (other app or other control): the text must not be
+    /// written anywhere else, so the caller puts it on the clipboard and notifies the user.
+    case focusLost(reason: String)
 }
 
 /// Snapshot of where the user was typing when dictation started.
@@ -55,7 +58,7 @@ final class TextInsertionService: TextInserting {
             return .requiresManualCopy(reason: "目标是密码/安全输入框，已禁止自动写入")
         }
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.pid else {
-            return .requiresManualCopy(reason: "录音期间已切换应用，无法安全写回「\(target.appName)」")
+            return .focusLost(reason: "录音期间已切换应用，无法写回「\(target.appName)」")
         }
         guard isAccessibilityTrusted() else {
             return .requiresManualCopy(reason: "未授予辅助功能权限，无法自动插入")
@@ -68,7 +71,7 @@ final class TextInsertionService: TextInserting {
         let current = focusedElement(ofPID: target.pid)
         if let original = target.element {
             guard let current, CFEqual(original, current) else {
-                return .requiresManualCopy(reason: "输入焦点已变化，已保留文本")
+                return .focusLost(reason: "输入焦点已离开原输入框")
             }
         }
         if let current, Self.isSecureField(current) {

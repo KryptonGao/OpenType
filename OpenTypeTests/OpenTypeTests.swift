@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import Testing
@@ -605,6 +606,12 @@ private final class FakeInserter: TextInserting {
 }
 
 @MainActor
+private final class FakeNotifier: UserNotifying {
+    private(set) var notifications: [(title: String, body: String)] = []
+    func notify(title: String, body: String) { notifications.append((title, body)) }
+}
+
+@MainActor
 private final class FakePermissions: PermissionChecking {
     var granted = true
     func ensureMicrophone() async -> Bool { granted }
@@ -644,6 +651,7 @@ private struct Harness {
     let coordinator: DictationSessionCoordinator
     let audio: FakeAudio
     let inserter: FakeInserter
+    let notifier = FakeNotifier()
     let permissions: FakePermissions
     let settings: SettingsStore
     let history = HistoryStore()
@@ -668,7 +676,7 @@ private struct Harness {
             settingsStore: settings, credentialStore: credentials, permissions: PermissionManager(),
             historyStore: history, audio: audio, permissionChecker: permissions,
             makeASR: { _ in asr() }, makeLLM: { _, _ in FakeLLM(result: llm, recorder: recorder) },
-            inserter: inserter, overlay: nil, playsSounds: false
+            inserter: inserter, overlay: nil, notifier: notifier, playsSounds: false
         )
         self.audio = audio; self.inserter = inserter; self.permissions = permissions; self.settings = settings
     }
@@ -831,6 +839,34 @@ struct CoordinatorTests {
         c.cancelSession()
         #expect(c.state == .idle)
         #expect(c.pendingText.isEmpty)
+    }
+
+    @Test func focusLostCopiesToClipboardAndNotifies() async {
+        let harness = Harness(asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "文本")]) })
+        harness.inserter.outcome = .focusLost(reason: "输入焦点已离开原输入框")
+        let c = harness.coordinator
+        c.beginSession(mode: .hold)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { if case .manualCopy = c.state { true } else { false } }
+        guard case .manualCopy(let reason) = c.state else { Issue.record("expected manualCopy, got \(c.state)"); return }
+        #expect(reason.contains("剪贴板"))
+        #expect(NSPasteboard.general.string(forType: .string) == "整理后的文字。")
+        #expect(harness.notifier.notifications.count == 1)
+        #expect(harness.notifier.notifications.first?.body.contains("输入焦点已离开原输入框") == true)
+        c.cancelSession()
+    }
+
+    @Test func manualCopyDoesNotNotify() async {
+        let harness = Harness(asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "文本")]) })
+        harness.inserter.outcome = .requiresManualCopy(reason: "目标是密码框")
+        let c = harness.coordinator
+        c.beginSession(mode: .hold)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { if case .manualCopy = c.state { true } else { false } }
+        #expect(harness.notifier.notifications.isEmpty)
+        c.cancelSession()
     }
 
     @Test func autoInsertDisabledShowsManualCopy() async {

@@ -53,6 +53,7 @@ final class DictationSessionCoordinator {
     @ObservationIgnored private let textProcessor: TextProcessor
     @ObservationIgnored private let inserter: any TextInserting
     @ObservationIgnored private let overlay: (any OverlayPresenting)?
+    @ObservationIgnored private let notifier: any UserNotifying
     @ObservationIgnored private let playsSounds: Bool
 
     @ObservationIgnored private var pipelineTask: Task<Void, Never>?
@@ -93,6 +94,7 @@ final class DictationSessionCoordinator {
         textProcessor: TextProcessor = TextProcessor(),
         inserter: any TextInserting = TextInsertionService(),
         overlay: (any OverlayPresenting)? = nil,
+        notifier: any UserNotifying = SystemUserNotifier(),
         playsSounds: Bool = true
     ) {
         self.settingsStore = settingsStore
@@ -108,6 +110,7 @@ final class DictationSessionCoordinator {
         self.textProcessor = textProcessor
         self.inserter = inserter
         self.overlay = overlay
+        self.notifier = notifier
         self.playsSounds = playsSounds
     }
 
@@ -579,6 +582,13 @@ final class DictationSessionCoordinator {
         case .requiresManualCopy(let reason):
             history(record, delivery: .manualCopy)
             showManualCopy(id, text: finalText, reason: reason, notes: notes)
+        case .focusLost(let reason):
+            // Focus left the input box: never write elsewhere. Put the result on the clipboard and tell the user.
+            history(record, delivery: .manualCopy)
+            showManualCopy(id, text: finalText, reason: reason + "，结果已复制到剪贴板", notes: notes)
+            copyPendingText()
+            notifier.notify(title: "OpenType：结果已复制到剪贴板", body: "\(reason)。按 ⌘V 即可粘贴。")
+            playSound("Glass")
         }
     }
 
