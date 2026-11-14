@@ -18,6 +18,8 @@ struct InsertionTarget {
     let appName: String
     let element: AXUIElement?
     let isSecure: Bool
+    /// Bundle identifier of the app, used to pick that app's preset. `nil` when unknown.
+    var bundleIdentifier: String? = nil
 }
 
 @MainActor
@@ -45,7 +47,8 @@ final class TextInsertionService: TextInserting {
             pid: app.processIdentifier,
             appName: app.localizedName ?? String(localized: "未知应用"),
             element: element,
-            isSecure: element.map(Self.isSecureField) ?? false
+            isSecure: element.map(Self.isSecureField) ?? false,
+            bundleIdentifier: app.bundleIdentifier
         )
     }
 

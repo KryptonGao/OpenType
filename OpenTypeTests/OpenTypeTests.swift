@@ -604,7 +604,10 @@ private actor FakeASR: ASRService {
 private final class FakeInserter: TextInserting {
     var outcome: InsertionOutcome = .insertedViaAccessibility
     private(set) var inserted: [String] = []
-    func captureTarget() -> InsertionTarget? { InsertionTarget(pid: 1, appName: "Test", element: nil, isSecure: false) }
+    var bundleIdentifier: String?
+    func captureTarget() -> InsertionTarget? {
+        InsertionTarget(pid: 1, appName: "Test", element: nil, isSecure: false, bundleIdentifier: bundleIdentifier)
+    }
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
         inserted.append(text)
         return outcome
@@ -665,6 +668,7 @@ private struct Harness {
 
     init(asr: @escaping @Sendable () -> FakeASR, llm: Result<String, LLMError> = .success("整理后的文字。"),
          recorder: PromptRecorder? = nil, dictionary: DictionaryStore = DictionaryStore(packs: []),
+         presets: PresetStore = PresetStore(), frontmostBundleID: String? = nil,
          configure: (SettingsStore) -> Void = { _ in }) {
         let suite = "opentype.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -675,6 +679,7 @@ private struct Harness {
         let audio = FakeAudio()
         audio.chunksToEmitOnStart = 5
         let inserter = FakeInserter()
+        inserter.bundleIdentifier = frontmostBundleID
         let permissions = FakePermissions()
         let credentials = self.credentials
         try? credentials.save("asr-key", account: CredentialAccount.bailianAPIKey)
@@ -682,7 +687,7 @@ private struct Harness {
         self.coordinator = DictationSessionCoordinator(
             settingsStore: settings, credentialStore: credentials, permissions: PermissionManager(),
             audioInputMonitor: AudioInputMonitor(fetchDevices: { [] }, observeSystemChanges: false),
-            historyStore: history, dictionaryStore: dictionary, audio: audio, permissionChecker: permissions,
+            historyStore: history, dictionaryStore: dictionary, presetStore: presets, audio: audio, permissionChecker: permissions,
             makeASR: { _ in asr() }, makeLLM: { _, _ in FakeLLM(result: llm, recorder: recorder) },
             inserter: inserter, overlay: nil, notifier: notifier, playsSounds: false
         )
@@ -2170,5 +2175,136 @@ struct DictionaryCoordinatorTests {
         let prompt = recorder.calls.first?.prompt ?? ""
         #expect(prompt.hasPrefix(TextProcessor.translationSystemPrompt(target: .english)))
         #expect(prompt.contains("- DeepSeek"))
+    }
+}
+
+// MARK: - Presets in the pipeline
+
+@MainActor
+struct PresetCoordinatorTests {
+    private func run(
+        _ harness: Harness, transcript: String? = nil, beforeStop: (DictationSessionCoordinator) -> Void = { _ in }
+    ) async {
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle)
+        await harness.wait { c.state == .recording }
+        beforeStop(c)
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 || { if case .error = c.state { true } else { false } }() }
+    }
+
+    private func presets(_ rules: [String: String]) -> PresetStore {
+        let store = PresetStore()
+        for (bundleID, presetID) in rules { store.setRule(bundleID: bundleID, appName: bundleID, presetID: presetID) }
+        return store
+    }
+
+    private func asr(_ text: String = "今天开会，很顺利。") -> @Sendable () -> FakeASR {
+        { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: text)]) }
+    }
+
+    @Test func appRuleSelectsThePresetAtSessionStart() async {
+        let harness = Harness(asr: asr(), presets: presets(["com.tinyspeck.slackmacgap": BuiltInPresets.casualChat]), frontmostBundleID: "com.tinyspeck.slackmacgap")
+        harness.coordinator.beginSession(mode: .toggle)
+        #expect(harness.coordinator.activePreset.id == BuiltInPresets.casualChat)
+    }
+
+    @Test func unknownAppUsesTheDefaultPreset() async {
+        let harness = Harness(asr: asr(), frontmostBundleID: "com.example.Unknown")
+        harness.coordinator.beginSession(mode: .toggle)
+        #expect(harness.coordinator.activePreset.id == BuiltInPresets.general)
+    }
+
+    @Test func casualPresetUsesItsPromptAndDropsTheTrailingPeriod() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: asr(), llm: .success("今天开会很顺利。"), recorder: recorder,
+            presets: presets(["com.tinyspeck.slackmacgap": BuiltInPresets.casualChat]), frontmostBundleID: "com.tinyspeck.slackmacgap"
+        )
+        await run(harness)
+        #expect(recorder.calls.first?.prompt.contains("即时通讯") == true)
+        #expect(harness.inserter.inserted == ["今天开会很顺利"])
+    }
+
+    @Test func generalPresetSendsTheProfilePromptAndLeavesTheTextAlone() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(asr: asr(), llm: .success("整理后，的文字。"), recorder: recorder)
+        await run(harness)
+        let profilePrompt = harness.settings.activeProfile?.systemPrompt ?? ""
+        #expect(recorder.calls.first?.prompt == TextProcessor.systemPrompt(base: profilePrompt, level: .standard))
+        #expect(harness.inserter.inserted == ["整理后，的文字。"])
+    }
+
+    @Test func codePresetConvertsPunctuationEvenWithoutTheLLM() async {
+        let harness = Harness(
+            asr: asr("加个 loading 状态，别忘了。"), presets: presets(["com.apple.dt.Xcode": BuiltInPresets.codeTech]),
+            frontmostBundleID: "com.apple.dt.Xcode",
+            configure: { $0.processingLevel = .raw; $0.llmEnabled = false }
+        )
+        await run(harness)
+        #expect(harness.inserter.inserted == ["加个 loading 状态,别忘了."])
+    }
+
+    @Test func terminalPresetInsertsASingleLineCommandWithoutReturn() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: asr("列出当前目录下所有文件"), llm: .success("```bash\n$ ls -la\npwd\n```"), recorder: recorder,
+            presets: presets(["com.apple.Terminal": BuiltInPresets.terminalCommand]), frontmostBundleID: "com.apple.Terminal"
+        )
+        await run(harness)
+        #expect(recorder.calls.first?.prompt.contains("终端") == true)
+        #expect(harness.inserter.inserted == ["ls -la && pwd"])
+        #expect(harness.inserter.inserted.allSatisfy { !$0.contains("\n") && !$0.contains("\r") })
+    }
+
+    @Test func terminalPresetNeverFallsBackToTheRawSpeech() async {
+        let harness = Harness(
+            asr: asr("列出所有文件"), llm: .failure(.timeout),
+            presets: presets(["com.apple.Terminal": BuiltInPresets.terminalCommand]), frontmostBundleID: "com.apple.Terminal"
+        )
+        let c = harness.coordinator
+        await run(harness)
+        #expect(harness.inserter.inserted.isEmpty)
+        if case .error = c.state {} else { Issue.record("expected an error, got \(c.state)") }
+        #expect(c.pendingText == "列出所有文件")
+    }
+
+    @Test func emailPresetRunsAsHelpMeSayWithItsOwnPrompt() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: asr("跟张三说明天开会改到三点"), llm: .success("张三你好……"), recorder: recorder,
+            frontmostBundleID: "com.example.Mail",
+            configure: { _ in }
+        )
+        harness.coordinator.presetStore.setRule(bundleID: "com.example.Mail", appName: "Mail", presetID: BuiltInPresets.workEmail)
+        await run(harness)
+        #expect(harness.coordinator.runsHelpMeSay)
+        #expect(recorder.calls.first?.prompt.contains("职场邮件") == true)
+        #expect(harness.inserter.inserted == ["张三你好……"])
+    }
+
+    @Test func presetCanBeSwitchedWhileRecordingButNotTranslating() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(asr: asr(), llm: .success("好的。"), recorder: recorder)
+        let c = harness.coordinator
+        await run(harness) { c in
+            c.setPreset(c.presetStore.preset(id: BuiltInPresets.casualChat)!)
+            #expect(c.activePreset.id == BuiltInPresets.casualChat)
+        }
+        #expect(recorder.calls.first?.prompt.contains("即时通讯") == true)
+        #expect(harness.inserter.inserted == ["好的"])
+
+        // Translation sessions ignore presets completely.
+        c.cancelSession()
+        c.beginSession(mode: .toggle, translating: true)
+        #expect(!c.canChangePreset)
+    }
+
+    @Test func autoMatchOffUsesTheDefaultPreset() async {
+        let presets = presets(["com.tinyspeck.slackmacgap": BuiltInPresets.casualChat])
+        presets.autoMatchEnabled = false
+        let harness = Harness(asr: asr(), presets: presets, frontmostBundleID: "com.tinyspeck.slackmacgap")
+        harness.coordinator.beginSession(mode: .toggle)
+        #expect(harness.coordinator.activePreset.id == BuiltInPresets.general)
     }
 }

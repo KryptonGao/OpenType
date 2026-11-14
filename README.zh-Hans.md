@@ -43,8 +43,9 @@
 - **ASR 与 LLM 解耦**：ASR 可选阿里云百炼 `qwen3-asr-flash-realtime` / `qwen-audio-3.1-asr-flash-message`（实时流式，后者带实时中间结果与可选的识别端润色）或 DeepSeek（录完后整段上传）；LLM 内置 OpenAI Responses、OpenAI Chat Completions、Anthropic Messages 三种协议适配器，兼容第三方 OpenAI 兼容服务；支持多 Profile、三档处理等级（原始 / 标准 / 深度整理）。
 - **失败不丢字**：LLM 失败或超时可自动回退为 ASR 原文；ASR 断线时保留已识别内容供复制；`Esc` 随时取消，取消时不会插入任何文字。
 - **三级插入**：Accessibility 直写 → 模拟粘贴（自动备份并恢复剪贴板）→ 悬浮窗手动复制。不会向密码框、安全输入模式或已切换的应用写入，也不会自动回车或提交。
-- **正式主界面**：原生 SwiftUI 四标签窗口——首页（输入统计与 Token 用量）、历史（可搜索、复制、删除）、词典、设置。
+- **正式主界面**：原生 SwiftUI 五标签窗口——首页（输入统计与 Token 用量）、历史（可搜索、复制、删除）、词典、预设、设置。
 - **面向程序员的词典**：内置编程通用词汇、Git，以及 Swift / Python / JavaScript 与 TypeScript / Shell / SQL / HTML 与 CSS 的关键字和常用函数，还有 AI 概念（Agent Harness、MCP、RAG 等）与厂商产品（OpenAI、Anthropic、DeepSeek 等）。每个词库可单独开关，也可以添加自己的词条（正确写法 + 常被听错的说法）。语音里提到词典中的词时，会告诉 AI 正确写法；开启「自动替换」的词条还会在 AI 处理之前直接修正识别结果，所以关闭 AI 整理（原文模式）时同样有效。
+- **预设与应用级规则**：不再只有一套固定提示词，可以管理多个预设（日常整理、日常沟通、职场邮件、代码与技术提问、Terminal 命令生成，或自己新建）。每个预设有自己的提示词，还能去掉末尾句号、使用半角标点、启用指定词库。应用由你自己添加（「添加应用」会打开“应用程序”文件夹）并各自指定预设。开始录音时 OpenType 会看你正在用的应用并自动选用对应预设，例如 Slack / 微信里口语精简、不带句号，Xcode / Cursor 里半角标点并启用编程词库，Terminal / iTerm2 里直接生成可执行的 Shell 命令。默认预设可在菜单栏切换，也能在悬浮窗里为这一次录音临时更换。命令预设只会把命令作为单行文字插入，绝不替你按回车。
 - **隐私优先**：API Key 以明文 JSON 存于 `~/.opentype/credentials.json`（权限 0600，升级不再弹钥匙串密码）；不保存音频；识别文字只存在本机历史中（可随时关闭或清空）；日志不含语音与文字内容。
 
 ## 工作流程
@@ -190,8 +191,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -destination 'platform=m
 
 ## 路线图
 
-- 多 Prompt 预设、词典导入导出、用词典为语音识别增强偏置
-- 应用级规则
+- 词典导入导出、用词典为语音识别增强偏置
 - 更多语音模型 / 本地 ASR
 - 全场景兼容性验证（Safari / Chrome / VS Code / Electron / IM / 全屏 / 多屏 / 输入法切换）与 Developer ID 签名、公证
 

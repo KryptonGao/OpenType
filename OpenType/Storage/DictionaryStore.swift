@@ -113,13 +113,24 @@ final class DictionaryStore {
 
     // MARK: Used by the dictation pipeline
 
-    /// Deterministic replacement of the recognised text.
-    func correct(_ text: String) -> String { matcher.correct(text) }
+    /// Deterministic replacement of the recognised text. `extraPackIDs` are packs that count as enabled for this call
+    /// even when switched off (a preset can ask for them); they change nothing while the master switch is off.
+    func correct(_ text: String, extraPackIDs: [String] = []) -> String {
+        sessionMatcher(extraPackIDs: extraPackIDs).correct(text)
+    }
 
     /// The prompt section listing the dictionary words the transcript mentions; empty when there are none,
     /// so prompts stay unchanged for text without dictionary words.
-    func addendum(for transcript: String) -> String {
-        TextProcessor.dictionaryAddendum(entries: matcher.hints(for: transcript))
+    func addendum(for transcript: String, extraPackIDs: [String] = []) -> String {
+        TextProcessor.dictionaryAddendum(entries: sessionMatcher(extraPackIDs: extraPackIDs).hints(for: transcript))
+    }
+
+    /// The shared matcher, or one that also includes the requested packs that are currently switched off.
+    private func sessionMatcher(extraPackIDs: [String]) -> DictionaryMatcher {
+        guard isEnabled, !extraPackIDs.isEmpty else { return matcher }
+        let extra = packs.filter { extraPackIDs.contains($0.id) && !isPackEnabled($0.id) }
+        guard !extra.isEmpty else { return matcher }
+        return DictionaryMatcher(entries: activeEntries + extra.flatMap(\.entries))
     }
 
     // MARK: Persistence

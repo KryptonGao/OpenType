@@ -19,6 +19,7 @@ struct MenuBarView: View {
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
 
         microphoneMenu
+        presetMenu
 
         Divider()
 
@@ -47,6 +48,26 @@ struct MenuBarView: View {
                 permissions.refresh()
                 audioInputMonitor.refresh()
             }
+    }
+
+    /// Switches the default preset (the one used when no app rule matches) and the per-app matching.
+    private var presetMenu: some View {
+        let store = coordinator.presetStore
+        return Menu {
+            ForEach(store.presets) { preset in
+                Toggle(isOn: Binding(
+                    get: { store.defaultPresetID == preset.id },
+                    set: { if $0 { store.setDefaultPreset(preset.id) } }
+                )) {
+                    Label(preset.displayName, systemImage: preset.symbolName)
+                }
+            }
+            Divider()
+            Toggle("按应用自动匹配", isOn: Bindable(store).autoMatchEnabled)
+            Button("管理预设…", systemImage: "square.stack.3d.up") { show(.presets) }
+        } label: {
+            Label("预设：\(store.defaultPreset.displayName)", systemImage: "square.stack.3d.up")
+        }
     }
 
     private var microphoneMenu: some View {

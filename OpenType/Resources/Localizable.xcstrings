@@ -1317,6 +1317,40 @@
     "System Prompt": {
       "shouldTranslate": false
     },
+    "Terminal 命令生成": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal 命令生成"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal Commands"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal 指令產生"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal コマンド生成"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal 명령 생성"
+          }
+        }
+      }
+    },
     "Token": {
       "shouldTranslate": false
     },
@@ -1836,6 +1870,40 @@
         }
       }
     },
+    "之后所有应用都会使用默认预设，直到你重新添加。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之后所有应用都会使用默认预设，直到你重新添加。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every app will use the default preset until you add rules again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之後所有應用程式都會使用預設值，直到你重新新增。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以降はルールを追加し直すまで、すべてのアプリでデフォルトのプリセットを使います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이후에는 규칙을 다시 추가할 때까지 모든 앱이 기본 프리셋을 사용합니다."
+          }
+        }
+      }
+    },
     "仅修饰键的快捷键在松开时触发（轻点即可），按住期间若按了其它键或鼠标则不触发（避免和 ⌘C 等组合键冲突）。": {
       "localizations": {
         "zh-Hans": {
@@ -2070,6 +2138,176 @@
           "stringUnit": {
             "state": "translated",
             "value": "오늘 %lld · 누적 %@"
+          }
+        }
+      }
+    },
+    "从“应用程序”文件夹里选择要添加的 App，可一次选多个": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从“应用程序”文件夹里选择要添加的 App，可一次选多个"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose apps from the Applications folder. You can select several at once."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從「應用程式」資料夾選擇要新增的 App，可一次選多個"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「アプリケーション」フォルダからアプリを選びます。複数まとめて選べます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "응용 프로그램 폴더에서 추가할 앱을 고릅니다. 여러 개를 한 번에 선택할 수 있습니다."
+          }
+        }
+      }
+    },
+    "代码与技术提问": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代码与技术提问"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code & Tech Questions"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "程式碼與技術提問"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードと技術の質問"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드 및 기술 질문"
+          }
+        }
+      }
+    },
+    "使用半角标点": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用半角标点"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use half-width punctuation"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用半形標點"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "半角の句読点を使う"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "반각 문장 부호 사용"
+          }
+        }
+      }
+    },
+    "使用当前 AI Profile 的提示词，行为与未使用预设时完全一致。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用当前 AI Profile 的提示词，行为与未使用预设时完全一致。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses the active AI profile's prompt, exactly like not using presets at all."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用目前 AI Profile 的提示詞，行為與未使用預設時完全一致。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の AI プロファイルのプロンプトを使います。プリセットを使わない場合と完全に同じ動作です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 AI 프로필의 프롬프트를 사용합니다. 프리셋을 쓰지 않을 때와 완전히 같게 동작합니다."
+          }
+        }
+      }
+    },
+    "使用这个预设时，勾选的内置词库即使在词典页里关闭了也会生效。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用这个预设时，勾选的内置词库即使在词典页里关闭了也会生效。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While this preset is used, the checked built-in packs apply even if they are switched off on the Dictionary page."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用這個預設時，勾選的內建詞庫即使在詞典頁面中關閉了也會生效。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このプリセットを使うときは、辞書ページでオフにしていても、チェックした内蔵パックが有効になります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 프리셋을 쓰는 동안 체크한 기본 제공 팩은 사전 페이지에서 꺼 두었어도 적용됩니다."
           }
         }
       }
@@ -2788,6 +3026,74 @@
         }
       }
     },
+    "删除预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Preset"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセットを削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프리셋 삭제"
+          }
+        }
+      }
+    },
+    "删除预设“%@”？": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除预设“%@”？"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete preset “%@”?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除預設「%@」？"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセット「%@」を削除しますか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프리셋 “%@”을(를) 삭제할까요?"
+          }
+        }
+      }
+    },
     "前往授权": {
       "localizations": {
         "zh-Hans": {
@@ -2992,6 +3298,40 @@
         }
       }
     },
+    "原样保留代码标识符与术语，使用半角标点，并启用编程词库。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原样保留代码标识符与术语，使用半角标点，并启用编程词库。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keeps code identifiers and terms as spoken, uses half-width punctuation and turns on the coding dictionary packs."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原樣保留程式碼識別字與術語，使用半形標點，並啟用程式詞庫。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードの識別子や用語をそのまま残し、半角句読点を使い、プログラミング用辞書を有効にします。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드 식별자와 용어를 그대로 두고, 반각 문장 부호를 쓰며, 프로그래밍 사전을 켭니다."
+          }
+        }
+      }
+    },
     "原样发送，各家模型支持的取值不同，请按所用模型的文档填写；留空时不发送该参数。填写了模型不支持的值可能返回错误。": {
       "localizations": {
         "zh-Hans": {
@@ -3060,6 +3400,40 @@
         }
       }
     },
+    "去掉末尾的句号": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去掉末尾的句号"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove the final full stop"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去掉結尾的句號"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文末の句点を取る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끝의 마침표 제거"
+          }
+        }
+      }
+    },
     "发现新版本 %@": {
       "localizations": {
         "zh-Hans": {
@@ -3124,6 +3498,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "취소"
+          }
+        }
+      }
+    },
+    "口语化、精简，去掉句末句号。适合即时通讯。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "口语化、精简，去掉句末句号。适合即时通讯。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversational and concise, without a full stop at the end. Made for messaging apps."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "口語化、精簡，去掉句末句號。適合即時通訊。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "口語的で簡潔に、文末の句点を取ります。チャット向けです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구어체로 간결하게, 문장 끝의 마침표를 뺍니다. 메신저에 알맞습니다."
           }
         }
       }
@@ -3672,6 +4080,108 @@
         }
       }
     },
+    "启用词库": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用词库"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable Dictionary Packs"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用詞庫"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書パックを有効にする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사전 팩 사용"
+          }
+        }
+      }
+    },
+    "命令生成": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令生成"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指令產生"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンド生成"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "명령 생성"
+          }
+        }
+      }
+    },
+    "命令生成失败：%@。已保留识别原文，可复制后重试": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令生成失败：%@。已保留识别原文，可复制后重试"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command generation failed: %@. The recognized text was kept; copy it and try again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指令產生失敗：%@。已保留辨識原文，可複製後重試"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンドの生成に失敗しました：%@。認識したテキストは残してあるので、コピーして再試行できます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "명령 생성 실패: %@. 인식된 원문은 남겨 두었으니 복사해서 다시 시도하세요"
+          }
+        }
+      }
+    },
     "响应格式无法识别": {
       "localizations": {
         "zh-Hans": {
@@ -3838,6 +4348,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "지역별 표현"
+          }
+        }
+      }
+    },
+    "填入默认提示词": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填入默认提示词"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert Default Prompt"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填入預設提示詞"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトのプロンプトを挿入"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본 프롬프트 넣기"
           }
         }
       }
@@ -5100,6 +5644,40 @@
         }
       }
     },
+    "应用规则": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用规则"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Rules"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "應用程式規則"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリルール"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱 규칙"
+          }
+        }
+      }
+    },
     "开启后，「帮我说」与「翻译帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与普通翻译不受影响。": {
       "localizations": {
         "zh-Hans": {
@@ -5232,6 +5810,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "자동 바꾸기를 켜면 인식 결과에 이 표현이 나올 때 올바른 표기로 바로 바꿉니다. 끄면 AI에게 참고용으로만 전달됩니다."
+          }
+        }
+      }
+    },
+    "开始录音时，OpenType 会看当前所在的应用，并使用它对应的预设；没有规则的应用使用默认预设。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始录音时，OpenType 会看当前所在的应用，并使用它对应的预设；没有规则的应用使用默认预设。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When a recording starts, OpenType looks at the app you are in and uses its preset. Apps without a rule use the default preset."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開始錄音時，OpenType 會查看目前所在的應用程式，並使用它對應的預設；沒有規則的應用程式使用預設值。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を始めるとき、OpenType は今使っているアプリを見て、そのアプリのプリセットを使います。ルールのないアプリにはデフォルトのプリセットを使います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음을 시작할 때 OpenType이 현재 사용 중인 앱을 확인해 그 앱의 프리셋을 사용합니다. 규칙이 없는 앱은 기본 프리셋을 사용합니다."
           }
         }
       }
@@ -5470,6 +6082,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "현재 프로필"
+          }
+        }
+      }
+    },
+    "当前默认预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前默认预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current default"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前的預設值"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のデフォルト"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 기본 프리셋"
           }
         }
       }
@@ -5742,6 +6388,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "총 Token"
+          }
+        }
+      }
+    },
+    "恢复内置预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复内置预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Built-in Presets"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還原內建預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵プリセットを復元"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본 제공 프리셋 복원"
           }
         }
       }
@@ -6086,6 +6766,210 @@
         }
       }
     },
+    "找回被删除的内置预设；已有的预设不会被改动": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找回被删除的内置预设；已有的预设不会被改动"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brings back deleted built-in presets. Existing presets are left as they are."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找回被刪除的內建預設；現有的預設不會被更動"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除した内蔵プリセットを元に戻します。既存のプリセットは変更されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제한 기본 제공 프리셋을 되살립니다. 기존 프리셋은 바뀌지 않습니다."
+          }
+        }
+      }
+    },
+    "把口述写成完整的成品文字。需要 AI，不受“AI 整理”开关影响；联网搜索沿用「帮我说」设置。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把口述写成完整的成品文字。需要 AI，不受“AI 整理”开关影响；联网搜索沿用「帮我说」设置。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Writes your speech up as finished text. Needs AI and ignores the “AI clean-up” switch; web search follows the Say It for Me settings."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把口述寫成完整的成品文字。需要 AI，不受「AI 整理」開關影響；連網搜尋沿用「幫我說」設定。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話した内容を完成した文章に仕上げます。AI が必要で、「AI 整形」のスイッチの影響を受けません。Web 検索は「代わりに話す」の設定に従います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "말한 내용을 완성된 글로 써 줍니다. AI가 필요하며 'AI 정리' 스위치와 무관합니다. 웹 검색은 '대신 말하기' 설정을 따릅니다."
+          }
+        }
+      }
+    },
+    "把口述整理成得体的职场邮件正文。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把口述整理成得体的职场邮件正文。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turns what you say into a polished work email."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把口述整理成得體的職場郵件內文。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話した内容を丁寧なビジネスメールの本文に整えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "말한 내용을 격식 있는 업무 이메일 본문으로 다듬습니다."
+          }
+        }
+      }
+    },
+    "把需求说成一条 Shell 命令，只插入、不回车。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把需求说成一条 Shell 命令，只插入、不回车。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turns your request into one shell command. It is only typed, never run."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把需求說成一條 Shell 指令，只插入、不按 Return。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要望を 1 行のシェルコマンドにします。入力するだけで、実行はしません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "요청을 셸 명령 한 줄로 만듭니다. 입력만 하고 실행하지 않습니다."
+          }
+        }
+      }
+    },
+    "把需求转成一条命令，写成单行并只插入、不回车，你检查后自己按回车。需要 AI。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把需求转成一条命令，写成单行并只插入、不回车，你检查后自己按回车。需要 AI。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turns your request into one single-line command and only types it. Return is never pressed; you check it and run it yourself. Needs AI."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把需求轉成一條指令，寫成單行並只插入、不按 Return，由你檢查後自己按 Return。需要 AI。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要望を 1 行のコマンドにして入力するだけで、Return は押しません。内容を確認してご自身で実行してください。AI が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "요청을 한 줄 명령으로 바꿔 입력만 하고 Return은 누르지 않습니다. 직접 확인한 뒤 실행하세요. AI가 필요합니다."
+          }
+        }
+      }
+    },
+    "指向它的应用规则会一并删除。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指向它的应用规则会一并删除。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App rules that point to it are deleted too."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指向它的應用程式規則會一併刪除。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このプリセットを指すアプリルールも一緒に削除されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 프리셋을 가리키는 앱 규칙도 함께 삭제됩니다."
+          }
+        }
+      }
+    },
     "指定后只按该语言识别，能减少混语与误判；不确定时保持「自动识别」。": {
       "localizations": {
         "zh-Hans": {
@@ -6256,6 +7140,74 @@
         }
       }
     },
+    "按应用自动匹配": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按应用自动匹配"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match by App"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依應用程式自動配對"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリごとに自動選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱별 자동 선택"
+          }
+        }
+      }
+    },
+    "按应用自动匹配预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按应用自动匹配预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick the preset by app automatically"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依應用程式自動配對預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリに応じてプリセットを自動で選ぶ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱에 따라 프리셋 자동 선택"
+          }
+        }
+      }
+    },
     "按模型": {
       "localizations": {
         "zh-Hans": {
@@ -6422,6 +7374,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "추론 강도(effort)"
+          }
+        }
+      }
+    },
+    "提示词": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示词"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prompt"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示詞"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロンプト"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프롬프트"
           }
         }
       }
@@ -6664,6 +7650,40 @@
         }
       }
     },
+    "整理": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整理"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clean up"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整理"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整形"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "정리"
+          }
+        }
+      }
+    },
     "文本为空": {
       "localizations": {
         "zh-Hans": {
@@ -6834,6 +7854,40 @@
         }
       }
     },
+    "新建预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Preset"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規プリセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 프리셋"
+          }
+        }
+      }
+    },
     "新版本的签名校验未通过：%@": {
       "localizations": {
         "zh-Hans": {
@@ -6898,6 +7952,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "새 프로필"
+          }
+        }
+      }
+    },
+    "新预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Preset"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいプリセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 프리셋"
           }
         }
       }
@@ -7204,6 +8292,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "상세 정보 없음"
+          }
+        }
+      }
+    },
+    "日常整理": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常整理"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyday Clean-up"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常整理"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常の整形"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일상 정리"
+          }
+        }
+      }
+    },
+    "日常沟通": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常沟通"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Casual Chat"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常溝通"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日常のやり取り"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일상 대화"
           }
         }
       }
@@ -7752,6 +8908,40 @@
         }
       }
     },
+    "未命名预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untitled Preset"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称未設定のプリセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이름 없는 프리셋"
+          }
+        }
+      }
+    },
     "未填写 Model ID": {
       "localizations": {
         "zh-Hans": {
@@ -7816,6 +9006,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "웹 검색용 DeepSeek API Key가 입력되지 않았습니다"
+          }
+        }
+      }
+    },
+    "未安装": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安装"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not installed"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安裝"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未インストール"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설치되지 않음"
           }
         }
       }
@@ -8432,6 +9656,40 @@
         }
       }
     },
+    "标点": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标点"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Punctuation"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標點"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "句読点"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "문장 부호"
+          }
+        }
+      }
+    },
     "检查更新": {
       "localizations": {
         "zh-Hans": {
@@ -8942,6 +10200,40 @@
         }
       }
     },
+    "正在生成命令…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在生成命令…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generating command…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在產生指令…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コマンドを生成中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "명령 생성 중…"
+          }
+        }
+      }
+    },
     "正在翻译…": {
       "localizations": {
         "zh-Hans": {
@@ -9380,6 +10672,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "심층 정리"
+          }
+        }
+      }
+    },
+    "添加": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "추가"
+          }
+        }
+      }
+    },
+    "添加应用": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加应用"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add App"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增應用程式"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリを追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱 추가"
           }
         }
       }
@@ -9860,6 +11220,74 @@
         }
       }
     },
+    "留空则使用「帮我说」设置里的提示词": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空则使用「帮我说」设置里的提示词"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave empty to use the prompt from the Say It for Me settings"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空則使用「幫我說」設定裡的提示詞"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空欄の場合は「代わりに話す」設定のプロンプトを使います"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "비워 두면 '대신 말하기' 설정의 프롬프트를 사용합니다"
+          }
+        }
+      }
+    },
+    "留空则使用当前 AI Profile 的提示词": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空则使用当前 AI Profile 的提示词"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave empty to use the active AI profile's prompt"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空則使用目前 AI Profile 的提示詞"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空欄の場合は現在の AI プロファイルのプロンプトを使います"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "비워 두면 현재 AI 프로필의 프롬프트를 사용합니다"
+          }
+        }
+      }
+    },
     "留空时使用默认 Prompt。": {
       "localizations": {
         "zh-Hans": {
@@ -10060,6 +11488,108 @@
           "stringUnit": {
             "state": "translated",
             "value": "적극적"
+          }
+        }
+      }
+    },
+    "移除全部": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除全部"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove All"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除全部"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모두 제거"
+          }
+        }
+      }
+    },
+    "移除全部应用规则？": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除全部应用规则？"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove all app rules?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除所有應用程式規則？"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのアプリルールを削除しますか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 앱 규칙을 제거할까요?"
+          }
+        }
+      }
+    },
+    "管理预设…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理预设…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage Presets…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理預設…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセットを管理…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프리셋 관리…"
           }
         }
       }
@@ -10812,6 +12342,40 @@
         }
       }
     },
+    "职场邮件": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "职场邮件"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work Email"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "職場郵件"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ビジネスメール"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업무 이메일"
+          }
+        }
+      }
+    },
     "联网搜索（DeepSeek）": {
       "localizations": {
         "zh-Hans": {
@@ -11250,6 +12814,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "가상"
+          }
+        }
+      }
+    },
+    "设为默认预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设为默认预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set as Default"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設為預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトにする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본으로 설정"
           }
         }
       }
@@ -13124,6 +14722,40 @@
         }
       }
     },
+    "还没有应用规则。点击右上角的“添加应用”，从“应用程序”文件夹里选择 App，再为它挑一个预设。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有应用规则。点击右上角的“添加应用”，从“应用程序”文件夹里选择 App，再为它挑一个预设。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No app rules yet. Click “Add App” at the top right, choose apps from the Applications folder, then pick a preset for each."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有應用程式規則。點擊右上角的「新增應用程式」，從「應用程式」資料夾選擇 App，再為它挑一個預設。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリルールはまだありません。右上の「アプリを追加」をクリックし、「アプリケーション」フォルダからアプリを選んで、プリセットを割り当ててください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아직 앱 규칙이 없습니다. 오른쪽 위의 '앱 추가'를 클릭해 응용 프로그램 폴더에서 앱을 고르고, 프리셋을 지정하세요."
+          }
+        }
+      }
+    },
     "还没有自定义词条。点击「添加词条」，写下正确写法和常被听错的说法，例如 GitHub ← gee hub。": {
       "localizations": {
         "zh-Hans": {
@@ -13154,6 +14786,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "아직 사용자 항목이 없습니다. “항목 추가”를 눌러 올바른 표기와 자주 잘못 들리는 말을 입력하세요. 예: GitHub ← gee hub."
+          }
+        }
+      }
+    },
+    "这两项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这两项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These two change the result directly after AI processing, so they also apply in Raw mode or when the AI fails."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這兩項在 AI 處理之後直接改寫結果，所以在原始模式或 AI 失敗時同樣生效。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この 2 つは AI 処理の後に結果を直接書き換えるため、原文モードや AI が失敗したときにも適用されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 두 항목은 AI 처리 후 결과를 직접 고치므로 원본 모드나 AI 실패 시에도 적용됩니다."
           }
         }
       }
@@ -14246,6 +15912,74 @@
         }
       }
     },
+    "预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presets"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프리셋"
+          }
+        }
+      }
+    },
+    "预设：%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预设：%@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preset: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセット：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프리셋: %@"
+          }
+        }
+      }
+    },
     "首页": {
       "localizations": {
         "zh-Hans": {
@@ -14484,6 +16218,40 @@
         }
       }
     },
+    "默认": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設值"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルト"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본"
+          }
+        }
+      }
+    },
     "默认翻译语言": {
       "localizations": {
         "zh-Hans": {
@@ -14582,6 +16350,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "기본 프로필"
+          }
+        }
+      }
+    },
+    "默认预设用于没有匹配应用规则的场景，也可以在菜单栏切换。录音时还能在悬浮窗里临时换一个。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认预设用于没有匹配应用规则的场景，也可以在菜单栏切换。录音时还能在悬浮窗里临时换一个。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default preset is used when no app rule matches. You can switch it from the menu bar, or pick another one for a single recording in the overlay."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設值用於沒有符合應用程式規則的情況，也可以在選單列切換。錄音時還能在懸浮視窗裡暫時換一個。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリルールに一致しない場合はデフォルトのプリセットを使います。メニューバーで切り替えられ、録音中はオーバーレイでその 1 回だけ変更もできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일치하는 앱 규칙이 없을 때 기본 프리셋을 사용합니다. 메뉴 막대에서 바꿀 수 있고, 녹음 중에는 오버레이에서 이번 한 번만 다른 프리셋을 고를 수도 있습니다."
           }
         }
       }

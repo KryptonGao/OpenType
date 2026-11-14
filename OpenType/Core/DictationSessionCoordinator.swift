@@ -35,6 +35,9 @@ final class DictationSessionCoordinator {
     /// `true` while the current session is "help me say": the speech is turned into a polished, elaborated message.
     /// Combined with `translationTarget` it is "translate help me say": the finished message is written in that language.
     private(set) var isHelpMeSay = false
+    /// The preset this session runs with: the matching app rule's preset, else the default preset.
+    /// The overlay may switch it until processing begins. Translation sessions ignore it.
+    private(set) var activePreset: PromptPreset
     /// Live line while the model searches the web during "help me say" (e.g. "正在搜索「…」 · 已搜到 8 条结果").
     private(set) var webSearchStatus: String?
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
@@ -48,6 +51,7 @@ final class DictationSessionCoordinator {
     @ObservationIgnored let audioInputMonitor: AudioInputMonitor
     @ObservationIgnored let historyStore: HistoryStore
     @ObservationIgnored let dictionaryStore: DictionaryStore
+    @ObservationIgnored let presetStore: PresetStore
     @ObservationIgnored private let audio: any AudioCapturing
     @ObservationIgnored private let permissionChecker: any PermissionChecking
     @ObservationIgnored private let makeASR: (ASRConfig) -> any ASRService
@@ -82,6 +86,7 @@ final class DictationSessionCoordinator {
         audioInputMonitor: AudioInputMonitor? = nil,
         historyStore: HistoryStore = HistoryStore(), // in memory unless the app passes a file-backed one
         dictionaryStore: DictionaryStore = DictionaryStore(packs: []), // empty unless the app passes the real one
+        presetStore: PresetStore = PresetStore(), // in memory unless the app passes a file-backed one
         audio: any AudioCapturing = AudioCaptureService(),
         permissionChecker: (any PermissionChecking)? = nil,
         makeASR: @escaping (ASRConfig) -> any ASRService = { config in
@@ -109,6 +114,8 @@ final class DictationSessionCoordinator {
         self.audioInputMonitor = audioInputMonitor ?? AudioInputMonitor()
         self.historyStore = historyStore
         self.dictionaryStore = dictionaryStore
+        self.presetStore = presetStore
+        self.activePreset = presetStore.defaultPreset
         self.audio = audio
         self.permissionChecker = permissionChecker ?? permissions
         self.makeASR = makeASR
@@ -280,6 +287,25 @@ final class DictationSessionCoordinator {
         translationRegion = region
     }
 
+    /// `true` while the session turns the speech into a polished message: a long press on the shortcut, or a
+    /// "help me say" preset. Translation sessions have their own prompt and never use presets.
+    var runsHelpMeSay: Bool {
+        isHelpMeSay || (translationTarget == nil && activePreset.kind == .helpMeSay)
+    }
+
+    /// The preset in effect for this session; `nil` for translation sessions.
+    private var sessionPreset: PromptPreset? { translationTarget == nil ? activePreset : nil }
+
+    /// Switches the preset from the overlay. Only possible until the LLM step starts.
+    func setPreset(_ preset: PromptPreset) {
+        guard canChangePreset, presetStore.preset(id: preset.id) != nil else { return }
+        activePreset = preset
+    }
+
+    var canChangePreset: Bool {
+        translationTarget == nil && (state == .connecting || state == .recording || state == .finalizing)
+    }
+
     var canChangeTranslationTarget: Bool {
         translationTarget != nil && (state == .connecting || state == .recording || state == .finalizing)
     }
@@ -348,10 +374,11 @@ final class DictationSessionCoordinator {
         interruptionNote = nil
         timings = SessionTimings(triggeredAt: .now)
         target = inserter.captureTarget()
+        activePreset = presetStore.resolve(bundleID: target?.bundleIdentifier)
         state = .connecting
         overlay?.show(coordinator: self)
         playSound("Tink")
-        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode) translate=\(translating) helpMeSay=\(helpMeSay)")
+        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode) translate=\(translating) helpMeSay=\(helpMeSay) preset=\(activePreset.id)")
         pipelineTask = Task { [weak self] in await self?.runPipeline(id) }
     }
 
@@ -470,8 +497,10 @@ final class DictationSessionCoordinator {
         }
         // Dictionary: fix the spelling of known terms right away (works for every mode and for "raw" cleanup),
         // and tell the LLM which dictionary words the speech mentions.
-        let rawText = dictionaryStore.correct(recognizedText)
-        let dictionaryNote = dictionaryStore.addendum(for: rawText)
+        // A preset may also switch on dictionary packs that are off globally (e.g. the coding packs in an editor).
+        let extraPacks = sessionPreset?.dictionaryPackIDs ?? []
+        let rawText = dictionaryStore.correct(recognizedText, extraPackIDs: extraPacks)
+        let dictionaryNote = dictionaryStore.addendum(for: rawText, extraPackIDs: extraPacks)
 
         // 7. LLM post-processing (with fallback to raw text), or translation
         state = .processing
@@ -481,7 +510,7 @@ final class DictationSessionCoordinator {
         var notes: [String] = []
         if let interruptionNote { notes.append(interruptionNote) }
         if timedOut { notes.append(String(localized: "语音识别收尾超时，已使用当前识别内容")) }
-        if isHelpMeSay {
+        if runsHelpMeSay {
             // Always needs the LLM (like translation), regardless of the cleanup switches.
             do {
                 let level = settingsStore.helpMeSayWebSearchLevel // nil: off (switch off or 0 %)
@@ -495,7 +524,10 @@ final class DictationSessionCoordinator {
                     provider = resolved.0
                     profileModel = resolved.1.modelID
                 }
-                var prompt = TextProcessor.helpMeSaySystemPrompt(custom: settingsStore.helpMeSayPrompt)
+                // A "help me say" preset brings its own prompt; a long press in an app with another kind of preset
+                // keeps the global "help me say" prompt.
+                let presetPrompt = activePreset.kind == .helpMeSay ? activePreset.effectivePrompt : nil
+                var prompt = TextProcessor.helpMeSaySystemPrompt(custom: presetPrompt ?? settingsStore.helpMeSayPrompt)
                 if let target = translationTarget { // "translate help me say": language and region are locked from here on
                     prompt += "\n" + TextProcessor.helpMeSayTranslationAddendum(target: target, region: translationRegion)
                 }
@@ -534,6 +566,29 @@ final class DictationSessionCoordinator {
                     return fail(id, String(localized: "\(helpMeSayName)失败：\(reason)。已保留识别原文，可复制后重试"), recoverableText: rawText)
                 }
             }
+        } else if translationTarget == nil, activePreset.kind == .shellCommand {
+            // Like translation, the raw speech is no use as a command: always needs the LLM, never falls back silently.
+            do {
+                let (provider, profile) = try resolveProvider()
+                let output = try await provider.processWithUsage(
+                    transcript: rawText,
+                    systemPrompt: (activePreset.effectivePrompt ?? TextProcessor.defaultShellCommandPrompt)
+                        + (dictionaryNote.isEmpty ? "" : "\n" + dictionaryNote)
+                )
+                guard isCurrent(id) else { return }
+                // One line, no newline: the command is typed into the terminal but never run (Return is the user's).
+                let command = ShellCommandSanitizer.sanitize(output.text)
+                guard !command.isEmpty else { throw LLMError.emptyOutput }
+                finalText = command
+                usage = output.usage
+                modelName = profile.modelID
+            } catch is CancellationError {
+                return
+            } catch {
+                guard isCurrent(id) else { return }
+                let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
+                return fail(id, String(localized: "命令生成失败：\(reason)。已保留识别原文，可复制后重试"), recoverableText: rawText)
+            }
         } else if let target = translationTarget { // language and region are locked from here on (state is .processing)
             let region = translationRegion
             do {
@@ -561,7 +616,7 @@ final class DictationSessionCoordinator {
                     let output = try await textProcessor.processWithUsage(
                         transcript: rawText,
                         level: settingsStore.processingLevel,
-                        basePrompt: profile.systemPrompt,
+                        basePrompt: activePreset.effectivePrompt ?? profile.systemPrompt,
                         extraPrompt: dictionaryNote,
                         provider: provider
                     )
@@ -583,6 +638,7 @@ final class DictationSessionCoordinator {
             }
         }
         guard isCurrent(id) else { return }
+        if let preset = sessionPreset, !runsHelpMeSay { finalText = preset.formatted(finalText) } // cleanup presets only
         timings.processedAt = .now
 
         // 8. Insert
@@ -620,7 +676,7 @@ final class DictationSessionCoordinator {
         if let start = timings.captureStartedAt, let end = timings.releasedAt {
             seconds = Double((end - start) / .milliseconds(1)) / 1000
         }
-        let kind: SessionKind = isHelpMeSay ? .helpMeSay : (translationTarget != nil ? .translation : .dictation)
+        let kind: SessionKind = runsHelpMeSay ? .helpMeSay : (translationTarget != nil ? .translation : .dictation)
         return SessionRecord(
             date: .now,
             kind: kind,

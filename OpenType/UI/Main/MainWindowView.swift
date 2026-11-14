@@ -31,7 +31,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
 }
 
 enum MainTab: Hashable {
-    case home, history, dictionary
+    case home, history, dictionary, presets
     case settings(SettingsPage)
 }
 
@@ -75,6 +75,7 @@ struct MainWindowView: View {
             Label("首页", systemImage: "chart.bar.xaxis").tag(MainTab.home)
             Label("历史", systemImage: "clock.arrow.circlepath").tag(MainTab.history)
             Label("词典", systemImage: "character.book.closed").tag(MainTab.dictionary)
+            Label("预设", systemImage: "square.stack.3d.up").tag(MainTab.presets)
 
             Section("设置") {
                 ForEach(SettingsPage.allCases) { page in
@@ -119,6 +120,8 @@ struct MainWindowView: View {
             HistoryView(coordinator: coordinator)
         case .dictionary:
             DictionaryView(store: coordinator.dictionaryStore)
+        case .presets:
+            PresetsView(store: coordinator.presetStore, dictionaryStore: coordinator.dictionaryStore)
         case .settings(let page):
             SettingsView(page: page, coordinator: coordinator, updater: updater)
         }

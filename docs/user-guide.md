@@ -114,12 +114,34 @@ Safety rules:
 
 ## Main window
 
-Open it from the menu bar (**Open Main Window**), by clicking the Dock icon, or with `⌘,` for settings. It has a native sidebar with four sections.
+Open it from the menu bar (**Open Main Window**), by clicking the Dock icon, or with `⌘,` for settings. It has a native sidebar with five sections.
 
 - **Home**: typing statistics for the last 7, 30 or 90 days (including words per minute, with an all-time comparison), a daily token-usage trend, and a per-model table of calls and input / output tokens. Everything is computed locally. Token counts come from what each AI service reports; services that report none are not counted, and speech recognition is billed by duration, not tokens.
 - **History**: every session, searchable by text or model, filterable by mode, with copy and delete. A **Save text** switch controls whether the text is kept, and you can clear only the texts (keeping statistics) or everything. Each record shows the raw and final text (when saved), the mode, model, word count, token usage and whether the text was inserted at the cursor or needs manual copy.
 - **Dictionary**: built-in packs and your own entries. See [Dictionary](dictionary.md).
+- **Presets**: prompt presets and per-app rules. See [Presets and per-app rules](#presets-and-per-app-rules).
 - **Settings**: six tabs described below.
+
+## Presets and per-app rules
+
+A **preset** is a named way of handling what you say: its own prompt, plus a few switches. Open the **Presets** tab to edit them. OpenType ships five, and you can add, duplicate and delete your own (the **Restore Built-in Presets** button brings back deleted built-in ones).
+
+| Preset | Kind | What it does |
+| --- | --- | --- |
+| Everyday Clean-up | Clean up | The default. Uses the active AI profile's prompt, so it behaves exactly as before presets existed. |
+| Casual Chat | Clean up | Short and conversational, no full stop at the end. |
+| Work Email | Say It for Me | Turns what you say into a work email body. |
+| Code & Tech Questions | Clean up | Keeps identifiers and terms as spoken, half-width punctuation, coding dictionary packs on. |
+| Terminal Commands | Command | Turns your request into one shell command. |
+
+Each preset has a kind. *Clean up* tidies the text (and honours the AI processing level). *Say It for Me* writes the speech up as finished text and always needs the AI. *Command* writes a single-line shell command and always needs the AI; it is only typed, **never run**: Return is never pressed and the command is flattened to one line so pasting it cannot start anything by itself. Clean-up presets can also **remove the final full stop** and **use half-width punctuation**; both are applied after the AI step, so they also work in Raw mode or when the AI fails. A preset can also switch on **dictionary packs** that are off on the Dictionary page.
+
+**Which preset is used.** When a recording starts, OpenType looks at the frontmost app. If an *app rule* exists for it, that rule's preset is used; otherwise the default preset is. There are no app rules at first: you choose the apps yourself. On the **App Rules** page, click **Add App**, pick one or several apps in the Applications folder (the panel opens there), and choose a preset for each. For example, Slack or WeChat → Casual Chat, Xcode or Cursor → Code & Tech Questions, Terminal or iTerm2 → Terminal Commands. Change a rule's preset any time, delete rules one by one (or **Remove All**), or switch automatic matching off. You can also:
+
+- switch the default preset from the menu bar (**Preset**), where **Match by App** turns the rules on and off;
+- change the preset for a single recording from the **Preset** row of the overlay, until processing begins.
+
+Translation never uses presets. Holding the shortcut ("Say It for Me") keeps using the Say It for Me prompt from Settings, unless the preset in use is itself a Say It for Me preset.
 
 ## Menu bar
 
@@ -127,6 +149,7 @@ The icon changes with state (idle, recording, busy, paused). The menu lets you:
 
 - see the current dictation and translation shortcuts
 - pause all shortcuts
+- switch the default preset and turn per-app matching on or off
 - check Microphone, Accessibility and Input Monitoring status, and re-check them (it also warns when the global shortcuts are not active)
 - open the main window, History or Settings (`⌘,`)
 - check for updates, or install one that is ready
@@ -170,6 +193,7 @@ The install steps and safety checks are described in [Releasing](releasing.md#ho
 | API keys | `~/.opentype/credentials.json` |
 | History | `~/Library/Application Support/OpenType/history.json` |
 | Dictionary settings and custom entries | `~/Library/Application Support/OpenType/dictionary.json` |
+| Presets and app rules | `~/Library/Application Support/OpenType/presets.json` |
 | Preferences | The app's `UserDefaults` (`com.opentype.OpenType`) |
 
 See [Privacy and Security](privacy-and-security.md) for details.

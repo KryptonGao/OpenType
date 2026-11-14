@@ -49,6 +49,8 @@ struct OverlayView: View {
             }
             if let target = coordinator.translationTarget {
                 translationCapsule(target)
+            } else if showsMinimalPresetCapsule {
+                presetCapsule
             }
         }
         return VStack(spacing: 6) {
@@ -65,7 +67,7 @@ struct OverlayView: View {
 
     private var mainCapsule: some View {
         VStack(spacing: 3) {
-            if coordinator.isHelpMeSay {
+            if coordinator.runsHelpMeSay {
                 Text(coordinator.helpMeSayName)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -81,14 +83,31 @@ struct OverlayView: View {
             }
             .frame(minHeight: 16)
         }
-        .frame(minWidth: 72, minHeight: coordinator.isHelpMeSay ? 46 : 28)
+        .frame(minWidth: 72, minHeight: coordinator.runsHelpMeSay ? 46 : 28)
         .padding(.horizontal, 10)
-        .padding(.vertical, coordinator.isHelpMeSay ? 4 : 0)
+        .padding(.vertical, coordinator.runsHelpMeSay ? 4 : 0)
         .overlayBackground(minimalMaterial, in: Capsule())
     }
 
     private func translationCapsule(_ target: TranslationLanguage) -> some View {
         translationPicker(target)
+            .fixedSize()
+            .padding(.horizontal, 14)
+            .frame(minHeight: 30)
+            .overlayBackground(minimalMaterial, in: Capsule())
+    }
+
+    /// In minimal mode the preset only gets a capsule when it is not simply the default one (e.g. an app rule applied).
+    private var showsMinimalPresetCapsule: Bool {
+        guard showsPresetPicker else { return false }
+        switch coordinator.state {
+        case .connecting, .recording, .finalizing: return coordinator.activePreset.id != coordinator.presetStore.defaultPresetID
+        default: return false
+        }
+    }
+
+    private var presetCapsule: some View {
+        presetPicker
             .fixedSize()
             .padding(.horizontal, 14)
             .frame(minHeight: 30)
@@ -132,6 +151,8 @@ struct OverlayView: View {
 
             if let target = coordinator.translationTarget {
                 translationPicker(target)
+            } else if showsPresetPicker, coordinator.presetStore.presets.count > 1 {
+                presetPicker
             }
 
             if showsWaveform {
@@ -174,6 +195,39 @@ struct OverlayView: View {
         .frame(width: 420)
         .overlayBackground(fullMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .padding(8) // room for the window shadow
+    }
+
+    /// A long press already made this "help me say" (its own prompt), and translation has its own prompt: no preset then.
+    private var showsPresetPicker: Bool {
+        coordinator.translationTarget == nil && !coordinator.isHelpMeSay
+    }
+
+    /// Popup row: the preset of this session (from the app's rule or the default), changeable until processing starts.
+    private var presetPicker: some View {
+        HStack(spacing: 8) {
+            Image(systemName: coordinator.activePreset.symbolName).foregroundStyle(.secondary)
+            Text("预设").foregroundStyle(.secondary)
+            Menu {
+                ForEach(coordinator.presetStore.presets) { preset in
+                    Button {
+                        coordinator.setPreset(preset)
+                    } label: {
+                        if preset.id == coordinator.activePreset.id {
+                            Label(preset.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(preset.displayName)
+                        }
+                    }
+                }
+            } label: {
+                Text(coordinator.activePreset.displayName)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(!coordinator.canChangePreset)
+            Spacer(minLength: 0)
+        }
+        .font(.callout)
     }
 
     /// Popup row: translation target language, pre-selected from Settings and changeable until processing starts.
@@ -277,9 +331,9 @@ struct OverlayView: View {
     private var statusTitle: String {
         switch coordinator.state {
         case .idle: String(localized: "待机")
-        case .connecting: coordinator.isHelpMeSay ? String(localized: "\(coordinator.helpMeSayName) · 正在连接…") : String(localized: "正在连接…")
+        case .connecting: coordinator.runsHelpMeSay ? String(localized: "\(coordinator.helpMeSayName) · 正在连接…") : String(localized: "正在连接…")
         case .recording:
-            switch (coordinator.isHelpMeSay, coordinator.sessionMode) {
+            switch (coordinator.runsHelpMeSay, coordinator.sessionMode) {
             case (true, .hold): String(localized: "\(coordinator.helpMeSayName) · 正在聆听…（松开结束）")
             case (true, .toggle): String(localized: "\(coordinator.helpMeSayName) · 正在聆听…（再按一次结束）")
             case (false, .hold): String(localized: "正在聆听…（松开结束）")
@@ -287,7 +341,7 @@ struct OverlayView: View {
             }
         case .finalizing: String(localized: "正在收尾…")
         case .processing:
-            coordinator.isHelpMeSay ? (coordinator.translationTarget == nil ? String(localized: "正在帮你说…") : String(localized: "正在帮你说并翻译…")) : coordinator.translationTarget == nil ? String(localized: "正在整理文本…") : String(localized: "正在翻译…")
+            coordinator.runsHelpMeSay ? (coordinator.translationTarget == nil ? String(localized: "正在帮你说…") : String(localized: "正在帮你说并翻译…")) : coordinator.translationTarget == nil ? (coordinator.activePreset.kind == .shellCommand ? String(localized: "正在生成命令…") : String(localized: "正在整理文本…")) : String(localized: "正在翻译…")
         case .inserting: String(localized: "正在插入…")
         case .success(let note): note.map { String(localized: "已插入 · \($0)") } ?? String(localized: "已插入")
         case .manualCopy(let reason): String(localized: "未自动插入：\(reason)")
