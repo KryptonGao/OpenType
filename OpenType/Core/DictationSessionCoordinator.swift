@@ -81,7 +81,11 @@ final class DictationSessionCoordinator {
         permissionChecker: (any PermissionChecking)? = nil,
         makeASR: @escaping (ASRConfig) -> any ASRService = { config in
             switch config.provider {
-            case .bailian: BailianRealtimeASR(config: config)
+            case .bailian:
+                switch config.model {
+                case .qwen3Realtime: BailianRealtimeASR(config: config)
+                case .qwenAudio31Message: QwenAudioMessageASR(config: config)
+                }
             case .deepseek: DeepSeekASR(config: config)
             }
         },
@@ -737,7 +741,8 @@ final class DictationSessionCoordinator {
         let url = try ASRConfig.endpoint(
             region: settingsStore.asrRegion,
             workspaceID: settingsStore.asrWorkspaceID,
-            customURL: settingsStore.asrCustomURL
+            customURL: settingsStore.asrCustomURL,
+            model: settingsStore.asrModel
         )
         guard let key = try? credentialStore.load(account: CredentialAccount.bailianAPIKey), !key.isEmpty else {
             throw ASRError.invalidConfig("请先在设置中填写百炼 API Key")
@@ -746,7 +751,21 @@ final class DictationSessionCoordinator {
         case .serverVAD: .serverVAD(threshold: settingsStore.asrVADThreshold, silenceDurationMS: settingsStore.asrSilenceDurationMS)
         case .manual: .manual
         }
-        return ASRConfig(url: url, apiKey: key, language: settingsStore.asrLanguage.apiValue, turnDetection: detection)
+        switch settingsStore.asrModel {
+        case .qwen3Realtime:
+            return ASRConfig(url: url, apiKey: key, language: settingsStore.asrLanguage.apiValue, turnDetection: detection)
+        case .qwenAudio31Message:
+            // Sentence splitting is always server-side VAD; "manual" is not available for this model.
+            let vad: ASRConfig.TurnDetection = .serverVAD(
+                threshold: settingsStore.asrVADThreshold, silenceDurationMS: settingsStore.asrSilenceDurationMS
+            )
+            return ASRConfig(
+                url: url, apiKey: key, language: settingsStore.asrLanguage.qwenAudioHint, turnDetection: vad,
+                model: .qwenAudio31Message,
+                disfluencyRemoval: settingsStore.asrDisfluencyRemoval,
+                keepDialect: settingsStore.asrLanguage == .yue
+            )
+        }
     }
 
     private func resolveLLM() throws -> (any LLMProvider, LLMProfile)? {

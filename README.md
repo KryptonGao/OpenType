@@ -30,7 +30,7 @@
 
 - **快捷键完全自定义**：单个按键、组合键、单个修饰键（区分左右，如右 ⌥）或 `fn` 均可。
 - **不抢焦点**：悬浮窗是非激活式 `NSPanel`，实时显示音量波形和识别文字（已确认文字 + 浅色的未稳定部分）。
-- **ASR 与 LLM 解耦**：ASR 可选阿里云百炼 `qwen3-asr-flash-realtime`（实时流式）或 DeepSeek（录完后整段上传）；LLM 内置 OpenAI Responses、OpenAI Chat Completions、Anthropic Messages 三种协议适配器，兼容第三方 OpenAI 兼容服务；支持多 Profile、三档处理等级（原始 / 标准 / 深度整理）。
+- **ASR 与 LLM 解耦**：ASR 可选阿里云百炼 `qwen3-asr-flash-realtime` / `qwen-audio-3.1-asr-flash-message`（实时流式，后者带实时中间结果与可选的识别端润色）或 DeepSeek（录完后整段上传）；LLM 内置 OpenAI Responses、OpenAI Chat Completions、Anthropic Messages 三种协议适配器，兼容第三方 OpenAI 兼容服务；支持多 Profile、三档处理等级（原始 / 标准 / 深度整理）。
 - **失败不丢字**：LLM 失败或超时可自动回退为 ASR 原文；ASR 断线时保留已识别内容供复制；`Esc` 随时取消，取消时不会插入任何文字。
 - **三级插入**：Accessibility 直写 → 模拟粘贴（自动备份并恢复剪贴板）→ 悬浮窗手动复制。不会向密码框、安全输入模式或已切换的应用写入，也不会自动回车或提交。
 - **正式主界面**：原生 SwiftUI 三标签窗口——首页（输入统计与 Token 用量）、历史（可搜索、复制、删除）、设置。
@@ -87,7 +87,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 ### 3. 配置服务
 
 - **语音识别**（设置 → 语音识别）：先选择服务商。
-  - 阿里云百炼（实时流式）：选择区域（北京 / 新加坡），填写 Workspace ID 与 API Key，可点「测试连接」。也支持自定义 `wss://` 地址。
+  - 阿里云百炼（实时流式）：选择识别模型（`qwen3-asr-flash-realtime` 或 `qwen-audio-3.1-asr-flash-message`）与区域（北京 / 新加坡），填写 Workspace ID 与 API Key，可点「测试连接」。选 Qwen-Audio 3.1 时可开关「识别端润色：去除语气词与重复语」（默认关，因为后续 LLM 已会处理）。也支持自定义 `wss://` 地址。
   - DeepSeek（整段识别）：只需填写 API Key。该接口不支持流式，录音期间没有实时文字，结束后上传整段 WAV 并返回结果；单次请求最长 120 秒，更长的录音自动分段识别。
 - **AI 处理**（设置 → AI 处理）：新建 Profile，选择 API 格式，填写 Base URL、Model ID 和 API Key，可点「测试连接」。Base URL 只允许 `https`，末尾的 `/v1`、`/responses` 等会被规范化，不会重复拼接。还可按 Profile 填写推理强度（effort，留空则不发送）。
 - 语音翻译与「帮我说」都使用当前选中的 Profile，即使关闭了 AI 文本后处理或选了原始模式也会调用该模型。「帮我说」输出较长，经常超时时可调大 Profile 的超时秒数。

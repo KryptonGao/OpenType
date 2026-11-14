@@ -40,12 +40,18 @@ struct ASRConfig: Sendable, Equatable {
     var language: String?
     var turnDetection: TurnDetection
     var provider: ASRProvider = .bailian
+    var model: ASRModel = .qwen3Realtime
+    /// `qwen-audio-3.1-asr-flash-message` only: filler / repeated-word removal and polishing on the ASR side.
+    var disfluencyRemoval = false
+    /// `qwen-audio-3.1-asr-flash-message` only: `keep_dialect` (transcribe dialects as spoken, not as Mandarin).
+    var keepDialect = false
 
-    static let model = "qwen3-asr-flash-realtime"
+    static let model = ASRModel.qwen3Realtime.apiName
 
     /// Builds the WebSocket endpoint. `WorkspaceId` is validated so the API key can only ever be sent to
     /// an Aliyun host derived from it, or to an explicit `wss://` custom URL the user typed.
-    static func endpoint(region: ASRRegion, workspaceID: String, customURL: String) throws -> URL {
+    static func endpoint(region: ASRRegion, workspaceID: String, customURL: String,
+                         model: ASRModel = .qwen3Realtime) throws -> URL {
         let custom = customURL.trimmingCharacters(in: .whitespacesAndNewlines)
         if !custom.isEmpty {
             guard let components = URLComponents(string: custom),
@@ -62,7 +68,11 @@ struct ASRConfig: Sendable, Equatable {
         guard workspace.range(of: "^[A-Za-z0-9-]+$", options: .regularExpression) != nil else {
             throw ASRError.invalidConfig("Workspace ID 只能包含字母、数字和连字符")
         }
-        let string = "wss://\(workspace).\(region.hostSegment).maas.aliyuncs.com/api-ws/v1/realtime?model=\(model)"
+        let host = "wss://\(workspace).\(region.hostSegment).maas.aliyuncs.com"
+        let string = switch model {
+        case .qwen3Realtime: "\(host)/api-ws/v1/realtime?model=\(model.apiName)"
+        case .qwenAudio31Message: "\(host)/api-ws/v1/inference" // model goes into run-task
+        }
         guard let url = URL(string: string) else { throw ASRError.invalidConfig("无法生成连接地址") }
         return url
     }

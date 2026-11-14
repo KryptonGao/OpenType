@@ -138,7 +138,11 @@ private struct SpeechRecognitionSettingsTab: View {
     @ViewBuilder
     private func bailianSections(settingsStore: SettingsStore) -> some View {
         @Bindable var settingsStore = settingsStore
-        Section("阿里云百炼（qwen3-asr-flash-realtime）") {
+        Section("阿里云百炼") {
+            Picker("识别模型", selection: $settingsStore.asrModel) {
+                ForEach(ASRModel.allCases) { Text($0.displayName).tag($0) }
+            }
+            .onChange(of: settingsStore.asrModel) { _, _ in testResult = .idle }
             Picker("区域", selection: $settingsStore.asrRegion) {
                 ForEach(ASRRegion.allCases) { Text($0.displayName).tag($0) }
             }
@@ -150,6 +154,8 @@ private struct SpeechRecognitionSettingsTab: View {
             )
             DisclosureGroup("高级：自定义 WebSocket 地址") {
                 TextField("wss://…（留空则使用上方区域与 Workspace ID）", text: $settingsStore.asrCustomURL)
+                Text("自定义地址须与所选识别模型的协议一致（qwen-audio 为 /api-ws/v1/inference，qwen3 为 /api-ws/v1/realtime?model=…）。")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             HStack {
                 Button("测试连接") { test() }
@@ -163,10 +169,18 @@ private struct SpeechRecognitionSettingsTab: View {
             }
             Text("指定后只按该语言识别，能减少混语与误判；不确定时保持「自动识别」。")
                 .font(.caption).foregroundStyle(.secondary)
-            Picker("断句模式", selection: $settingsStore.asrTurnDetection) {
-                ForEach(ASRTurnDetection.allCases) { Text($0.displayName).tag($0) }
+            if settingsStore.asrModel == .qwenAudio31Message {
+                Text("该模型的语种提示支持 30 种语言；粤语会保留粤语写法，乌克兰语、土耳其语、冰岛语没有对应提示，将自动识别。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Toggle("识别端润色：去除语气词与重复语", isOn: $settingsStore.asrDisfluencyRemoval)
+                Text("由语音识别模型直接过滤「嗯、呃」等语气词与重复内容并润色（disfluency_removal_enabled）。已启用 AI 文本后处理时通常无需开启，关闭可保留原话。录音时的实时中间结果始终开启。")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Picker("断句模式", selection: $settingsStore.asrTurnDetection) {
+                    ForEach(ASRTurnDetection.allCases) { Text($0.displayName).tag($0) }
+                }
             }
-            if settingsStore.asrTurnDetection == .serverVAD {
+            if settingsStore.asrModel == .qwenAudio31Message || settingsStore.asrTurnDetection == .serverVAD {
                 HStack {
                     Text("VAD 阈值")
                     Slider(value: $settingsStore.asrVADThreshold, in: -1...1, step: 0.1)

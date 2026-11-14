@@ -17,6 +17,25 @@ enum ASRProvider: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
+/// Which Bailian model the `.bailian` provider talks to. They use different WebSocket protocols.
+enum ASRModel: String, CaseIterable, Identifiable, Codable, Sendable {
+    /// `qwen3-asr-flash-realtime` — OpenAI-realtime-style events on `/api-ws/v1/realtime`.
+    case qwen3Realtime
+    /// `qwen-audio-3.1-asr-flash-message` — DashScope `run-task` protocol on `/api-ws/v1/inference`.
+    case qwenAudio31Message
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .qwen3Realtime: "qwen3-asr-flash-realtime"
+        case .qwenAudio31Message: "qwen-audio-3.1-asr-flash-message"
+        }
+    }
+
+    var apiName: String { displayName }
+}
+
 enum ASRRegion: String, CaseIterable, Identifiable, Codable, Sendable {
     case beijing
     case singapore
@@ -111,6 +130,16 @@ enum ASRLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
 
     /// `nil` means "do not send a language" (auto-detect).
     var apiValue: String? { self == .auto ? nil : rawValue }
+
+    /// `language_hints` code for `qwen-audio-3.1-asr-flash-*`; `nil` (auto-detect) when that model has no such code.
+    /// Differs from `apiValue`: Filipino is `tl`, and yue / uk / tr / is are not in its hint list.
+    var qwenAudioHint: String? {
+        switch self {
+        case .auto, .yue, .uk, .tr, .is: nil
+        case .fil: "tl"
+        default: rawValue
+        }
+    }
 }
 
 /// Regional variant of a translation language whose wording differs noticeably between regions.
@@ -252,6 +281,10 @@ final class SettingsStore {
 
     // MARK: Speech recognition
     var asrProvider: ASRProvider { didSet { defaults.set(asrProvider.rawValue, forKey: Keys.asrProvider) } }
+    var asrModel: ASRModel { didSet { defaults.set(asrModel.rawValue, forKey: Keys.asrModel) } }
+    /// `qwen-audio-3.1-asr-flash-message` only: let the ASR drop filler words / repeated words and polish the text
+    /// (`disfluency_removal_enabled`). Off by default because the AI post-processing step already does this.
+    var asrDisfluencyRemoval: Bool { didSet { defaults.set(asrDisfluencyRemoval, forKey: Keys.asrDisfluencyRemoval) } }
     var asrRegion: ASRRegion { didSet { defaults.set(asrRegion.rawValue, forKey: Keys.asrRegion) } }
     var asrWorkspaceID: String { didSet { defaults.set(asrWorkspaceID, forKey: Keys.asrWorkspaceID) } }
     /// Advanced: full custom `wss://` endpoint. Overrides region / workspace when non-empty.
@@ -332,6 +365,8 @@ final class SettingsStore {
         overlayMinimalMode = bool(Keys.overlayMinimalMode, false)
 
         asrProvider = raw(Keys.asrProvider, .bailian)
+        asrModel = raw(Keys.asrModel, .qwen3Realtime)
+        asrDisfluencyRemoval = bool(Keys.asrDisfluencyRemoval, false)
         asrRegion = raw(Keys.asrRegion, .beijing)
         asrWorkspaceID = defaults.string(forKey: Keys.asrWorkspaceID) ?? ""
         asrCustomURL = defaults.string(forKey: Keys.asrCustomURL) ?? ""
@@ -471,6 +506,8 @@ final class SettingsStore {
         static let soundFeedbackEnabled = "opentype.soundFeedbackEnabled"
         static let overlayMinimalMode = "opentype.overlayMinimalMode"
         static let asrProvider = "opentype.asrProvider"
+        static let asrModel = "opentype.asrModel"
+        static let asrDisfluencyRemoval = "opentype.asrDisfluencyRemoval"
         static let asrRegion = "opentype.asrRegion"
         static let asrWorkspaceID = "opentype.asrWorkspaceID"
         static let asrCustomURL = "opentype.asrCustomURL"

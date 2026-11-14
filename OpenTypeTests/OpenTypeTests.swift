@@ -171,6 +171,69 @@ struct ASRConfigTests {
         #expect(transcription["language"] == nil)
     }
 
+    @Test func qwenAudioEndpointUsesInferencePath() throws {
+        let url = try ASRConfig.endpoint(region: .beijing, workspaceID: "ws-123", customURL: "", model: .qwenAudio31Message)
+        #expect(url.absoluteString == "wss://ws-123.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference")
+    }
+
+    @Test func qwenAudioRunTaskPayload() throws {
+        let config = ASRConfig(
+            url: URL(string: "wss://x.example.com")!, apiKey: "k", language: "zh",
+            turnDetection: .serverVAD(threshold: 0.0, silenceDurationMS: 400),
+            model: .qwenAudio31Message, disfluencyRemoval: true
+        )
+        let payload = QwenAudioMessageASR.runTaskPayload(config: config, taskID: "abc")
+        let header = try #require(payload["header"] as? [String: Any])
+        #expect(header["action"] as? String == "run-task")
+        #expect(header["task_id"] as? String == "abc")
+        #expect(header["streaming"] as? String == "duplex")
+        let body = try #require(payload["payload"] as? [String: Any])
+        #expect(body["model"] as? String == "qwen-audio-3.1-asr-flash-message")
+        #expect(body["function"] as? String == "recognition")
+        let parameters = try #require(body["parameters"] as? [String: Any])
+        #expect(parameters["format"] as? String == "pcm")
+        #expect(parameters["sample_rate"] as? Int == 16000)
+        #expect(parameters["intermediate_result_enabled"] as? Bool == true)
+        #expect(parameters["disfluency_removal_enabled"] as? Bool == true)
+        #expect(parameters["language_hints"] as? [String] == ["zh"])
+        #expect(parameters["max_sentence_silence"] as? Int == 400)
+        #expect(parameters["keep_dialect"] == nil)
+    }
+
+    @Test func qwenAudioDefaultsKeepRawTextAndAutoLanguage() throws {
+        let config = ASRConfig(url: URL(string: "wss://x.example.com")!, apiKey: "k", language: nil,
+                               turnDetection: .manual, model: .qwenAudio31Message)
+        let body = try #require(QwenAudioMessageASR.runTaskPayload(config: config, taskID: "t")["payload"] as? [String: Any])
+        let parameters = try #require(body["parameters"] as? [String: Any])
+        #expect(parameters["disfluency_removal_enabled"] as? Bool == false)
+        #expect(parameters["language_hints"] == nil)
+    }
+
+    @Test func qwenAudioLanguageHints() {
+        #expect(ASRLanguage.fil.qwenAudioHint == "tl")
+        #expect(ASRLanguage.zh.qwenAudioHint == "zh")
+        #expect(ASRLanguage.yue.qwenAudioHint == nil)
+        #expect(ASRLanguage.auto.qwenAudioHint == nil)
+    }
+
+    @Test func qwenAudioEventMapping() {
+        func message(_ event: String, sentence: [String: Any]? = nil) -> [String: Any] {
+            var payload: [String: Any] = [:]
+            if let sentence { payload["output"] = ["sentence": sentence] }
+            return ["header": ["event": event], "payload": payload]
+        }
+        let intermediate = message("result-generated", sentence: ["sentence_id": 2, "text": "你好", "sentence_end": false])
+        #expect(QwenAudioMessageASR.asrEvent(from: intermediate) == .preview(itemID: "2", text: "你好", stash: ""))
+        let final = message("result-generated", sentence: ["sentence_id": 2, "text": "你好。", "sentence_end": true])
+        #expect(QwenAudioMessageASR.asrEvent(from: final) == .completed(itemID: "2", transcript: "你好。"))
+        let heartbeat = message("result-generated", sentence: ["sentence_id": 0, "text": "", "heartbeat": true])
+        #expect(QwenAudioMessageASR.asrEvent(from: heartbeat) == nil)
+        #expect(QwenAudioMessageASR.asrEvent(from: message("task-finished")) == .finished)
+        #expect(QwenAudioMessageASR.asrEvent(from: message("task-started")) == nil)
+        let failed: [String: Any] = ["header": ["event": "task-failed", "error_code": "InvalidParameter", "error_message": "bad"], "payload": [:]]
+        #expect(QwenAudioMessageASR.asrEvent(from: failed) == .failed(.server("bad (InvalidParameter)")))
+    }
+
     @Test func asrLanguageCoversBailianCodes() {
         let codes = ["zh", "yue", "en", "ja", "de", "ko", "ru", "fr", "pt", "ar", "it", "es", "hi", "id", "th", "tr",
                      "uk", "vi", "cs", "da", "fil", "fi", "is", "ms", "no", "pl", "sv"]
