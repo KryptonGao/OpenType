@@ -20,6 +20,7 @@
   <a href="#설치-및-첫-설정">설치</a> ·
   <a href="#사용">사용</a> ·
   <a href="#개인정보-보호-및-보안">개인정보 보호</a> ·
+  <a href="docs/README.md">문서(영어)</a> ·
   <a href="OpenType%20PRD.md">제품 요구사항(중국어)</a>
 </p>
 

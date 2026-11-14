@@ -20,6 +20,7 @@
   <a href="#安装与首次配置">安装</a> ·
   <a href="#使用">使用</a> ·
   <a href="#隐私与安全">隐私</a> ·
+  <a href="docs/README.md">文档（英文）</a> ·
   <a href="OpenType%20PRD.md">产品需求</a>
 </p>
 

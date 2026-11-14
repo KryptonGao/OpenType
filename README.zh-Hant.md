@@ -20,6 +20,7 @@
   <a href="#安裝與首次設定">安裝</a> ·
   <a href="#使用">使用</a> ·
   <a href="#隱私與安全">隱私</a> ·
+  <a href="docs/README.md">文件（英文）</a> ·
   <a href="OpenType%20PRD.md">產品需求（簡體中文）</a>
 </p>
 

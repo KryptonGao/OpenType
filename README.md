@@ -20,6 +20,7 @@
   <a href="#installation-and-first-run-setup">Install</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#privacy-and-security">Privacy</a> ·
+  <a href="docs/README.md">Documentation</a> ·
   <a href="OpenType%20PRD.md">Product requirements (Chinese)</a>
 </p>
 
