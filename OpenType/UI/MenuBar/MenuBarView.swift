@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarView: View {
     @Bindable var coordinator: DictationSessionCoordinator
     let router: MainWindowRouter
+    let updater: AppUpdater
     @Environment(\.openWindow) private var openWindow
 
     private var permissions: PermissionManager { coordinator.permissions }
@@ -34,9 +35,27 @@ struct MenuBarView: View {
         Button("设置…") { show(.settings) }
         .keyboardShortcut(",", modifiers: .command)
 
+        updateMenuItem
+
         Button("退出 OpenType") { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
             .onAppear { permissions.refresh() }
+    }
+
+    @ViewBuilder
+    private var updateMenuItem: some View {
+        switch updater.state {
+        case .available:
+            Button("更新到 \(updater.release?.version.description ?? "")…") { updater.installUpdate() }
+        case .downloading(let progress):
+            Text("正在下载更新… \(Int(progress * 100))%")
+        case .readyToInstall:
+            Text("更新已就绪，听写结束后将自动重启")
+        case .checking:
+            Text("正在检查更新…")
+        default:
+            Button("检查更新…") { Task { await updater.checkForUpdates() } }
+        }
     }
 
     private func show(_ tab: MainTab) {

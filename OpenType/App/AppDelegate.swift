@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let coordinator = AppContainer.coordinator
         updateDockVisibility(showDockIcon: coordinator.settingsStore.showDockIcon)
         coordinator.start()
+        AppContainer.updater.startAutomaticChecks()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

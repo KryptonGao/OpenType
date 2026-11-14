@@ -297,6 +297,15 @@ final class SettingsStore {
     var overlayMaterial: OverlayMaterial { didSet { defaults.set(overlayMaterial.rawValue, forKey: Keys.overlayMaterial) } }
     var overlayMinimalMaterial: OverlayMaterial { didSet { defaults.set(overlayMinimalMaterial.rawValue, forKey: Keys.overlayMinimalMaterial) } }
 
+    // MARK: Software update
+    /// Periodically look for a newer GitHub Release in the background (default on).
+    var autoCheckUpdates: Bool { didSet { defaults.set(autoCheckUpdates, forKey: Keys.autoCheckUpdates) } }
+    /// Download a found update in the background and install + relaunch once dictation is idle (default off).
+    var autoInstallUpdates: Bool { didSet { defaults.set(autoInstallUpdates, forKey: Keys.autoInstallUpdates) } }
+    var lastUpdateCheck: Date? { didSet { defaults.set(lastUpdateCheck, forKey: Keys.lastUpdateCheck) } }
+    /// Version a "new version available" notification was already shown for.
+    var lastNotifiedUpdateVersion: String? { didSet { defaults.set(lastNotifiedUpdateVersion, forKey: Keys.lastNotifiedUpdateVersion) } }
+
     // MARK: Speech recognition
     var asrProvider: ASRProvider { didSet { defaults.set(asrProvider.rawValue, forKey: Keys.asrProvider) } }
     var asrModel: ASRModel { didSet { defaults.set(asrModel.rawValue, forKey: Keys.asrModel) } }
@@ -383,6 +392,10 @@ final class SettingsStore {
         overlayMinimalMode = bool(Keys.overlayMinimalMode, false)
         overlayMaterial = raw(Keys.overlayMaterial, .liquidGlass)
         overlayMinimalMaterial = raw(Keys.overlayMinimalMaterial, .blur)
+        autoCheckUpdates = bool(Keys.autoCheckUpdates, true)
+        autoInstallUpdates = bool(Keys.autoInstallUpdates, false)
+        lastUpdateCheck = defaults.object(forKey: Keys.lastUpdateCheck) as? Date
+        lastNotifiedUpdateVersion = defaults.string(forKey: Keys.lastNotifiedUpdateVersion)
 
         asrProvider = raw(Keys.asrProvider, .bailian)
         asrModel = raw(Keys.asrModel, .qwen3Realtime)
@@ -527,6 +540,10 @@ final class SettingsStore {
         static let overlayMinimalMode = "opentype.overlayMinimalMode"
         static let overlayMaterial = "opentype.overlayMaterial"
         static let overlayMinimalMaterial = "opentype.overlayMinimalMaterial"
+        static let autoCheckUpdates = "opentype.autoCheckUpdates"
+        static let autoInstallUpdates = "opentype.autoInstallUpdates"
+        static let lastUpdateCheck = "opentype.lastUpdateCheck"
+        static let lastNotifiedUpdateVersion = "opentype.lastNotifiedUpdateVersion"
         static let asrProvider = "opentype.asrProvider"
         static let asrModel = "opentype.asrModel"
         static let asrDisfluencyRemoval = "opentype.asrDisfluencyRemoval"

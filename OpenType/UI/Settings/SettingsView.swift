@@ -3,6 +3,7 @@ import SwiftUI
 /// Settings tab of the main window: a segmented switcher over the individual settings pages.
 struct SettingsView: View {
     let coordinator: DictationSessionCoordinator
+    let updater: AppUpdater
     @State private var page: Page = .general
 
     private enum Page: String, CaseIterable, Identifiable {
@@ -34,7 +35,7 @@ struct SettingsView: View {
 
             Group {
                 switch page {
-                case .general: GeneralSettingsTab(coordinator: coordinator)
+                case .general: GeneralSettingsTab(coordinator: coordinator, updater: updater)
                 case .speech: SpeechRecognitionSettingsTab(coordinator: coordinator)
                 case .ai: AIProcessingSettingsTab(coordinator: coordinator)
                 case .translation: TranslationSettingsTab(coordinator: coordinator)
@@ -51,6 +52,7 @@ struct SettingsView: View {
 
 private struct GeneralSettingsTab: View {
     let coordinator: DictationSessionCoordinator
+    let updater: AppUpdater
     private var settingsStore: SettingsStore { coordinator.settingsStore }
     @State private var launchAtLogin = false
     @State private var launchError: String?
@@ -76,6 +78,7 @@ private struct GeneralSettingsTab: View {
                 if let launchError { Text(launchError).font(.caption).foregroundStyle(.red) }
                 Toggle("在 Dock 中显示图标", isOn: $settingsStore.showDockIcon)
             }
+            UpdateSettingsSection(updater: updater, settingsStore: settingsStore)
             Section("界面语言") {
                 Picker("界面语言", selection: Binding(
                     get: { language },
@@ -615,6 +618,70 @@ private struct TestResultView: View {
             Label(message, systemImage: "checkmark.circle.fill").foregroundStyle(.green).lineLimit(3).font(.caption)
         case .failure(let message):
             Label(message, systemImage: "xmark.circle.fill").foregroundStyle(.red).lineLimit(3).font(.caption)
+        }
+    }
+}
+
+// MARK: - Software update
+
+private struct UpdateSettingsSection: View {
+    let updater: AppUpdater
+    let settingsStore: SettingsStore
+
+    var body: some View {
+        @Bindable var settingsStore = settingsStore
+        Section("软件更新") {
+            LabeledContent("当前版本", value: updater.currentVersion.description)
+            statusRow
+            if let notes = updater.release?.notes, updater.updateAvailable, !notes.isEmpty {
+                DisclosureGroup("更新内容") {
+                    ScrollView {
+                        Text(notes).font(.caption).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
+                    }
+                    .frame(maxHeight: 160)
+                }
+            }
+            Toggle("自动检查更新", isOn: $settingsStore.autoCheckUpdates)
+            Toggle("自动下载并安装更新", isOn: $settingsStore.autoInstallUpdates)
+            Text("开启后，发现新版本会在后台下载并校验，待当前没有听写任务时自动安装并重启 OpenType。更新来自 GitHub Releases。")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var statusRow: some View {
+        switch updater.state {
+        case .idle, .upToDate:
+            HStack {
+                Text(updater.state == .upToDate ? "已是最新版本" : "尚未检查更新")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("检查更新") { Task { await updater.checkForUpdates() } }
+            }
+        case .checking:
+            HStack { ProgressView().controlSize(.small); Text("正在检查更新…").foregroundStyle(.secondary) }
+        case .available:
+            HStack {
+                Text("发现新版本 \(updater.release?.version.description ?? "")").foregroundStyle(.green)
+                Spacer()
+                Button("更新并重启") { updater.installUpdate() }.buttonStyle(.borderedProminent)
+            }
+        case .downloading(let progress):
+            VStack(alignment: .leading, spacing: 4) {
+                Text("正在下载更新… \(Int(progress * 100))%").foregroundStyle(.secondary)
+                ProgressView(value: progress)
+            }
+        case .readyToInstall:
+            HStack { ProgressView().controlSize(.small); Text("更新已就绪，即将重启…").foregroundStyle(.secondary) }
+        case .failed(let message):
+            VStack(alignment: .leading, spacing: 6) {
+                Text(message).font(.caption).foregroundStyle(.red)
+                HStack {
+                    if updater.release != nil { Button("重试") { updater.installUpdate() } }
+                    Button("检查更新") { Task { await updater.checkForUpdates() } }
+                    Button("手动下载") { updater.openReleasePage() }
+                }
+            }
         }
     }
 }

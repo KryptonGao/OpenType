@@ -16,6 +16,7 @@ final class MainWindowRouter {
 struct MainWindowView: View {
     let coordinator: DictationSessionCoordinator
     @Bindable var router: MainWindowRouter
+    let updater: AppUpdater
 
     var body: some View {
         TabView(selection: $router.tab) {
@@ -29,7 +30,7 @@ struct MainWindowView: View {
                 DictionaryView(store: coordinator.dictionaryStore)
             }
             Tab("设置", systemImage: "gearshape", value: MainTab.settings) {
-                SettingsView(coordinator: coordinator)
+                SettingsView(coordinator: coordinator, updater: updater)
             }
         }
         .frame(minWidth: 760, minHeight: 560)

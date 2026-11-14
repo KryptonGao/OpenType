@@ -10,6 +10,7 @@ enum AppContainer {
         historyStore: historyStore, dictionaryStore: dictionaryStore, overlay: overlay
     )
     static let router = MainWindowRouter()
+    static let updater = AppUpdater(settings: coordinator.settingsStore, isIdle: { coordinator.state == .idle })
 }
 
 enum MainWindow {
@@ -21,18 +22,19 @@ struct OpenTypeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let coordinator = AppContainer.coordinator
     private let router = AppContainer.router
+    private let updater = AppContainer.updater
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(coordinator: coordinator, router: router)
+            MenuBarView(coordinator: coordinator, router: router, updater: updater)
         } label: {
             Image(menuBarIcon)
                 .onAppear { appDelegate.openMainWindow = { openWindow(id: MainWindow.id) } }
         }
 
         Window("OpenType", id: MainWindow.id) {
-            MainWindowView(coordinator: coordinator, router: router)
+            MainWindowView(coordinator: coordinator, router: router, updater: updater)
                 .onChange(of: coordinator.settingsStore.showDockIcon) { _, newValue in
                     appDelegate.updateDockVisibility(showDockIcon: newValue)
                 }
