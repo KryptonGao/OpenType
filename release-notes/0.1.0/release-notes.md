@@ -50,7 +50,7 @@
 
 ## 安装
 
-下载 `OpenType-0.1.0.dmg`（或 `OpenType-0.1.0.zip`），将 `OpenType.app` 拖入「应用程序」文件夹。
+下载 `OpenType-0.1.0-arm64.dmg`（或 `OpenType-0.1.0-arm64.zip`），将 `OpenType.app` 拖入「应用程序」文件夹。
 
 本版本使用自签名证书签名，未经 Apple 公证，首次打开会被 Gatekeeper 拦截。请任选一种方式放行：
 
@@ -67,5 +67,5 @@ xattr -dr com.apple.quarantine /Applications/OpenType.app
 
 | 文件 | 说明 |
 |---|---|
-| `OpenType-0.1.0.dmg` | 磁盘映像，拖入「应用程序」即可（macOS 26.0+，arm64） |
-| `OpenType-0.1.0.zip` | 压缩包，解压即得 `OpenType.app`（macOS 26.0+，arm64） |
+| `OpenType-0.1.0-arm64.dmg` | 磁盘映像，拖入「应用程序」即可（macOS 26.0+，arm64） |
+| `OpenType-0.1.0-arm64.zip` | 压缩包，解压即得 `OpenType.app`（macOS 26.0+，arm64） |
