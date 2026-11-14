@@ -45,11 +45,11 @@ struct OpenTypeApp: App {
                     coordinator.applyHotkeySettings()
                 }
         }
-        .defaultSize(width: 880, height: 680)
+        .defaultSize(width: 1000, height: 700)
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("设置…") {
-                    router.tab = .settings
+                    router.tab = .settings(.general)
                     NSApp.activate(ignoringOtherApps: true)
                     openWindow(id: MainWindow.id)
                 }

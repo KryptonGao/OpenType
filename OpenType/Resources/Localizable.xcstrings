@@ -1360,36 +1360,36 @@
         }
       }
     },
-    "⚠︎ 全局快捷键未启用（需要上述权限）": {
+    "全局快捷键未启用（需要上述权限）": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "⚠︎ 全局快捷键未启用（需要上述权限）"
+            "value": "全局快捷键未启用（需要上述权限）"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "⚠︎ Global shortcuts are not active (the permissions above are required)"
+            "value": "Global shortcuts are not active (the permissions above are required)"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "⚠︎ 全域快速鍵未啟用（需要上述權限）"
+            "value": "全域快速鍵未啟用（需要上述權限）"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "⚠︎ グローバルショートカットが無効です（上記の権限が必要です）"
+            "value": "グローバルショートカットが無効です（上記の権限が必要です）"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "⚠︎ 전역 단축키가 비활성화됨(위 권한이 필요합니다)"
+            "value": "전역 단축키가 비활성화됨(위 권한이 필요합니다)"
           }
         }
       }

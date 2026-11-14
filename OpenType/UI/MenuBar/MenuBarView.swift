@@ -9,9 +9,9 @@ struct MenuBarView: View {
     private var permissions: PermissionManager { coordinator.permissions }
 
     var body: some View {
-        Text("听写：\(coordinator.settingsStore.hotkey.displayName)")
+        Label("听写：\(coordinator.settingsStore.hotkey.displayName)", systemImage: "mic")
         if let translationHotkey = coordinator.settingsStore.translationHotkey {
-            Text("翻译：\(translationHotkey.displayName)")
+            Label("翻译：\(translationHotkey.displayName)", systemImage: "character.bubble")
         }
 
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
@@ -23,16 +23,16 @@ struct MenuBarView: View {
             permissionRow(String(localized: "辅助功能"), permissions.accessibility)
             permissionRow(String(localized: "按键监听"), permissions.inputMonitoring)
             if !coordinator.hotkeyActive {
-                Text("⚠︎ 全局快捷键未启用（需要上述权限）")
+                Label("全局快捷键未启用（需要上述权限）", systemImage: "exclamationmark.triangle.fill")
             }
-            Button("重新检查权限") { permissions.refresh() }
+            Button("重新检查权限", systemImage: "arrow.clockwise") { permissions.refresh() }
         }
 
         Divider()
 
-        Button("打开主界面") { show(.home) }
-        Button("历史记录") { show(.history) }
-        Button("设置…") { show(.settings) }
+        Button("打开主界面", systemImage: "chart.bar.xaxis") { show(.home) }
+        Button("历史记录", systemImage: "clock.arrow.circlepath") { show(.history) }
+        Button("设置…", systemImage: "gearshape") { show(.settings(.general)) }
         .keyboardShortcut(",", modifiers: .command)
 
         updateMenuItem
@@ -46,7 +46,7 @@ struct MenuBarView: View {
     private var updateMenuItem: some View {
         switch updater.state {
         case .available:
-            Button("更新到 \(updater.release?.version.description ?? "")…") { updater.installUpdate() }
+            Button("更新到 \(updater.release?.version.description ?? "")…", systemImage: "arrow.down.circle") { updater.installUpdate() }
         case .downloading(let progress):
             Text("正在下载更新… \(Int(progress * 100))%")
         case .readyToInstall:
@@ -54,7 +54,7 @@ struct MenuBarView: View {
         case .checking:
             Text("正在检查更新…")
         default:
-            Button("检查更新…") { Task { await updater.checkForUpdates() } }
+            Button("检查更新…", systemImage: "arrow.down.circle") { Task { await updater.checkForUpdates() } }
         }
     }
 
@@ -65,6 +65,6 @@ struct MenuBarView: View {
     }
 
     private func permissionRow(_ name: String, _ status: PermissionStatus) -> some View {
-        Text("\(status.isGranted ? "✓" : "✗") \(name)")
+        Label(name, systemImage: status.isGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
     }
 }

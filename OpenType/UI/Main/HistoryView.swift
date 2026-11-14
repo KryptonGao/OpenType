@@ -23,9 +23,7 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            toolbar
-            Divider()
+        Group {
             if history.records.isEmpty {
                 ContentUnavailableView {
                     Label("还没有历史记录", systemImage: "clock.arrow.circlepath")
@@ -44,6 +42,9 @@ struct HistoryView: View {
                 .frame(maxHeight: .infinity)
             }
         }
+        .navigationTitle("历史")
+        .searchable(text: $search, prompt: "搜索文字或模型")
+        .toolbar { toolbarContent }
         .confirmationDialog("清空历史记录？", isPresented: $confirmClear) {
             Button("仅清除文字（保留统计）", role: .destructive) { history.clearTexts() }
             Button("清除全部记录与统计", role: .destructive) { history.clearAll(); selection = nil }
@@ -55,27 +56,26 @@ struct HistoryView: View {
 
     // MARK: Toolbar
 
-    private var toolbar: some View {
-        HStack(spacing: 12) {
-            TextField("搜索", text: $search, prompt: Text("搜索文字或模型"))
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 220)
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem {
             Picker("类型", selection: $kindFilter) {
                 Text("全部").tag(SessionKind?.none)
                 ForEach(SessionKind.allCases) { Text($0.displayName).tag(SessionKind?.some($0)) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(maxWidth: 260)
-            Spacer()
+        }
+        ToolbarItem {
             Toggle("保存文字", isOn: Bindable(settings).saveHistoryText)
                 .toggleStyle(.switch)
+                .controlSize(.small)
                 .help("关闭后只记录次数、字数、Token 等统计，不再保存识别和整理后的文字")
+        }
+        ToolbarItem {
             Button("清空…", systemImage: "trash") { confirmClear = true }
                 .disabled(history.records.isEmpty)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
     }
 
     // MARK: List

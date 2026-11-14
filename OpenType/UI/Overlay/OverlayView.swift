@@ -114,6 +114,7 @@ struct OverlayView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 statusIcon
+                    .font(.title3)
                 Text(statusTitle)
                     .font(.headline)
                     .lineLimit(2)
@@ -169,9 +170,9 @@ struct OverlayView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .frame(width: 420)
-        .overlayBackground(fullMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlayBackground(fullMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .padding(8) // room for the window shadow
     }
 

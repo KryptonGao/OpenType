@@ -27,16 +27,14 @@ struct DictionaryView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            toolbar
+        HStack(spacing: 0) {
+            packList.frame(width: 290).frame(maxHeight: .infinity)
             Divider()
-            HStack(spacing: 0) {
-                sidebar.frame(width: 280).frame(maxHeight: .infinity)
-                Divider()
-                entryList.frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxHeight: .infinity)
+            entryList.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .navigationTitle("词典")
+        .searchable(text: $search, prompt: "搜索词条或别名")
+        .toolbar { toolbarContent }
         .sheet(item: $editor) { target in
             EntryEditor(target: target.entry) { term, aliases, autoReplace in
                 switch target {
@@ -49,28 +47,28 @@ struct DictionaryView: View {
 
     // MARK: Toolbar
 
-    private var toolbar: some View {
-        HStack(spacing: 12) {
-            TextField("搜索", text: $search, prompt: Text("搜索词条或别名"))
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 260)
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem {
             Text("生效 \(store.activeEntryCount) 条")
                 .font(.callout)
                 .foregroundStyle(.secondary)
-            Spacer()
+        }
+        ToolbarItem {
             Toggle("启用词典", isOn: $store.isEnabled)
                 .toggleStyle(.switch)
+                .controlSize(.small)
                 .help("词典会让 AI 按正确写法输出专业术语，并自动替换已设置的常见误识别")
+        }
+        ToolbarItem {
             Button("添加词条", systemImage: "plus") { editor = .new }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
     }
 
     // MARK: Packs
 
-    private var sidebar: some View {
-        List {
+    private var packList: some View {
+        Form {
             Section {
                 ForEach(store.packs) { pack in
                     Toggle(isOn: Binding(
@@ -95,12 +93,9 @@ struct DictionaryView: View {
                 Text("内置词库")
             } footer: {
                 Text("只在语音里提到相关词汇时才会提示 AI，不会拖慢或加长每次请求。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 6)
             }
         }
-        .listStyle(.sidebar)
+        .formStyle(.grouped)
         .disabled(!store.isEnabled)
     }
 

@@ -1,50 +1,24 @@
 import SwiftUI
 
-/// Settings tab of the main window: a segmented switcher over the individual settings pages.
+/// One settings page of the main window; the sidebar picks which one (see `SettingsPage`).
 struct SettingsView: View {
+    let page: SettingsPage
     let coordinator: DictationSessionCoordinator
     let updater: AppUpdater
-    @State private var page: Page = .general
-
-    private enum Page: String, CaseIterable, Identifiable {
-        case general, speech, ai, translation, helpMeSay, privacy
-
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .general: String(localized: "通用")
-            case .speech: String(localized: "语音识别")
-            case .ai: String(localized: "AI 处理")
-            case .translation: String(localized: "翻译")
-            case .helpMeSay: String(localized: "帮我说")
-            case .privacy: String(localized: "隐私与权限")
-            }
-        }
-    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("设置分类", selection: $page) {
-                ForEach(Page.allCases) { Text($0.title).tag($0) }
+        Group {
+            switch page {
+            case .general: GeneralSettingsTab(coordinator: coordinator, updater: updater)
+            case .speech: SpeechRecognitionSettingsTab(coordinator: coordinator)
+            case .ai: AIProcessingSettingsTab(coordinator: coordinator)
+            case .translation: TranslationSettingsTab(coordinator: coordinator)
+            case .helpMeSay: HelpMeSaySettingsTab(coordinator: coordinator)
+            case .privacy: PrivacyPermissionsSettingsTab(coordinator: coordinator)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-
-            Group {
-                switch page {
-                case .general: GeneralSettingsTab(coordinator: coordinator, updater: updater)
-                case .speech: SpeechRecognitionSettingsTab(coordinator: coordinator)
-                case .ai: AIProcessingSettingsTab(coordinator: coordinator)
-                case .translation: TranslationSettingsTab(coordinator: coordinator)
-                case .helpMeSay: HelpMeSaySettingsTab(coordinator: coordinator)
-                case .privacy: PrivacyPermissionsSettingsTab(coordinator: coordinator)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle(page.title)
     }
 }
 
