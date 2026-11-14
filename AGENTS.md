@@ -34,3 +34,43 @@ After packaging, you can run `codesign -d -r- build/OpenType.app` to confirm it 
   or run `xattr -dr com.apple.quarantine /Applications/OpenType.app`.
 - If the certificate is lost or replaced, the signing identity changes, and every user (and this machine) must re-grant Accessibility / Input Monitoring.
 - To eliminate the first-launch warning in the future, join the Apple Developer Program, sign with a Developer ID Application certificate, and notarize with `notarytool`.
+
+## Publishing a release
+
+Only when the user asks to publish / ship a release. Replace `<version>` with `MARKETING_VERSION` (e.g. `0.1.0`); the build number is `CURRENT_PROJECT_VERSION` (e.g. `1`). The Release title is `OpenType <version> (<build>)`, e.g. `OpenType 0.1.0 (1)`.
+
+1. **Release notes**: write `release-notes/<version>/release-notes.md` in **Simplified Chinese** (one folder per version under `release-notes/` at the repo root). Base it on `git log` since the previous tag. It must include:
+   - the system requirements line near the top: **macOS 26.0+ · Apple Silicon (arm64)** (also repeated in the requirements section and the download table; the binary is arm64-only, verify with `lipo -archs`);
+   - the install / first-launch (Gatekeeper) instructions for the self-signed build;
+   - the download table with the exact asset names below.
+2. **Verify**: run the tests, then build and re-sign the Release `.app` exactly as in the section above. Confirm `codesign --verify --deep --strict build/OpenType.app`, that the designated requirement is not `cdhash`, and that `CFBundleShortVersionString` / `CFBundleVersion` match the intended version.
+3. **Package into `dist/`** (`dist/` is in `.gitignore`). **Asset names must carry the `-arm64` suffix**:
+
+   ```bash
+   V=<version>
+   rm -rf dist && mkdir -p dist/dmg-stage
+   ditto -c -k --sequesterRsrc --keepParent build/OpenType.app dist/OpenType-$V-arm64.zip
+   cp -R build/OpenType.app dist/dmg-stage/ && ln -s /Applications dist/dmg-stage/Applications
+   hdiutil create -volname "OpenType $V" -srcfolder dist/dmg-stage -ov -format UDZO dist/OpenType-$V-arm64.dmg
+   codesign --force --sign "OpenType Self-Signed" dist/OpenType-$V-arm64.dmg
+   rm -rf dist/dmg-stage
+   hdiutil verify dist/OpenType-$V-arm64.dmg
+   ```
+
+   Also check that the zip extracts to an app that still passes `codesign --verify --deep --strict`.
+4. **Commit and tag on `main`** (no branch / PR): commit `release-notes/`, then `git tag -a v<version> -m "OpenType <version> (<build>)"`, then `git push origin main` and `git push origin v<version>`.
+5. **Create the GitHub Release** with `gh`:
+
+   ```bash
+   gh release create v<version> dist/OpenType-<version>-arm64.dmg dist/OpenType-<version>-arm64.zip \
+     --title "OpenType <version> (<build>)" \
+     --notes-file release-notes/<version>/release-notes.md --verify-tag
+   ```
+
+   Afterwards check with `gh release view v<version> --json isDraft,assets` that it is not a draft and both assets are `uploaded`.
+6. Tell the user the Release URL and the local `dist/` paths.
+
+Notes:
+
+- Pushes to GitHub sometimes fail with a transient `SSL_ERROR_SYSCALL`; retry a few times (e.g. a short loop with `sleep`) before giving up.
+- To change the notes or rename assets after publishing: edit the notes file, commit and push, then `gh release edit v<version> --notes-file ...`; for assets use `gh release upload --clobber` and `gh release delete-asset`. Do not delete or move a tag that has already been published without asking the user.
