@@ -8,32 +8,10 @@ struct MenuBarView: View {
     private var permissions: PermissionManager { coordinator.permissions }
 
     var body: some View {
-        let recording = coordinator.state == .connecting || coordinator.state == .recording
-        Button(recording && coordinator.sessionMode == .toggle ? "结束语音输入" : "开始语音输入") {
-            coordinator.toggleFromMenu()
+        Text("听写：\(coordinator.settingsStore.hotkey.displayName)")
+        if let translationHotkey = coordinator.settingsStore.translationHotkey {
+            Text("翻译：\(translationHotkey.displayName)")
         }
-        .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
-
-        Button(recording && coordinator.sessionMode == .toggle && coordinator.translationTarget != nil
-               ? "结束语音翻译"
-               : "开始语音翻译（→ \(coordinator.settingsStore.translationLabel)）") {
-            coordinator.toggleTranslationFromMenu()
-        }
-        .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
-
-        Button(recording && coordinator.sessionMode == .toggle && coordinator.isHelpMeSay && coordinator.translationTarget == nil
-               ? "结束帮我说"
-               : "开始帮我说（长按听写快捷键）") {
-            coordinator.toggleHelpMeSayFromMenu()
-        }
-        .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
-
-        Button(recording && coordinator.sessionMode == .toggle && coordinator.isHelpMeSay && coordinator.translationTarget != nil
-               ? "结束翻译帮我说"
-               : "开始翻译帮我说（→ \(coordinator.settingsStore.translationLabel)，长按翻译快捷键）") {
-            coordinator.toggleTranslatedHelpMeSayFromMenu()
-        }
-        .disabled(coordinator.state.isBusy && !(recording && coordinator.sessionMode == .toggle))
 
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
 
