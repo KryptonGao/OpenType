@@ -147,6 +147,83 @@ struct WritingToolsPromptTests {
     }
 }
 
+// MARK: - Stream pacing
+
+struct StreamPacingTests {
+    private let sentence = "这是一句完整的话，用来测试分段显示。"
+
+    @Test func aSlowStreamIsShownAsItArrives() {
+        #expect(StreamPacing.nextChunk(pending: "你好", finished: false) == "你好")
+        #expect(StreamPacing.nextChunk(pending: String(repeating: "字", count: StreamPacing.slowLimit), finished: false)?.count == StreamPacing.slowLimit)
+        #expect(StreamPacing.nextChunk(pending: "", finished: true) == nil)
+    }
+
+    @Test func aFastStreamIsReleasedASentenceAtATime() {
+        let pending = sentence + "第二句话也在这里，而且比第一句还要长一些。第三句" // well over the slow limit
+        let chunk = StreamPacing.nextChunk(pending: pending, finished: false)
+        #expect(chunk == sentence)
+        #expect((chunk?.count ?? 0) >= StreamPacing.minChunk)
+    }
+
+    @Test func aLineBreakStaysWithItsSentenceAndBlankLinesAreKept() {
+        let pending = "第一段的内容在这里结束。\n\n第二段的内容也是这样的，还没有写完"
+        #expect(StreamPacing.nextChunk(pending: pending, finished: false) == "第一段的内容在这里结束。\n\n")
+    }
+
+    @Test func tooShortSentencesAreGroupedAndNumbersKeepTheirDot() {
+        let pending = "好。行。可以。我们现在就开始吧，你觉得怎么样呢。接下来还有很多内容"
+        let chunk = StreamPacing.nextChunk(pending: pending, finished: false)
+        #expect((chunk?.count ?? 0) >= StreamPacing.minChunk)
+        let latin = "The price went up by 3.5 percent last year. Then it fell again."
+        #expect(StreamPacing.nextChunk(pending: latin, finished: false) == "The price went up by 3.5 percent last year. ")
+    }
+
+    @Test func aLongRunWithoutPunctuationIsCutAtAClauseNotPerCharacter() {
+        let pending = String(repeating: "这个句子一直没有结束，", count: 12) // 132 characters, clauses but no sentence end
+        let chunk = StreamPacing.nextChunk(pending: pending, finished: false)
+        #expect(chunk != nil)
+        #expect((chunk?.count ?? 0) > StreamPacing.minChunk)
+        #expect((chunk?.count ?? 0) <= StreamPacing.maxWait)
+        #expect(chunk?.hasSuffix("，") == true)
+    }
+
+    @Test func anUnfinishedFragmentWaitsUntilTheStreamEnds() {
+        let pending = "这段话还没有写完所以先不显示出来因为后面还会继续来更多的文字内容"
+        #expect(pending.count > StreamPacing.slowLimit && pending.count < StreamPacing.maxWait)
+        #expect(StreamPacing.nextChunk(pending: pending, finished: false) == nil)
+        #expect(StreamPacing.nextChunk(pending: pending, finished: true) == pending)
+    }
+
+    @Test func releasingEverythingChunkByChunkReproducesTheText() {
+        let text = (1...20).map { "第\($0)句话的内容。" }.joined() + "最后没有句号的尾巴部分一直写下去直到结束"
+        var pending = text
+        var rebuilt = ""
+        var guardCount = 0
+        while !pending.isEmpty, guardCount < 200 {
+            guard let chunk = StreamPacing.nextChunk(pending: pending, finished: true) else { break }
+            rebuilt += chunk
+            pending = String(pending.dropFirst(chunk.count))
+            guardCount += 1
+        }
+        #expect(rebuilt == text)
+    }
+
+    @Test func fadeInIsEasedAndBounded() {
+        #expect(StreamPacing.opacity(age: -1) == 0)
+        #expect(StreamPacing.opacity(age: 0) == 0)
+        #expect(StreamPacing.opacity(age: StreamPacing.fadeDuration * 5) == 1)
+        let early = StreamPacing.opacity(age: StreamPacing.fadeDuration * 0.25)
+        let late = StreamPacing.opacity(age: StreamPacing.fadeDuration * 0.75)
+        #expect(0 < early && early < late && late < 1)
+        #expect(early > 0.25) // eased out: quick at first
+    }
+
+    @Test func fasterBacklogMeansShorterPauses() {
+        #expect(StreamPacing.delay(backlog: 5) < StreamPacing.delay(backlog: 100))
+        #expect(StreamPacing.delay(backlog: 1000) < StreamPacing.delay(backlog: 100))
+    }
+}
+
 // MARK: - Multi-turn requests
 
 struct LLMMessagesRequestTests {
@@ -841,6 +918,36 @@ struct WritingToolsControllerTests {
         await h.controller.apply()
         #expect(h.inserter.inserted == ["我们再做调整"])
         #expect(h.history.records.first?.usage == TokenUsage(inputTokens: 4, outputTokens: 4))
+    }
+
+    @Test func aFastAnswerIsShownInSentenceSizedSteps() async {
+        let full = (1...12).map { "这是第\($0)句比较长的测试内容，它会被分段显示。" }.joined()
+        let h = WTHarness(answers: [.success(full)]) // the mock delivers it all at once: far faster than readable
+        await h.controller.open()
+        h.controller.run(.rewrite)
+        var lengths: [Int] = []
+        for _ in 0..<600 {
+            if let length = h.controller.result?.text.count, h.controller.isStreaming, lengths.last != length { lengths.append(length) }
+            if h.controller.screen == .result && !h.controller.isStreaming { break }
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(lengths.count >= 4) // several steps, not one jump
+        let steps = zip(lengths, lengths.dropFirst()).map { $1 - $0 }
+        #expect(steps.allSatisfy { $0 >= StreamPacing.minChunk }) // never character by character
+        #expect(h.controller.result?.text == full) // and the finished result is complete
+        #expect(h.controller.streamChunks.isEmpty && h.controller.streamSettledText.isEmpty)
+    }
+
+    @Test func recentPiecesFadeAndOlderOnesSettle() async {
+        let (gate, release) = AsyncStream<Void>.makeStream()
+        let h = WTHarness(provider: { _ in WTStreamingLLM(chunks: ["开头一句话在这里。"], gate: gate) })
+        await h.controller.open()
+        h.controller.run(.rewrite)
+        await h.wait { h.controller.isStreaming }
+        #expect(h.controller.streamChunks.map(\.text).joined() + h.controller.streamSettledText == "开头一句话在这里。")
+        #expect(!h.controller.streamChunks.isEmpty)
+        release.yield()
+        await h.wait { !h.controller.isStreaming }
     }
 
     @Test func stopDropsThePartialAnswerAndGoesBack() async {

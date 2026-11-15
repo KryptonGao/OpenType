@@ -349,6 +349,9 @@ struct WritingToolsView: View {
                 } else if let diff = result.diff {
                     Text(Self.attributed(diff, showChanges: controller.showDiff))
                         .font(.system(size: 14)).lineSpacing(4)
+                } else if controller.isStreaming {
+                    FadingStreamText(settled: controller.streamSettledText, chunks: controller.streamChunks)
+                        .font(.system(size: 14)).lineSpacing(4)
                 } else {
                     Text(result.text).font(.system(size: 14)).lineSpacing(4)
                 }
@@ -503,6 +506,28 @@ private extension View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+    }
+}
+
+/// The text of a streaming answer: settled text, then the recent pieces, each fading in from where it appeared.
+private struct FadingStreamText: View {
+    let settled: String
+    let chunks: [StreamChunk]
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+            Text(attributed(at: context.date))
+        }
+    }
+
+    private func attributed(at now: Date) -> AttributedString {
+        var text = AttributedString(settled)
+        for chunk in chunks {
+            var part = AttributedString(chunk.text)
+            part.foregroundColor = Color.primary.opacity(StreamPacing.opacity(age: now.timeIntervalSince(chunk.revealedAt)))
+            text += part
+        }
+        return text
     }
 }
 

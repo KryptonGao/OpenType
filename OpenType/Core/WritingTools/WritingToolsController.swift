@@ -45,6 +45,10 @@ final class WritingToolsController {
     private(set) var copied = false
     /// The answer is still arriving: `result` holds the text so far (plain), the buttons are replaced by "Stop".
     private(set) var isStreaming = false
+    /// While streaming: what has been shown so far. `streamSettledText` is the part that has finished fading in,
+    /// `streamChunks` the recent pieces that are still fading.
+    private(set) var streamSettledText = ""
+    private(set) var streamChunks: [StreamChunk] = []
     private(set) var voiceState: VoiceInputRecorder.State = .idle
     private(set) var voiceField: VoiceField?
     private(set) var voiceError: String?
@@ -86,6 +90,11 @@ final class WritingToolsController {
     @ObservationIgnored private var conversation: [LLMMessage] = []
     /// The finished result the page showed before a refinement started streaming over it (restored when it is stopped).
     @ObservationIgnored private var resultBeforeStream: WritingResult?
+    @ObservationIgnored private var pacerTask: Task<Void, Never>?
+    @ObservationIgnored private var receivedText = ""
+    @ObservationIgnored private var shownCount = 0
+    @ObservationIgnored private var streamFinished = false
+    @ObservationIgnored private var nextChunkID = 0
     @ObservationIgnored private var origin: Screen = .menu
     @ObservationIgnored private var previousScreen: Screen = .menu
     @ObservationIgnored private var generation = UUID()
@@ -213,6 +222,7 @@ final class WritingToolsController {
         result = nil
         resultBeforeStream = nil
         isStreaming = false
+        resetStreamState()
         failure = nil
         copied = false
         voiceError = nil
@@ -264,6 +274,7 @@ final class WritingToolsController {
         generation = UUID()
         generationTask?.cancel()
         isStreaming = false
+        resetStreamState()
         result = resultBeforeStream
         resultBeforeStream = nil
         screen = result != nil ? .result : origin
@@ -336,6 +347,7 @@ final class WritingToolsController {
         resultBeforeStream = screen == .result || previousScreen == .result ? (resultBeforeStream ?? result) : nil
         failure = nil
         voiceError = nil
+        resetStreamState()
         screen = .loading
         let id = UUID()
         generation = id
@@ -347,11 +359,9 @@ final class WritingToolsController {
         // The deltas come in on a background thread: one stream keeps them in order on the main actor.
         let (pieces, continuation) = AsyncStream<String>.makeStream()
         let consumer = Task { [weak self] in
-            var text = ""
             for await piece in pieces {
-                text += piece
                 guard let self, id == generation else { return }
-                receive(text, request: request)
+                receive(piece, id: id)
             }
         }
         do {
@@ -361,6 +371,9 @@ final class WritingToolsController {
             ) { continuation.yield($0) }
             continuation.finish()
             await consumer.value
+            // Let the paced display catch up with what was received before the finished result replaces it.
+            streamFinished = true
+            await pacerTask?.value
             guard id == generation else { return }
             let answer = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !answer.isEmpty else { throw LLMError.emptyOutput }
@@ -373,6 +386,7 @@ final class WritingToolsController {
             copied = false
             isStreaming = false
             resultBeforeStream = nil
+            resetStreamState()
             screen = .result
         } catch is CancellationError {
             continuation.finish()
@@ -381,11 +395,13 @@ final class WritingToolsController {
             continuation.finish()
             consumer.cancel()
             guard id == generation else { return }
+            pacerTask?.cancel()
             if isStreaming { // the answer broke off half way: show the error, keep what was there before
                 isStreaming = false
                 result = resultBeforeStream
                 resultBeforeStream = nil
             }
+            resetStreamState()
             switch error as? LLMError {
             case .missingAPIKey?, .invalidConfig?: failure = .noService
             case let llmError?: failure = .failed(llmError.userMessage)
@@ -395,15 +411,60 @@ final class WritingToolsController {
         }
     }
 
-    /// The text so far: the first piece turns the loading skeleton into the result page, which then grows.
-    private func receive(_ text: String, request: WritingRequest) {
+    private func resetStreamState() {
+        pacerTask?.cancel()
+        pacerTask = nil
+        receivedText = ""
+        shownCount = 0
+        streamFinished = false
+        nextChunkID = 0
+        streamSettledText = ""
+        streamChunks = []
+    }
+
+    /// A new piece of the answer arrived: it is queued, and the pacer shows it (see `StreamPacing`).
+    private func receive(_ piece: String, id: UUID) {
+        receivedText += piece
+        guard pacerTask == nil else { return }
+        pacerTask = Task { [weak self] in await self?.pace(id) }
+    }
+
+    /// Shows what was received at a readable pace until everything is shown and the stream is over.
+    private func pace(_ id: UUID) async {
+        while !Task.isCancelled, id == generation {
+            let pending = String(receivedText.dropFirst(shownCount))
+            if pending.isEmpty {
+                if streamFinished { return }
+                try? await Task.sleep(for: .milliseconds(30))
+                continue
+            }
+            if let chunk = StreamPacing.nextChunk(pending: pending, finished: streamFinished) {
+                reveal(chunk)
+                try? await Task.sleep(for: StreamPacing.delay(backlog: pending.count - chunk.count))
+            } else {
+                try? await Task.sleep(for: .milliseconds(30))
+            }
+        }
+    }
+
+    private func reveal(_ chunk: String) {
         if !isStreaming {
             isStreaming = true
             showOriginal = false
             copied = false
+            screen = .result
         }
-        result = WritingResult(text: text.trimmingCharacters(in: .whitespacesAndNewlines))
-        screen = .result
+        shownCount += chunk.count
+        let now = Date()
+        streamChunks.append(StreamChunk(id: nextChunkID, text: chunk, revealedAt: now))
+        nextChunkID += 1
+        // Pieces that finished fading in join the settled text, so only the recent ones are redrawn every frame.
+        while let first = streamChunks.first, now.timeIntervalSince(first.revealedAt) > StreamPacing.fadeDuration * 1.5, streamChunks.count > 1 {
+            streamSettledText += first.text
+            streamChunks.removeFirst()
+        }
+        let shown = streamSettledText + streamChunks.map(\.text).joined()
+        result = WritingResult(text: shown.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// The Writing Tools profile (own model / effort applied) and its provider. The whole streamed answer has to
