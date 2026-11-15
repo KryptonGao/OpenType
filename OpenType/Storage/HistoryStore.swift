@@ -43,7 +43,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .translation: "character.bubble"
         case .helpMeSay: "wand.and.stars"
         case .rewrite: "pencil.and.outline"
-        case .writingTools: "wand.and.sparkles"
+        case .writingTools: "square.and.pencil"
         }
     }
 }

@@ -26,7 +26,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .ai: "sparkles"
         case .translation: "character.bubble"
         case .helpMeSay: "wand.and.stars"
-        case .writingTools: "wand.and.sparkles"
+        case .writingTools: "square.and.pencil"
         case .privacy: "checkmark.shield"
         }
     }

@@ -17,7 +17,7 @@ struct MenuBarView: View {
         }
 
         if coordinator.settingsStore.writingToolsEnabled {
-            Label("书写工具：\(coordinator.settingsStore.writingToolsHotkey.displayName)", systemImage: "wand.and.sparkles")
+            Label("书写工具：\(coordinator.settingsStore.writingToolsHotkey.displayName)", systemImage: "square.and.pencil")
         }
 
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
