@@ -57,24 +57,7 @@ final class PresetStore {
             ? snapshot.defaultPresetID : snapshot.presets[0].id
     }
 
-    static var defaultFileURL: URL? {
-        let url = CredentialStore.defaultDirectory.appendingPathComponent("presets.json")
-        migrateLegacyFile(to: url)
-        return url
-    }
-
-    /// Older versions kept the file in Application Support; copy it over once so nothing is lost. The old file stays.
-    private static func migrateLegacyFile(to url: URL) {
-        let fm = FileManager.default
-        guard !fm.fileExists(atPath: url.path),
-              let base = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-        else { return }
-        let legacy = base.appendingPathComponent("OpenType", isDirectory: true).appendingPathComponent("presets.json")
-        guard fm.fileExists(atPath: legacy.path) else { return }
-        try? fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true,
-                                attributes: [.posixPermissions: 0o700])
-        try? fm.copyItem(at: legacy, to: url)
-    }
+    static var defaultFileURL: URL? { UserDataStorage.url(for: "presets.json") }
 
     // MARK: Lookup
 

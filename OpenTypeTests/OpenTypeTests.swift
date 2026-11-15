@@ -2308,3 +2308,91 @@ struct PresetCoordinatorTests {
         #expect(harness.coordinator.activePreset.id == BuiltInPresets.general)
     }
 }
+
+// MARK: - JSON settings file
+
+@MainActor
+struct SettingsFileTests {
+    private func tempURL() -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("settings-\(UUID().uuidString).json")
+    }
+
+    @Test func settingsPersistAsReadableJSONAndReload() throws {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let s = SettingsStore(defaults: SettingsFile(fileURL: url))
+        s.showDockIcon = true
+        s.asrSilenceDurationMS = 700
+        s.asrVADThreshold = 0.25
+        s.translationRegions = ["portuguese": "brazil"]
+        s.translationHotkey = nil
+        s.lastUpdateCheck = Date(timeIntervalSince1970: 1_700_000_000)
+        s.hotkey = HotkeyConfig(keyCode: 49, modifiers: .maskControl)
+
+        let object = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        #expect(object["showDockIcon"] as? Bool == true)
+        #expect(object["hotkey"] is [String: Any]) // real JSON, not a base64 blob
+        #expect(object["llmProfiles"] == nil || object["llmProfiles"] is [Any])
+
+        let reloaded = SettingsStore(defaults: SettingsFile(fileURL: url))
+        #expect(reloaded.showDockIcon)
+        #expect(reloaded.asrSilenceDurationMS == 700)
+        #expect(reloaded.asrVADThreshold == 0.25)
+        #expect(reloaded.translationRegions == ["portuguese": "brazil"])
+        #expect(reloaded.translationHotkey == nil) // cleared stays cleared
+        #expect(reloaded.lastUpdateCheck == s.lastUpdateCheck)
+        #expect(reloaded.hotkey == s.hotkey)
+    }
+
+    @Test func profilesRoundTripThroughJSON() {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let s = SettingsStore(defaults: SettingsFile(fileURL: url))
+        let added = s.addProfile()
+        let reloaded = SettingsStore(defaults: SettingsFile(fileURL: url))
+        #expect(reloaded.llmProfiles == s.llmProfiles)
+        #expect(reloaded.activeProfileID == added.id)
+    }
+
+    @Test func writesKeepOtherBuildsChanges() {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let a = SettingsFile(fileURL: url)
+        let b = SettingsFile(fileURL: url)
+        a.set(true, forKey: "opentype.showDockIcon")
+        b.set(false, forKey: "opentype.soundFeedbackEnabled") // b never saw a's write
+        let reloaded = SettingsFile(fileURL: url)
+        #expect(reloaded.object(forKey: "opentype.showDockIcon") as? Bool == true)
+        #expect(reloaded.object(forKey: "opentype.soundFeedbackEnabled") as? Bool == false)
+    }
+
+    @Test func migratesLegacyUserDefaultsEntries() throws {
+        let hotkey = try JSONEncoder().encode(HotkeyConfig(keyCode: 49, modifiers: .maskControl))
+        let legacy: [String: Any] = [
+            "opentype.showDockIcon": true,
+            "opentype.asrSilenceDurationMS": 600,
+            "opentype.asrVADThreshold": 0.3,
+            "opentype.overlayPosition": "topCenter",
+            "opentype.hotkey": hotkey,
+            "opentype.translationHotkey": Data(),
+            "opentype.translationRegions": ["portuguese": "brazil"],
+            "opentype.lastUpdateCheck": Date(timeIntervalSince1970: 1_700_000_000),
+            "AppleLanguages": ["en"], // not ours
+        ]
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let migrated = SettingsFile.migrate(legacy)
+        #expect(migrated["AppleLanguages"] == nil)
+        let data = try JSONSerialization.data(withJSONObject: migrated)
+        try data.write(to: url)
+
+        let s = SettingsStore(defaults: SettingsFile(fileURL: url))
+        #expect(s.showDockIcon)
+        #expect(s.asrSilenceDurationMS == 600)
+        #expect(s.asrVADThreshold == 0.3)
+        #expect(s.hotkey == HotkeyConfig(keyCode: 49, modifiers: .maskControl))
+        #expect(s.translationHotkey == nil)
+        #expect(s.translationRegions == ["portuguese": "brazil"])
+        #expect(s.lastUpdateCheck == Date(timeIntervalSince1970: 1_700_000_000))
+    }
+}

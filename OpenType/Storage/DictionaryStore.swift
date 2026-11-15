@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// The user's dictionary: the built-in packs (individually switchable) plus custom entries.
-/// Settings and custom entries persist as one JSON file in Application Support; `fileURL == nil` keeps everything
+/// Settings and custom entries persist as one JSON file, `~/.opentype/dictionary.json`; `fileURL == nil` keeps everything
 /// in memory (tests).
 @MainActor
 @Observable
@@ -49,12 +49,7 @@ final class DictionaryStore {
         rebuildMatcher()
     }
 
-    static var defaultFileURL: URL? {
-        guard let base = try? FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
-        ) else { return nil }
-        return base.appendingPathComponent("OpenType", isDirectory: true).appendingPathComponent("dictionary.json")
-    }
+    static var defaultFileURL: URL? { UserDataStorage.url(for: "dictionary.json") }
 
     // MARK: Packs
 

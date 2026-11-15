@@ -7,8 +7,10 @@ enum AppContainer {
     static let historyStore = HistoryStore(fileURL: HistoryStore.defaultFileURL)
     static let dictionaryStore = DictionaryStore(fileURL: DictionaryStore.defaultFileURL)
     static let presetStore = PresetStore(fileURL: PresetStore.defaultFileURL)
+    static let settingsStore = SettingsStore(defaults: SettingsFile.makeDefault())
     static let coordinator = DictationSessionCoordinator(
-        historyStore: historyStore, dictionaryStore: dictionaryStore, presetStore: presetStore, overlay: overlay
+        settingsStore: settingsStore, historyStore: historyStore, dictionaryStore: dictionaryStore,
+        presetStore: presetStore, overlay: overlay
     )
     static let router = MainWindowRouter()
     static let updater = AppUpdater(settings: coordinator.settingsStore, isIdle: { coordinator.state == .idle })

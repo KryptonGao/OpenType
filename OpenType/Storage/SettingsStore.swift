@@ -282,7 +282,7 @@ enum TranslationLanguage: String, CaseIterable, Identifiable, Codable, Sendable 
 @MainActor
 @Observable
 final class SettingsStore {
-    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let defaults: any SettingsBacking
 
     // MARK: General
     var showDockIcon: Bool { didSet { defaults.set(showDockIcon, forKey: Keys.showDockIcon) } }
@@ -391,7 +391,7 @@ final class SettingsStore {
         }
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: any SettingsBacking = UserDefaults.standard) {
         self.defaults = defaults
         func bool(_ key: String, _ fallback: Bool) -> Bool { defaults.object(forKey: key) as? Bool ?? fallback }
         func raw<T: RawRepresentable>(_ key: String, _ fallback: T) -> T where T.RawValue == String {
@@ -402,9 +402,7 @@ final class SettingsStore {
         showDockIcon = bool(Keys.showDockIcon, false)
         hotkeysPaused = bool(Keys.hotkeysPaused, false)
         autoInsertEnabled = bool(Keys.autoInsertEnabled, true)
-        if let data = defaults.data(forKey: Keys.hotkey),
-           let stored = try? JSONDecoder().decode(HotkeyConfig.self, from: data),
-           stored.validation == .ok {
+        if let stored = defaults.codable(HotkeyConfig.self, forKey: Keys.hotkey).value, stored.validation == .ok {
             hotkey = stored
         } else {
             hotkey = .default
@@ -416,7 +414,7 @@ final class SettingsStore {
         overlayMinimalMaterial = raw(Keys.overlayMinimalMaterial, .blur)
         autoCheckUpdates = bool(Keys.autoCheckUpdates, true)
         autoInstallUpdates = bool(Keys.autoInstallUpdates, false)
-        lastUpdateCheck = defaults.object(forKey: Keys.lastUpdateCheck) as? Date
+        lastUpdateCheck = defaults.date(forKey: Keys.lastUpdateCheck)
         lastNotifiedUpdateVersion = defaults.string(forKey: Keys.lastNotifiedUpdateVersion)
         skippedUpdateVersion = defaults.string(forKey: Keys.skippedUpdateVersion)
 
@@ -441,8 +439,7 @@ final class SettingsStore {
         processingLevel = raw(Keys.processingLevel, .standard)
 
         var profiles: [LLMProfile] = []
-        if let data = defaults.data(forKey: Keys.llmProfiles),
-           let decoded = try? JSONDecoder().decode([LLMProfile].self, from: data) {
+        if let decoded = defaults.codable([LLMProfile].self, forKey: Keys.llmProfiles).value {
             profiles = decoded
         }
         if profiles.isEmpty { profiles = [LLMProfile.makeDefault()] }
@@ -452,17 +449,10 @@ final class SettingsStore {
 
         translationTargetLanguage = raw(Keys.translationTargetLanguage, .english)
         translationRegions = defaults.dictionary(forKey: Keys.translationRegions) as? [String: String] ?? [:]
-        if let data = defaults.data(forKey: Keys.translationHotkey) {
-            // Empty data means the user explicitly cleared the shortcut.
-            if data.isEmpty {
-                translationHotkey = nil
-            } else if let stored = try? JSONDecoder().decode(HotkeyConfig.self, from: data), stored.validation == .ok {
-                translationHotkey = stored
-            } else {
-                translationHotkey = .defaultTranslation
-            }
-        } else {
-            translationHotkey = .defaultTranslation
+        switch defaults.codable(HotkeyConfig.self, forKey: Keys.translationHotkey) {
+        case .cleared: translationHotkey = nil // the user explicitly cleared the shortcut
+        case .value(let stored): translationHotkey = stored.validation == .ok ? stored : .defaultTranslation
+        case .absent: translationHotkey = .defaultTranslation
         }
 
         helpMeSayEnabled = bool(Keys.helpMeSayEnabled, true)
@@ -551,21 +541,15 @@ final class SettingsStore {
     }
 
     private func persistHotkey() {
-        if let data = try? JSONEncoder().encode(hotkey) { defaults.set(data, forKey: Keys.hotkey) }
+        defaults.setCodable(hotkey, forKey: Keys.hotkey)
     }
 
     private func persistTranslationHotkey() {
-        if let translationHotkey, let data = try? JSONEncoder().encode(translationHotkey) {
-            defaults.set(data, forKey: Keys.translationHotkey)
-        } else {
-            defaults.set(Data(), forKey: Keys.translationHotkey)
-        }
+        defaults.setCodable(translationHotkey, forKey: Keys.translationHotkey)
     }
 
     private func persistProfiles() {
-        if let data = try? JSONEncoder().encode(llmProfiles) {
-            defaults.set(data, forKey: Keys.llmProfiles)
-        }
+        defaults.setCodable(llmProfiles, forKey: Keys.llmProfiles)
     }
 
     private enum Keys {
