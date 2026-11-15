@@ -17101,6 +17101,278 @@
           }
         }
       }
+    },
+    "语音改写": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音改写"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice Rewrite"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語音改寫"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声で書き換え"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "음성 고쳐쓰기"
+          }
+        }
+      }
+    },
+    "改写": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改写"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改寫"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き換え"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고쳐쓰기"
+          }
+        }
+      }
+    },
+    "正在改写…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在改写…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewriting…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在改寫…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き換え中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고쳐쓰는 중…"
+          }
+        }
+      }
+    },
+    "改写失败：%@。所选文字未改动": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改写失败：%@。所选文字未改动"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite failed: %@. The selected text was not changed"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改寫失敗：%@。所選文字未更動"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き換えに失敗しました：%@。選択したテキストは変更されていません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "고쳐쓰기 실패: %@. 선택한 텍스트는 변경되지 않았습니다"
+          }
+        }
+      }
+    },
+    "所选文字在录音期间已改变": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选文字在录音期间已改变"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The selected text changed while recording"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所選文字在錄音期間已改變"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中に選択したテキストが変更されました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음 중에 선택한 텍스트가 바뀌었습니다"
+          }
+        }
+      }
+    },
+    "选中文字后用语音改写它": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选中文字后用语音改写它"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite selected text by voice"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選取文字後用語音改寫它"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テキストを選択して音声で書き換える"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "텍스트를 선택한 뒤 음성으로 고쳐쓰기"
+          }
+        }
+      }
+    },
+    "在任意应用里先选中一段文字，再按听写快捷键（或长按），说出修改要求，例如「语气委婉一点」「翻译成日语」「总结成三条要点」「把这段 JSON 转成 Swift struct」。OpenType 会把选中的原文和你的语音指令一起交给「AI 处理」中当前选中的 Profile，并用结果直接替换选中的内容；悬浮窗会显示「语音改写」。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任意应用里先选中一段文字，再按听写快捷键（或长按），说出修改要求，例如「语气委婉一点」「翻译成日语」「总结成三条要点」「把这段 JSON 转成 Swift struct」。OpenType 会把选中的原文和你的语音指令一起交给「AI 处理」中当前选中的 Profile，并用结果直接替换选中的内容；悬浮窗会显示「语音改写」。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In any app, select some text first, then press the dictation shortcut (or hold it) and say what to change, e.g. “make the tone softer”, “translate to Japanese”, “summarize in three bullet points”, “turn this JSON into a Swift struct”. OpenType sends the selected text together with your spoken instruction to the Profile currently selected under “AI Processing” and replaces the selection with the result. The overlay shows “Voice Rewrite”."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任何應用程式中先選取一段文字，再按聽寫快速鍵（或長按），說出修改要求，例如「語氣委婉一點」「翻譯成日文」「總結成三點」「把這段 JSON 轉成 Swift struct」。OpenType 會把選取的原文和你的語音指令一起交給「AI 處理」中目前選用的 Profile，並用結果直接取代選取的內容；懸浮視窗會顯示「語音改寫」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意のアプリでまずテキストを選択し、音声入力のショートカットを押して（または長押しして）修正内容を話します。例：「もっと柔らかい口調に」「日本語に翻訳して」「3つの要点にまとめて」「この JSON を Swift の struct に変換して」。OpenType は選択したテキストと音声の指示を「AI 処理」で選択中のプロファイルに送り、結果で選択範囲をそのまま置き換えます。オーバーレイには「音声で書き換え」と表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아무 앱에서나 먼저 텍스트를 선택한 다음 받아쓰기 단축키를 누르고(또는 길게 누르고) 수정 요청을 말하세요. 예: '말투를 더 부드럽게', '일본어로 번역해 줘', '세 줄 요점으로 요약해 줘', '이 JSON을 Swift struct로 바꿔 줘'. OpenType은 선택한 원문과 음성 지시를 'AI 처리'에서 선택된 프로필에 함께 보내고, 결과로 선택 영역을 바로 바꿉니다. 오버레이에 '음성 고쳐쓰기'가 표시됩니다."
+          }
+        }
+      }
+    },
+    "没有选中文字，或应用不向系统公开所选文字（需要辅助功能权限）时，仍是普通听写。翻译快捷键与终端命令预设不受影响。改写失败时不会改动选中的文字；如果录音期间选区变了，结果会复制到剪贴板而不是写入。每次改写都会把选中的文字发送给该 Profile 的模型。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有选中文字，或应用不向系统公开所选文字（需要辅助功能权限）时，仍是普通听写。翻译快捷键与终端命令预设不受影响。改写失败时不会改动选中的文字；如果录音期间选区变了，结果会复制到剪贴板而不是写入。每次改写都会把选中的文字发送给该 Profile 的模型。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With nothing selected, or in apps that don’t expose their selection to the system (Accessibility permission required), it stays normal dictation. The translation shortcut and terminal-command presets are unaffected. If a rewrite fails, the selected text is left untouched; if the selection changes while you are recording, the result is copied to the clipboard instead of being written. Every rewrite sends the selected text to that Profile’s model."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有選取文字，或應用程式不向系統公開所選文字（需要輔助使用權限）時，仍是一般聽寫。翻譯快速鍵與終端機指令預設不受影響。改寫失敗時不會更動選取的文字；若錄音期間選取範圍改變了，結果會拷貝到剪貼簿而不是寫入。每次改寫都會把選取的文字傳送給該 Profile 的模型。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テキストが選択されていない場合や、アプリが選択範囲をシステムに公開しない場合（アクセシビリティ権限が必要）は、通常の音声入力のままです。翻訳ショートカットとターミナルコマンドのプリセットは影響を受けません。書き換えに失敗しても選択したテキストは変更されません。録音中に選択範囲が変わった場合、結果は書き込まれずクリップボードにコピーされます。書き換えのたびに、選択したテキストがそのプロファイルのモデルに送信されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택한 텍스트가 없거나 앱이 선택 영역을 시스템에 공개하지 않으면(손쉬운 사용 권한 필요) 일반 받아쓰기로 동작합니다. 번역 단축키와 터미널 명령 프리셋은 영향을 받지 않습니다. 고쳐쓰기에 실패해도 선택한 텍스트는 변경되지 않으며, 녹음 중 선택 영역이 바뀌면 결과는 입력되지 않고 클립보드에 복사됩니다. 고쳐쓰기를 할 때마다 선택한 텍스트가 해당 프로필의 모델로 전송됩니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

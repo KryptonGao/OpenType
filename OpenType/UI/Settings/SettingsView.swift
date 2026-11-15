@@ -482,6 +482,13 @@ private struct HelpMeSaySettingsTab: View {
     var body: some View {
         @Bindable var settingsStore = settingsStore
         Form {
+            Section("语音改写") {
+                Toggle("选中文字后用语音改写它", isOn: $settingsStore.voiceRewriteEnabled)
+                Text("在任意应用里先选中一段文字，再按听写快捷键（或长按），说出修改要求，例如「语气委婉一点」「翻译成日语」「总结成三条要点」「把这段 JSON 转成 Swift struct」。OpenType 会把选中的原文和你的语音指令一起交给「AI 处理」中当前选中的 Profile，并用结果直接替换选中的内容；悬浮窗会显示「语音改写」。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("没有选中文字，或应用不向系统公开所选文字（需要辅助功能权限）时，仍是普通听写。翻译快捷键与终端命令预设不受影响。改写失败时不会改动选中的文字；如果录音期间选区变了，结果会复制到剪贴板而不是写入。每次改写都会把选中的文字发送给该 Profile 的模型。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("帮我说") {
                 Toggle("长按快捷键触发「帮我说」/「翻译帮我说」", isOn: $settingsStore.helpMeSayEnabled)
                 Text("按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。")

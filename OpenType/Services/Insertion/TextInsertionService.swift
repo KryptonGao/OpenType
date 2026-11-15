@@ -20,6 +20,9 @@ struct InsertionTarget {
     let isSecure: Bool
     /// Bundle identifier of the app, used to pick that app's preset. `nil` when unknown.
     var bundleIdentifier: String? = nil
+    /// Text the user had selected in the focused control when the session started (Voice Rewrite).
+    /// `nil` when nothing (or nothing readable) was selected; never set for secure fields.
+    var selectedText: String? = nil
 }
 
 @MainActor
@@ -43,12 +46,14 @@ final class TextInsertionService: TextInserting {
         guard let app = NSWorkspace.shared.frontmostApplication,
               app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
         let element = isAccessibilityTrusted() ? focusedElement(ofPID: app.processIdentifier) : nil
+        let isSecure = element.map(Self.isSecureField) ?? false
         return InsertionTarget(
             pid: app.processIdentifier,
             appName: app.localizedName ?? String(localized: "未知应用"),
             element: element,
-            isSecure: element.map(Self.isSecureField) ?? false,
-            bundleIdentifier: app.bundleIdentifier
+            isSecure: isSecure,
+            bundleIdentifier: app.bundleIdentifier,
+            selectedText: isSecure ? nil : element.flatMap(Self.selectedText(of:))
         )
     }
 
@@ -79,6 +84,13 @@ final class TextInsertionService: TextInserting {
         }
         if let current, Self.isSecureField(current) {
             return .requiresManualCopy(reason: String(localized: "目标是密码/安全输入框，已禁止自动写入"))
+        }
+        // Voice Rewrite replaces the selection: if it changed while we were listening, the result no longer
+        // belongs there. Never overwrite something else.
+        if let original = target.selectedText {
+            guard let current, Self.selectedText(of: current) == original else {
+                return .focusLost(reason: String(localized: "所选文字在录音期间已改变"))
+            }
         }
 
         if let element = target.element ?? current, await insertViaAccessibility(text, element: element) {
@@ -184,6 +196,19 @@ final class TextInsertionService: TextInserting {
         if AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role) == .success,
            (role as? String) == secureSubrole { return true }
         return false
+    }
+
+    /// Longest selection that is sent to the model; longer selections are treated as "no selection".
+    static let maxSelectionLength = 20_000
+
+    /// The currently selected text of a control, or `nil` when empty / whitespace-only / unreadable / too long.
+    static func selectedText(of element: AXUIElement) -> String? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value) == .success,
+              let text = value as? String,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              text.count <= maxSelectionLength else { return nil }
+        return text
     }
 
     private static func stringValue(of element: AXUIElement) -> String? {

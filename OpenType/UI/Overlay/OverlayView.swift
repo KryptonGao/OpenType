@@ -67,8 +67,8 @@ struct OverlayView: View {
 
     private var mainCapsule: some View {
         VStack(spacing: 3) {
-            if coordinator.runsHelpMeSay {
-                Text(coordinator.helpMeSayName)
+            if let label = coordinator.modeLabel {
+                Text(label)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -83,9 +83,9 @@ struct OverlayView: View {
             }
             .frame(minHeight: 16)
         }
-        .frame(minWidth: 72, minHeight: coordinator.runsHelpMeSay ? 46 : 28)
+        .frame(minWidth: 72, minHeight: coordinator.modeLabel != nil ? 46 : 28)
         .padding(.horizontal, 10)
-        .padding(.vertical, coordinator.runsHelpMeSay ? 4 : 0)
+        .padding(.vertical, coordinator.modeLabel != nil ? 4 : 0)
         .overlayBackground(minimalMaterial, in: Capsule())
     }
 
@@ -199,7 +199,7 @@ struct OverlayView: View {
 
     /// A long press already made this "help me say" (its own prompt), and translation has its own prompt: no preset then.
     private var showsPresetPicker: Bool {
-        coordinator.translationTarget == nil && !coordinator.isHelpMeSay
+        coordinator.translationTarget == nil && !coordinator.isHelpMeSay && !coordinator.isVoiceRewrite
     }
 
     /// Popup row: the preset of this session (from the app's rule or the default), changeable until processing starts.
@@ -331,17 +331,17 @@ struct OverlayView: View {
     private var statusTitle: String {
         switch coordinator.state {
         case .idle: String(localized: "待机")
-        case .connecting: coordinator.runsHelpMeSay ? String(localized: "\(coordinator.helpMeSayName) · 正在连接…") : String(localized: "正在连接…")
+        case .connecting: coordinator.modeLabel.map { String(localized: "\($0) · 正在连接…") } ?? String(localized: "正在连接…")
         case .recording:
-            switch (coordinator.runsHelpMeSay, coordinator.sessionMode) {
-            case (true, .hold): String(localized: "\(coordinator.helpMeSayName) · 正在聆听…（松开结束）")
-            case (true, .toggle): String(localized: "\(coordinator.helpMeSayName) · 正在聆听…（再按一次结束）")
-            case (false, .hold): String(localized: "正在聆听…（松开结束）")
-            case (false, .toggle): String(localized: "正在聆听…（再按一次结束）")
+            switch (coordinator.modeLabel, coordinator.sessionMode) {
+            case (let label?, .hold): String(localized: "\(label) · 正在聆听…（松开结束）")
+            case (let label?, .toggle): String(localized: "\(label) · 正在聆听…（再按一次结束）")
+            case (nil, .hold): String(localized: "正在聆听…（松开结束）")
+            case (nil, .toggle): String(localized: "正在聆听…（再按一次结束）")
             }
         case .finalizing: String(localized: "正在收尾…")
         case .processing:
-            coordinator.runsHelpMeSay ? (coordinator.translationTarget == nil ? String(localized: "正在帮你说…") : String(localized: "正在帮你说并翻译…")) : coordinator.translationTarget == nil ? (coordinator.activePreset.kind == .shellCommand ? String(localized: "正在生成命令…") : String(localized: "正在整理文本…")) : String(localized: "正在翻译…")
+            coordinator.isVoiceRewrite ? String(localized: "正在改写…") : coordinator.runsHelpMeSay ? (coordinator.translationTarget == nil ? String(localized: "正在帮你说…") : String(localized: "正在帮你说并翻译…")) : coordinator.translationTarget == nil ? (coordinator.activePreset.kind == .shellCommand ? String(localized: "正在生成命令…") : String(localized: "正在整理文本…")) : String(localized: "正在翻译…")
         case .inserting: String(localized: "正在插入…")
         case .success(let note): note.map { String(localized: "已插入 · \($0)") } ?? String(localized: "已插入")
         case .manualCopy(let reason): String(localized: "未自动插入：\(reason)")

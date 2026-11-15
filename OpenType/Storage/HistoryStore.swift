@@ -22,6 +22,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case dictation
     case translation
     case helpMeSay
+    case rewrite
 
     var id: String { rawValue }
 
@@ -30,6 +31,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .dictation: String(localized: "听写")
         case .translation: String(localized: "翻译")
         case .helpMeSay: String(localized: "帮我说")
+        case .rewrite: String(localized: "改写")
         }
     }
 
@@ -38,6 +40,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .dictation: "mic"
         case .translation: "character.bubble"
         case .helpMeSay: "wand.and.stars"
+        case .rewrite: "pencil.and.outline"
         }
     }
 }

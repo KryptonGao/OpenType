@@ -38,6 +38,9 @@ final class DictationSessionCoordinator {
     /// The preset this session runs with: the matching app rule's preset, else the default preset.
     /// The overlay may switch it until processing begins. Translation sessions ignore it.
     private(set) var activePreset: PromptPreset
+    /// Text selected in the focused control when the session started. Non-nil means this is a Voice Rewrite session:
+    /// the speech is an instruction for editing this text, and the result replaces the selection.
+    private(set) var rewriteSource: String?
     /// Live line while the model searches the web during "help me say" (e.g. "正在搜索「…」 · 已搜到 8 条结果").
     private(set) var webSearchStatus: String?
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
@@ -290,7 +293,16 @@ final class DictationSessionCoordinator {
     /// `true` while the session turns the speech into a polished message: a long press on the shortcut, or a
     /// "help me say" preset. Translation sessions have their own prompt and never use presets.
     var runsHelpMeSay: Bool {
-        isHelpMeSay || (translationTarget == nil && activePreset.kind == .helpMeSay)
+        rewriteSource == nil && (isHelpMeSay || (translationTarget == nil && activePreset.kind == .helpMeSay))
+    }
+
+    /// `true` while the session rewrites the selected text with the spoken instruction.
+    var isVoiceRewrite: Bool { rewriteSource != nil }
+
+    /// "语音改写" / "帮我说" / "翻译帮我说" for sessions that have a mode of their own; `nil` for plain dictation.
+    var modeLabel: String? {
+        if isVoiceRewrite { return String(localized: "语音改写") }
+        return runsHelpMeSay ? helpMeSayName : nil
     }
 
     /// The preset in effect for this session; `nil` for translation sessions.
@@ -303,7 +315,7 @@ final class DictationSessionCoordinator {
     }
 
     var canChangePreset: Bool {
-        translationTarget == nil && (state == .connecting || state == .recording || state == .finalizing)
+        translationTarget == nil && rewriteSource == nil && (state == .connecting || state == .recording || state == .finalizing)
     }
 
     var canChangeTranslationTarget: Bool {
@@ -331,6 +343,7 @@ final class DictationSessionCoordinator {
         aggregator = TranscriptAggregator()
         translationTarget = nil
         translationRegion = nil
+        rewriteSource = nil
         isHelpMeSay = false
         helpMeSayHolding = false
         holdCandidateID = nil
@@ -375,10 +388,15 @@ final class DictationSessionCoordinator {
         timings = SessionTimings(triggeredAt: .now)
         target = inserter.captureTarget()
         activePreset = presetStore.resolve(bundleID: target?.bundleIdentifier)
+        // Voice Rewrite: text was selected, so the speech edits it. Translation sessions and terminal-command
+        // presets keep their own behaviour.
+        let canRewrite = settingsStore.voiceRewriteEnabled && !translating && activePreset.kind != .shellCommand
+        rewriteSource = canRewrite ? target?.selectedText : nil
+        target?.selectedText = rewriteSource // the inserter only guards the selection of rewrite sessions
         state = .connecting
         overlay?.show(coordinator: self)
         playSound("Tink")
-        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode) translate=\(translating) helpMeSay=\(helpMeSay) preset=\(activePreset.id)")
+        Diagnostics.log("session \(id.uuidString.prefix(8)) begin mode=\(mode) translate=\(translating) helpMeSay=\(helpMeSay) rewrite=\(isVoiceRewrite) preset=\(activePreset.id)")
         pipelineTask = Task { [weak self] in await self?.runPipeline(id) }
     }
 
@@ -510,7 +528,28 @@ final class DictationSessionCoordinator {
         var notes: [String] = []
         if let interruptionNote { notes.append(interruptionNote) }
         if timedOut { notes.append(String(localized: "语音识别收尾超时，已使用当前识别内容")) }
-        if runsHelpMeSay {
+        if let source = rewriteSource {
+            // Always needs the LLM, and never falls back: the raw instruction must not replace the user's text.
+            do {
+                let (provider, profile) = try resolveProvider()
+                let output = try await provider.processWithUsage(
+                    transcript: TextProcessor.voiceRewriteInput(instruction: rawText, original: source),
+                    systemPrompt: TextProcessor.defaultVoiceRewritePrompt + (dictionaryNote.isEmpty ? "" : "\n" + dictionaryNote)
+                )
+                guard isCurrent(id) else { return }
+                let rewritten = TextProcessor.matchingOuterWhitespace(of: source, for: output.text)
+                guard !output.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw LLMError.emptyOutput }
+                finalText = rewritten
+                usage = output.usage
+                modelName = profile.modelID
+            } catch is CancellationError {
+                return
+            } catch {
+                guard isCurrent(id) else { return }
+                let reason = (error as? LLMError)?.userMessage ?? error.localizedDescription
+                return fail(id, String(localized: "改写失败：\(reason)。所选文字未改动"))
+            }
+        } else if runsHelpMeSay {
             // Always needs the LLM (like translation), regardless of the cleanup switches.
             do {
                 let level = settingsStore.helpMeSayWebSearchLevel // nil: off (switch off or 0 %)
@@ -638,7 +677,7 @@ final class DictationSessionCoordinator {
             }
         }
         guard isCurrent(id) else { return }
-        if let preset = sessionPreset, !runsHelpMeSay { finalText = preset.formatted(finalText) } // cleanup presets only
+        if let preset = sessionPreset, !runsHelpMeSay, !isVoiceRewrite { finalText = preset.formatted(finalText) } // cleanup presets only
         timings.processedAt = .now
 
         // 8. Insert
@@ -676,7 +715,7 @@ final class DictationSessionCoordinator {
         if let start = timings.captureStartedAt, let end = timings.releasedAt {
             seconds = Double((end - start) / .milliseconds(1)) / 1000
         }
-        let kind: SessionKind = runsHelpMeSay ? .helpMeSay : (translationTarget != nil ? .translation : .dictation)
+        let kind: SessionKind = isVoiceRewrite ? .rewrite : runsHelpMeSay ? .helpMeSay : (translationTarget != nil ? .translation : .dictation)
         return SessionRecord(
             date: .now,
             kind: kind,

@@ -381,6 +381,10 @@ final class SettingsStore {
         helpMeSayWebSearchEnabled ? WebSearchLevel(eagerness: helpMeSayWebSearchEagerness) : nil
     }
 
+    // MARK: Voice Rewrite (选中文本 + 语音改写)
+    /// With text selected when dictation starts, the speech is an instruction for rewriting that selection in place.
+    var voiceRewriteEnabled: Bool { didSet { defaults.set(voiceRewriteEnabled, forKey: Keys.voiceRewriteEnabled) } }
+
     // MARK: Privacy
     /// Keep the recognised and final text of each session in the local history. Off: only counters are kept.
     var saveHistoryText: Bool { didSet { defaults.set(saveHistoryText, forKey: Keys.saveHistoryText) } }
@@ -460,6 +464,8 @@ final class SettingsStore {
 
         helpMeSayWebSearchEnabled = bool(Keys.helpMeSayWebSearchEnabled, false)
         helpMeSayWebSearchEagerness = min(100, max(0, defaults.object(forKey: Keys.helpMeSayWebSearchEagerness) as? Int ?? 80))
+
+        voiceRewriteEnabled = bool(Keys.voiceRewriteEnabled, true)
 
         saveHistoryText = bool(Keys.saveHistoryText, true)
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
@@ -591,6 +597,7 @@ final class SettingsStore {
         static let helpMeSayPrompt = "opentype.helpMeSayPrompt"
         static let helpMeSayWebSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
         static let helpMeSayWebSearchEagerness = "opentype.helpMeSayWebSearchEagerness"
+        static let voiceRewriteEnabled = "opentype.voiceRewriteEnabled"
         static let saveHistoryText = "opentype.saveHistoryText"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }

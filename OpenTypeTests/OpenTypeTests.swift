@@ -605,8 +605,9 @@ private final class FakeInserter: TextInserting {
     var outcome: InsertionOutcome = .insertedViaAccessibility
     private(set) var inserted: [String] = []
     var bundleIdentifier: String?
+    var selectedText: String?
     func captureTarget() -> InsertionTarget? {
-        InsertionTarget(pid: 1, appName: "Test", element: nil, isSecure: false, bundleIdentifier: bundleIdentifier)
+        InsertionTarget(pid: 1, appName: "Test", element: nil, isSecure: false, bundleIdentifier: bundleIdentifier, selectedText: selectedText)
     }
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
         inserted.append(text)
@@ -1384,6 +1385,76 @@ struct CoordinatorTests {
         #expect(strict.inserter.inserted.isEmpty)
     }
 
+    // MARK: Voice Rewrite
+
+    @Test func voiceRewriteReplacesSelectionEvenWithAIProcessingOff() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "翻译成日语")]) },
+            llm: .success("訳文"), recorder: recorder,
+            configure: { $0.processingLevel = .raw; $0.llmEnabled = false }
+        )
+        harness.inserter.selectedText = "原文\n"
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle)
+        #expect(c.isVoiceRewrite && !c.runsHelpMeSay && c.modeLabel != nil)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+        #expect(harness.inserter.inserted == ["訳文\n"]) // trailing newline of the selection is kept
+        let call = recorder.calls.first
+        #expect(call?.prompt == TextProcessor.defaultVoiceRewritePrompt)
+        #expect(call?.transcript == TextProcessor.voiceRewriteInput(instruction: "翻译成日语", original: "原文\n"))
+        #expect(harness.history.records.first?.kind == .rewrite)
+    }
+
+    @Test func voiceRewriteIsIgnoredWhenOffOrWithoutSelectionOrTranslating() async {
+        // Switched off: plain dictation, speech is inserted.
+        let off = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "你好")]) },
+            configure: { $0.voiceRewriteEnabled = false }
+        )
+        off.inserter.selectedText = "选中的"
+        off.coordinator.beginSession(mode: .toggle)
+        #expect(!off.coordinator.isVoiceRewrite)
+        off.coordinator.cancelSession()
+
+        // No selection.
+        let none = Harness(asr: { FakeASR() })
+        none.coordinator.beginSession(mode: .toggle)
+        #expect(!none.coordinator.isVoiceRewrite)
+        none.coordinator.cancelSession()
+
+        // Translation sessions keep translating the speech.
+        let translating = Harness(asr: { FakeASR() })
+        translating.inserter.selectedText = "选中的"
+        translating.coordinator.beginSession(mode: .toggle, translating: true)
+        #expect(!translating.coordinator.isVoiceRewrite)
+        translating.coordinator.cancelSession()
+    }
+
+    @Test func voiceRewriteFailureNeverInsertsTheInstruction() async {
+        let harness = Harness(
+            asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "语气委婉一点")]) },
+            llm: .failure(.timeout)
+        )
+        harness.inserter.selectedText = "原文"
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { if case .error = c.state { true } else { false } }
+        guard case .error(let message) = c.state else { Issue.record("expected error, got \(c.state)"); return }
+        #expect(message.contains("所选文字未改动"))
+        #expect(harness.inserter.inserted.isEmpty)
+        #expect(c.pendingText.isEmpty)
+    }
+
+    @Test func voiceRewriteKeepsSurroundingWhitespaceOfSelection() {
+        #expect(TextProcessor.matchingOuterWhitespace(of: "  a b\n", for: "X") == "  X\n")
+        #expect(TextProcessor.matchingOuterWhitespace(of: "ab", for: "\nX\n") == "X")
+    }
+
     @Test func newSessionAfterResultIsAllowed() async {
         let harness = Harness(asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "文本")]) })
         harness.inserter.outcome = .requiresManualCopy(reason: "x")
@@ -1755,6 +1826,7 @@ struct SettingsStoreTests {
         let defaults = UserDefaults(suiteName: suite)!
         let s = SettingsStore(defaults: defaults)
         #expect(s.helpMeSayEnabled)
+        #expect(s.voiceRewriteEnabled)
         #expect(!s.helpMeSayWebSearchEnabled) // opt-in
         #expect(s.helpMeSayWebSearchEagerness == 80 && s.helpMeSayWebSearchLevel == nil) // off until enabled
         #expect(s.helpMeSayPrompt == TextProcessor.defaultHelpMeSayPrompt)
