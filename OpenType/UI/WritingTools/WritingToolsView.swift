@@ -195,6 +195,11 @@ struct WritingToolsView: View {
                 HStack {
                     MicButton(controller: controller, field: .composePrompt)
                     Spacer()
+                    Button { controller.submitCompose(markdown: true) } label: {
+                        Label("生成 Markdown", systemImage: "number").font(.system(size: 13, weight: .medium))
+                    }
+                    .buttonStyle(PillButtonStyle(prominent: false))
+                    .disabled(!controller.canSubmitCompose)
                     Button { controller.submitCompose() } label: {
                         Label("生成", systemImage: "sparkles").font(.system(size: 13, weight: .medium))
                     }
@@ -220,7 +225,7 @@ struct WritingToolsView: View {
                         controller.compose.customKind = ""
                     }
                 }
-                CustomChipField(placeholder: "自定义，如周报", text: $controller.compose.customKind, onSubmit: controller.submitCompose)
+                CustomChipField(placeholder: "自定义，如周报", text: $controller.compose.customKind, onSubmit: { controller.submitCompose() })
             }
             optionRow(title: "语气") {
                 ForEach(ComposeOptions.Tone.allCases) { tone in
@@ -229,7 +234,7 @@ struct WritingToolsView: View {
                         controller.compose.customTone = ""
                     }
                 }
-                CustomChipField(placeholder: "自定义，如幽默", text: $controller.compose.customTone, onSubmit: controller.submitCompose)
+                CustomChipField(placeholder: "自定义，如幽默", text: $controller.compose.customTone, onSubmit: { controller.submitCompose() })
             }
             optionRow(title: "长度") {
                 ForEach(ComposeOptions.Length.allCases) { length in
@@ -238,7 +243,7 @@ struct WritingToolsView: View {
                         controller.compose.customLength = ""
                     }
                 }
-                CustomChipField(placeholder: "自定义，如约 200 字", text: $controller.compose.customLength, onSubmit: controller.submitCompose)
+                CustomChipField(placeholder: "自定义，如约 200 字", text: $controller.compose.customLength, onSubmit: { controller.submitCompose() })
             }
         }
     }

@@ -285,10 +285,12 @@ final class WritingToolsController {
         begin(request, messages: [.user(WritingToolsPrompts.userMessage(for: request))])
     }
 
-    func submitCompose() {
+    /// "Generate" (plain text) or "Generate Markdown".
+    func submitCompose(markdown: Bool = false) {
         guard canSubmitCompose else { return }
         let request = WritingRequest(
-            tool: .compose, source: nil, instruction: composePrompt.trimmingCharacters(in: .whitespacesAndNewlines), compose: compose
+            tool: .compose, source: nil, instruction: composePrompt.trimmingCharacters(in: .whitespacesAndNewlines),
+            compose: compose, markdown: markdown
         )
         origin = .compose
         begin(request, messages: [.user(WritingToolsPrompts.userMessage(for: request))])

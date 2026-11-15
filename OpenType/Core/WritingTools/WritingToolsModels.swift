@@ -152,6 +152,8 @@ struct WritingRequest: Equatable, Sendable {
     var translationTarget: TranslationLanguage = .english
     var translationRegion: TranslationRegion?
     var compose = ComposeOptions()
+    /// Compose only: write the text in Markdown syntax (headings, lists, bold, tables …) instead of plain text.
+    var markdown = false
 }
 
 /// A finished model answer, ready to show and to write back.

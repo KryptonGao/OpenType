@@ -40,16 +40,19 @@ enum WritingToolsPrompts {
         case .custom:
             task = "你是一个全局的文字编辑器。用户消息里“【修改要求】”之后是用户对原文提出的修改要求（可能由语音识别得到，有错别字或口头禅），“【原文】”之后是选中的原文。任务：严格按修改要求处理原文，输出修改后的完整文字，它会直接替换原文。只做要求里的改动，没涉及的内容保持不变；保持原文的格式与结构，除非要求改变；要求没有说翻译时，保持原文的语言；要求含糊无法执行时，原样输出原文。"
         case .compose:
-            return composeSystemPrompt(request.compose)
+            return composeSystemPrompt(request.compose, markdown: request.markdown)
         }
         return task + "\n" + commonRules
     }
 
-    private static func composeSystemPrompt(_ options: ComposeOptions) -> String {
-        """
+    private static func composeSystemPrompt(_ options: ComposeOptions, markdown: Bool) -> String {
+        let format = markdown
+            ? "5. 用 Markdown 语法排版：需要时使用 # 标题、- 或 1. 列表、**加粗**、> 引用、表格、链接等，结构清晰；输出的是 Markdown 源码本身，不要用代码块（```）把整篇文字包起来；写邮件时第一行是“**主题：**…”（需求使用英文时为“**Subject:** …”）。"
+            : "5. 输出纯文本，不要使用任何 Markdown 标记（不用 #、**、`、列表符号 - 或 * 等），分段用空行；写邮件时第一行是“主题：…”（需求使用英文时为“Subject: …”）。"
+        return """
         你是用户的写作助手。任务：按用户消息里“【写作需求】”之后的需求，写出一段可以直接使用的成品文字。
         体裁：\(options.kindPrompt)；语气：\(options.tonePrompt)；篇幅：\(options.lengthPrompt)。
-        规则：1. 用第一人称、以用户的口吻写；2. 使用需求所用的语言（需求里明确指定了语言时按指定的来）；3. 严禁编造需求里没有的具体事实，如真实姓名、日期、数字、地点、链接；缺少的信息用［姓名］［日期］这样的占位符标出；4. 只输出成品文字本身，不加说明、前言、标题、引号，也不要用 Markdown 代码块包裹；写邮件时第一行是“主题：…”（需求使用英文时为“Subject: …”）。
+        规则：1. 用第一人称、以用户的口吻写；2. 使用需求所用的语言（需求里明确指定了语言时按指定的来）；3. 严禁编造需求里没有的具体事实，如真实姓名、日期、数字、地点、链接；缺少的信息用［姓名］［日期］这样的占位符标出；4. 只输出成品文字本身，不加说明、前言、标题、引号；\(format)
         """
     }
 

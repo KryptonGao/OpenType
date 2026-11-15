@@ -88,6 +88,17 @@ struct WritingToolsPromptTests {
         #expect(prompt.contains("篇幅：约 200 字"))
     }
 
+    @Test func composeAsksForPlainTextOrMarkdown() {
+        var request = WritingRequest(tool: .compose, source: nil, instruction: "写周报")
+        let plain = WritingToolsPrompts.systemPrompt(for: request)
+        #expect(plain.contains("纯文本"))
+        #expect(!plain.contains("用 Markdown 语法排版"))
+        request.markdown = true
+        let markdown = WritingToolsPrompts.systemPrompt(for: request)
+        #expect(markdown.contains("用 Markdown 语法排版"))
+        #expect(!markdown.contains("纯文本"))
+    }
+
     @Test func everyToolHasASystemPrompt() {
         for tool in WritingTool.allCases {
             let request = WritingRequest(tool: tool, source: "x", instruction: "y")
@@ -497,6 +508,33 @@ struct WritingToolsControllerTests {
         #expect(h.inserter.inserted == ["主题：请假\n\n经理您好"])
         #expect(h.history.records.first?.rawText == "写一封请假邮件")
         #expect(h.presenter.toasts == [String(localized: "已插入")])
+    }
+
+    @Test func generateMarkdownSendsTheMarkdownPromptAndKeepsItWhenRefining() async {
+        let h = WTHarness(answers: [.success("# 周报\n- 完成 A"), .success("# 周报\n- 完成 A、B")])
+        h.inserter.captured?.selectedText = nil
+        await h.controller.open()
+        h.controller.composePrompt = "写周报"
+        h.controller.submitCompose(markdown: true)
+        await h.wait { h.controller.screen == .result }
+        #expect(h.calls.calls[0].system.contains("用 Markdown 语法排版"))
+        #expect(h.controller.result?.text == "# 周报\n- 完成 A")
+        h.controller.refineText = "再加一项"
+        h.controller.submitRefine()
+        await h.wait { h.controller.result?.text.contains("A、B") == true }
+        #expect(h.calls.calls[1].system.contains("用 Markdown 语法排版")) // the format sticks
+        await h.controller.apply()
+        #expect(h.inserter.inserted == ["# 周报\n- 完成 A、B"])
+    }
+
+    @Test func plainGenerateStaysPlainText() async {
+        let h = WTHarness()
+        h.inserter.captured?.selectedText = nil
+        await h.controller.open()
+        h.controller.composePrompt = "写周报"
+        h.controller.submitCompose()
+        await h.wait { h.controller.screen == .result }
+        #expect(!h.calls.calls[0].system.contains("用 Markdown 语法排版"))
     }
 
     @Test func translateUsesTheChosenLanguage() async {
