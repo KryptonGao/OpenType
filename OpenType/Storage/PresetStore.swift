@@ -1,8 +1,8 @@
 import Foundation
 import Observation
 
-/// The user's prompt presets and per-app rules. Persists as one JSON file in Application Support; `fileURL == nil`
-/// keeps everything in memory (tests). A fresh install (no file) starts with the built-in presets and no app rules: the user adds the apps.
+/// The user's prompt presets and per-app rules. Persists as one JSON file, `~/.opentype/presets.json` (outside the app
+/// bundle and container, so development and release builds share it); `fileURL == nil` keeps everything in memory (tests). A fresh install (no file) starts with the built-in presets and no app rules: the user adds the apps.
 @MainActor
 @Observable
 final class PresetStore {
@@ -58,10 +58,22 @@ final class PresetStore {
     }
 
     static var defaultFileURL: URL? {
-        guard let base = try? FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
-        ) else { return nil }
-        return base.appendingPathComponent("OpenType", isDirectory: true).appendingPathComponent("presets.json")
+        let url = CredentialStore.defaultDirectory.appendingPathComponent("presets.json")
+        migrateLegacyFile(to: url)
+        return url
+    }
+
+    /// Older versions kept the file in Application Support; copy it over once so nothing is lost. The old file stays.
+    private static func migrateLegacyFile(to url: URL) {
+        let fm = FileManager.default
+        guard !fm.fileExists(atPath: url.path),
+              let base = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+        else { return }
+        let legacy = base.appendingPathComponent("OpenType", isDirectory: true).appendingPathComponent("presets.json")
+        guard fm.fileExists(atPath: legacy.path) else { return }
+        try? fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true,
+                                attributes: [.posixPermissions: 0o700])
+        try? fm.copyItem(at: legacy, to: url)
     }
 
     // MARK: Lookup
@@ -177,7 +189,10 @@ final class PresetStore {
         lastSave = Task.detached(priority: .utility) { [snapshot] in
             await previous?.value
             guard let data = try? encoder.encode(snapshot) else { return }
-            try? FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? FileManager.default.createDirectory(
+                at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700]
+            )
             try? data.write(to: fileURL, options: .atomic)
         }
     }
