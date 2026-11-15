@@ -98,7 +98,7 @@ enum TextMetrics {
     }
 }
 
-/// Local store for the history page and the home statistics. Persisted as one JSON file in Application Support;
+/// Local store for the history page and the home statistics. Persisted as one JSON file, `~/.opentype/history.json`;
 /// `fileURL == nil` keeps everything in memory (tests).
 @MainActor
 @Observable
@@ -118,12 +118,7 @@ final class HistoryStore {
         }
     }
 
-    static var defaultFileURL: URL? {
-        guard let base = try? FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
-        ) else { return nil }
-        return base.appendingPathComponent("OpenType", isDirectory: true).appendingPathComponent("history.json")
-    }
+    static var defaultFileURL: URL? { UserDataStorage.url(for: "history.json") }
 
     func add(_ record: SessionRecord) {
         records.insert(record, at: 0)
