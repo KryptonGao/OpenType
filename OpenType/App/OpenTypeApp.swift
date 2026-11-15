@@ -12,7 +12,7 @@ enum AppContainer {
     )
     static let router = MainWindowRouter()
     static let updater = AppUpdater(settings: coordinator.settingsStore, isIdle: { coordinator.state == .idle })
-    static let updateWindows = UpdateWindowController(updater: updater)
+    static let updateWindows = UpdateWindowController(updater: updater, settings: coordinator.settingsStore)
 }
 
 enum MainWindow {

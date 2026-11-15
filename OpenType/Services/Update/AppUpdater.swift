@@ -97,9 +97,10 @@ final class AppUpdater {
                 releaseNotes = await ReleaseNotes.load(for: latest)
                 release = latest
                 state = .available
-                if settings.autoInstallUpdates {
+                let skipped = !userInitiated && settings.skippedUpdateVersion == latest.version.description
+                if settings.autoInstallUpdates, !skipped {
                     installUpdate()
-                } else if !userInitiated, settings.lastNotifiedUpdateVersion != latest.version.description {
+                } else if !userInitiated, !skipped, settings.lastNotifiedUpdateVersion != latest.version.description {
                     settings.lastNotifiedUpdateVersion = latest.version.description
                     notifier.notify(
                         title: String(localized: "OpenType 有新版本"),
@@ -155,6 +156,18 @@ final class AppUpdater {
         }
     }
 
+    /// "Skip This Version": background checks no longer announce or install this release (manual checks still do).
+    func skipCurrentRelease() {
+        guard let release else { return }
+        settings.skippedUpdateVersion = release.version.description
+    }
+
+    /// Stops a running download and goes back to "update available". Does nothing once the download is finished.
+    func cancelInstall() {
+        guard case .downloading(let progress) = state, progress < 1 else { return }
+        installTask?.cancel()
+    }
+
     private var isFailedWithRelease: Bool {
         if case .failed = state { return release != nil }
         return false
@@ -172,14 +185,14 @@ final class AppUpdater {
                 }
             }
         } catch {
-            state = .failed(error.localizedDescription)
+            state = Task.isCancelled ? .available : .failed(error.localizedDescription)
             return
         }
 
         state = .readyToInstall
         while !isIdle() {
             try? await Task.sleep(for: .seconds(2))
-            if Task.isCancelled { return }
+            if Task.isCancelled { state = .available; return }
         }
         do {
             try UpdateInstaller.launchInstallScript(staged: staged)

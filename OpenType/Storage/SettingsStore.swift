@@ -305,6 +305,8 @@ final class SettingsStore {
     var lastUpdateCheck: Date? { didSet { defaults.set(lastUpdateCheck, forKey: Keys.lastUpdateCheck) } }
     /// Version a "new version available" notification was already shown for.
     var lastNotifiedUpdateVersion: String? { didSet { defaults.set(lastNotifiedUpdateVersion, forKey: Keys.lastNotifiedUpdateVersion) } }
+    /// Version the user chose to skip ("Skip This Version"): background checks stay quiet about it.
+    var skippedUpdateVersion: String? { didSet { defaults.set(skippedUpdateVersion, forKey: Keys.skippedUpdateVersion) } }
 
     // MARK: Speech recognition
     /// CoreAudio UID of the locked input device, or `nil` to follow the system default.
@@ -416,6 +418,7 @@ final class SettingsStore {
         autoInstallUpdates = bool(Keys.autoInstallUpdates, false)
         lastUpdateCheck = defaults.object(forKey: Keys.lastUpdateCheck) as? Date
         lastNotifiedUpdateVersion = defaults.string(forKey: Keys.lastNotifiedUpdateVersion)
+        skippedUpdateVersion = defaults.string(forKey: Keys.skippedUpdateVersion)
 
         let storedInputUID = defaults.string(forKey: Keys.audioInputDeviceUID)
         audioInputDeviceUID = storedInputUID?.isEmpty == false ? storedInputUID : nil
@@ -579,6 +582,7 @@ final class SettingsStore {
         static let autoInstallUpdates = "opentype.autoInstallUpdates"
         static let lastUpdateCheck = "opentype.lastUpdateCheck"
         static let lastNotifiedUpdateVersion = "opentype.lastNotifiedUpdateVersion"
+        static let skippedUpdateVersion = "opentype.skippedUpdateVersion"
         static let audioInputDeviceUID = "opentype.audioInputDeviceUID"
         static let audioInputDeviceName = "opentype.audioInputDeviceName"
         static let asrProvider = "opentype.asrProvider"
