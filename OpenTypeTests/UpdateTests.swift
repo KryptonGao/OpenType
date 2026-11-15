@@ -64,3 +64,74 @@ struct ReleaseParserTests {
         #expect(ReleaseParser.sha256Hex(fromDigest: "sha256:zz") == nil)
     }
 }
+
+struct ReleaseNotesTests {
+    @Test func picksTheNotesFileForTheUILanguage() {
+        #expect(ReleaseNotes.fileName(forLanguage: "en") == "release-notes.md")
+        #expect(ReleaseNotes.fileName(forLanguage: "fr") == "release-notes.md")
+        #expect(ReleaseNotes.fileName(forLanguage: "zh-Hans") == "release-notes.zh-Hans.md")
+        #expect(ReleaseNotes.fileName(forLanguage: "zh-Hans-CN") == "release-notes.zh-Hans.md")
+        #expect(ReleaseNotes.fileName(forLanguage: "zh-Hant") == "release-notes.zh-Hant.md")
+        #expect(ReleaseNotes.fileName(forLanguage: "zh-TW") == "release-notes.zh-Hant.md")
+        #expect(ReleaseNotes.fileName(forLanguage: "ja") == "release-notes.ja.md")
+        #expect(ReleaseNotes.fileName(forLanguage: "ko") == "release-notes.ko.md")
+    }
+
+    @Test func buildsTheRawFileURL() throws {
+        let release = try ReleaseParser.parseLatest(Data("""
+        {"tag_name":"v0.2.0","html_url":"https://github.com/x/y/releases/tag/v0.2.0","body":"b","draft":false,"prerelease":false,
+         "assets":[{"name":"OpenType-0.2.0-arm64.dmg","state":"uploaded","size":1,"browser_download_url":"https://github.com/x/y/a.dmg"}]}
+        """.utf8))
+        #expect(ReleaseNotes.url(for: release, language: "ja", repository: "x/y")?.absoluteString
+            == "https://raw.githubusercontent.com/x/y/v0.2.0/release-notes/0.2.0/release-notes.ja.md")
+    }
+
+    @Test func cleanKeepsOnlyTheWhatsNewPart() {
+        let source = """
+        [English](https://a/b.md) · [简体中文](https://a/c.md)
+
+        # OpenType 0.2.0 (3)
+
+        Intro line.
+
+        ## What's new
+
+        - **One**: thing
+        - Two
+
+        ## Requirements
+
+        - macOS 26
+        """
+        #expect(ReleaseNotes.clean(source) == "Intro line.\n\n## What's new\n\n- **One**: thing\n- Two")
+    }
+}
+
+struct MarkdownParserTests {
+    @Test func parsesBlocks() {
+        let blocks = MarkdownParser.parse("""
+        ## Title
+
+        Some **bold**
+        text.
+
+        - one
+          - nested
+        1. first
+        > quoted
+
+        ```sh
+        echo hi
+        ```
+        """)
+        #expect(blocks == [
+            .heading(level: 2, text: "Title"),
+            .paragraph("Some **bold** text."),
+            .bullet(text: "one", indent: 0),
+            .bullet(text: "nested", indent: 1),
+            .numbered(number: "1", text: "first", indent: 0),
+            .quote("quoted"),
+            .code("echo hi"),
+        ])
+    }
+}

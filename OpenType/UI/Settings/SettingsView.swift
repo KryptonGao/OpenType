@@ -652,14 +652,6 @@ private struct UpdateSettingsSection: View {
         Section("软件更新") {
             LabeledContent("当前版本", value: updater.currentVersion.description)
             statusRow
-            if let notes = updater.release?.notes, updater.updateAvailable, !notes.isEmpty {
-                DisclosureGroup("更新内容") {
-                    ScrollView {
-                        Text(notes).font(.caption).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
-                    }
-                    .frame(maxHeight: 160)
-                }
-            }
             Toggle("自动检查更新", isOn: $settingsStore.autoCheckUpdates)
             Toggle("自动下载并安装更新", isOn: $settingsStore.autoInstallUpdates)
             Text("开启后，发现新版本会在后台下载并校验，待当前没有听写任务时自动安装并重启 OpenType。更新来自 GitHub Releases。")
@@ -675,7 +667,7 @@ private struct UpdateSettingsSection: View {
                 Text(updater.state == .upToDate ? "已是最新版本" : "尚未检查更新")
                     .foregroundStyle(.secondary)
                 Spacer()
-                Button("检查更新") { Task { await updater.checkForUpdates() } }
+                Button("检查更新") { Task { await AppContainer.updateWindows.checkAndPresent() } }
             }
         case .checking:
             HStack { ProgressView().controlSize(.small); Text("正在检查更新…").foregroundStyle(.secondary) }
@@ -683,21 +675,22 @@ private struct UpdateSettingsSection: View {
             HStack {
                 Text("发现新版本 \(updater.release?.version.description ?? "")").foregroundStyle(.green)
                 Spacer()
-                Button("更新并重启") { updater.installUpdate() }.buttonStyle(.borderedProminent)
+                Button("查看更新") { AppContainer.updateWindows.present() }.buttonStyle(.borderedProminent)
             }
         case .downloading(let progress):
             VStack(alignment: .leading, spacing: 4) {
                 Text("正在下载更新… \(Int(progress * 100))%").foregroundStyle(.secondary)
                 ProgressView(value: progress)
             }
+            .onTapGesture { AppContainer.updateWindows.present() }
         case .readyToInstall:
             HStack { ProgressView().controlSize(.small); Text("更新已就绪，即将重启…").foregroundStyle(.secondary) }
         case .failed(let message):
             VStack(alignment: .leading, spacing: 6) {
                 Text(message).font(.caption).foregroundStyle(.red)
                 HStack {
-                    if updater.release != nil { Button("重试") { updater.installUpdate() } }
-                    Button("检查更新") { Task { await updater.checkForUpdates() } }
+                    if updater.release != nil { Button("重试") { updater.installUpdate(); AppContainer.updateWindows.present() } }
+                    Button("检查更新") { Task { await AppContainer.updateWindows.checkAndPresent() } }
                     Button("手动下载") { updater.openReleasePage() }
                 }
             }

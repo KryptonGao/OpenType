@@ -24,6 +24,8 @@ final class AppUpdater {
     private(set) var state: State = .idle
     /// The newer release found by the last check (while `state` is `available` / `downloading` / `readyToInstall`).
     private(set) var release: ReleaseInfo?
+    /// The found release's notes in the UI language, trimmed for display (Markdown).
+    private(set) var releaseNotes = ""
 
     @ObservationIgnored private let settings: SettingsStore
     @ObservationIgnored private let notifier: any UserNotifying
@@ -92,6 +94,7 @@ final class AppUpdater {
             let latest = try await Self.fetchLatestRelease()
             settings.lastUpdateCheck = Date()
             if latest.version > currentVersion {
+                releaseNotes = await ReleaseNotes.load(for: latest)
                 release = latest
                 state = .available
                 if settings.autoInstallUpdates {
@@ -105,6 +108,7 @@ final class AppUpdater {
                 }
             } else {
                 release = nil
+                releaseNotes = ""
                 state = .upToDate
             }
         } catch {

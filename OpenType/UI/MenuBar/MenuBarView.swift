@@ -107,15 +107,15 @@ struct MenuBarView: View {
     private var updateMenuItem: some View {
         switch updater.state {
         case .available:
-            Button("更新到 \(updater.release?.version.description ?? "")…", systemImage: "arrow.down.circle") { updater.installUpdate() }
+            Button("更新到 \(updater.release?.version.description ?? "")…", systemImage: "arrow.down.circle") { AppContainer.updateWindows.present() }
         case .downloading(let progress):
-            Text("正在下载更新… \(Int(progress * 100))%")
+            Button("正在下载更新… \(Int(progress * 100))%") { AppContainer.updateWindows.present() }
         case .readyToInstall:
-            Text("更新已就绪，听写结束后将自动重启")
+            Button("更新已就绪，听写结束后将自动重启") { AppContainer.updateWindows.present() }
         case .checking:
             Text("正在检查更新…")
         default:
-            Button("检查更新…", systemImage: "arrow.down.circle") { Task { await updater.checkForUpdates() } }
+            Button("检查更新…", systemImage: "arrow.down.circle") { Task { await AppContainer.updateWindows.checkAndPresent() } }
         }
     }
 
