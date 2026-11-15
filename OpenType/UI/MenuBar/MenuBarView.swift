@@ -16,6 +16,10 @@ struct MenuBarView: View {
             Label("翻译：\(translationHotkey.displayName)", systemImage: "character.bubble")
         }
 
+        if coordinator.settingsStore.writingToolsEnabled {
+            Label("书写工具：\(coordinator.settingsStore.writingToolsHotkey.displayName)", systemImage: "wand.and.sparkles")
+        }
+
         Toggle("暂停全局快捷键", isOn: Bindable(coordinator.settingsStore).hotkeysPaused)
 
         microphoneMenu

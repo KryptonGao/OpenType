@@ -36,6 +36,9 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
     /// ⌃⌥T — default shortcut for voice translation.
     static let defaultTranslation = HotkeyConfig(keyCode: 17, modifiers: [.maskControl, .maskAlternate])
 
+    /// ⌃⌥W — default shortcut for the Writing Tools panel.
+    static let defaultWritingTools = HotkeyConfig(keyCode: 13, modifiers: [.maskControl, .maskAlternate])
+
     static let escapeKeyCode: Int64 = 53
     static let classicModifiers: CGEventFlags = [.maskControl, .maskAlternate, .maskShift, .maskCommand]
     static let allModifiers: CGEventFlags = classicModifiers.union(.maskSecondaryFn)

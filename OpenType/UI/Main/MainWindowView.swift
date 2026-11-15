@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The settings pages, listed in the sidebar's "设置" section.
 enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
-    case general, speech, ai, translation, helpMeSay, privacy
+    case general, speech, ai, translation, helpMeSay, writingTools, privacy
 
     var id: String { rawValue }
 
@@ -14,6 +14,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .ai: String(localized: "AI 处理")
         case .translation: String(localized: "翻译")
         case .helpMeSay: String(localized: "帮我说")
+        case .writingTools: String(localized: "书写工具")
         case .privacy: String(localized: "隐私与权限")
         }
     }
@@ -25,6 +26,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .ai: "sparkles"
         case .translation: "character.bubble"
         case .helpMeSay: "wand.and.stars"
+        case .writingTools: "wand.and.sparkles"
         case .privacy: "checkmark.shield"
         }
     }

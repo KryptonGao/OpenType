@@ -121,8 +121,22 @@ struct LLMOutput: Equatable, Sendable {
     var usage = TokenUsage.zero
 }
 
+/// One turn of a multi-turn request (Writing Tools "keep refining"). The text is sent as it is, without the
+/// "organise this speech transcript" wrapper that `process` puts around dictation.
+struct LLMMessage: Equatable, Sendable {
+    enum Role: String, Sendable { case user, assistant }
+    var role: Role
+    var content: String
+
+    static func user(_ content: String) -> LLMMessage { LLMMessage(role: .user, content: content) }
+    static func assistant(_ content: String) -> LLMMessage { LLMMessage(role: .assistant, content: content) }
+}
+
 protocol LLMProvider: Sendable {
     func process(transcript: String, systemPrompt: String) async throws -> String
+    /// A raw multi-turn request (no dictation wrapper). The default sends the last user turn through `process`,
+    /// which is enough for providers that only implement the dictation entry points (tests).
+    func complete(messages: [LLMMessage], systemPrompt: String) async throws -> LLMOutput
     /// Same as `process`, but also reports token usage. Providers that cannot report it get the default below.
     func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput
     /// Same as above, but with DeepSeek's web-search tool declared. `onProgress` reports each search / page read live;
@@ -169,6 +183,11 @@ struct WebSearchOutput: Equatable, Sendable {
 }
 
 extension LLMProvider {
+    func complete(messages: [LLMMessage], systemPrompt: String) async throws -> LLMOutput {
+        let last = messages.last { $0.role == .user }?.content ?? ""
+        return try await processWithUsage(transcript: last, systemPrompt: systemPrompt)
+    }
+
     func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput {
         LLMOutput(text: try await process(transcript: transcript, systemPrompt: systemPrompt))
     }

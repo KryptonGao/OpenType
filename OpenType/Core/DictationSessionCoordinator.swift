@@ -45,6 +45,8 @@ final class DictationSessionCoordinator {
     private(set) var webSearchStatus: String?
     /// While the settings recorder is capturing a new shortcut the global hotkey must not fire.
     var isRecordingHotkey = false
+    /// The Writing Tools panel is listening on the microphone: no dictation session may start meanwhile.
+    var isMicrophoneBusyExternally = false
 
     @ObservationIgnored let settingsStore: SettingsStore
     @ObservationIgnored let credentialStore: any CredentialStoring
@@ -161,7 +163,10 @@ final class DictationSessionCoordinator {
         hotkeyActive = hotkeyManager.startListening()
         translationHotkeyManager.startListening()
         // Voice Rewrite needs to read the selection of Chromium / Electron apps, which hide it until asked.
-        inserter.startPreparingApps { [weak self] in self?.settingsStore.voiceRewriteEnabled ?? false }
+        inserter.startPreparingApps { [weak self] in
+            guard let self else { return false }
+            return settingsStore.voiceRewriteEnabled || settingsStore.writingToolsEnabled
+        }
         // Permissions can be granted at any time: keep the status fresh and (re)try the event tap.
         hotkeyRetryTask?.cancel()
         hotkeyRetryTask = Task { [weak self] in
@@ -371,7 +376,7 @@ final class DictationSessionCoordinator {
     // MARK: - Session start
 
     func beginSession(mode: SessionMode, translating: Bool = false, helpMeSay: Bool = false) {
-        guard !state.isBusy else { return }
+        guard !state.isBusy, !isMicrophoneBusyExternally else { return }
         dismissTask?.cancel()
         let id = UUID()
         currentSessionID = id
@@ -915,6 +920,24 @@ final class DictationSessionCoordinator {
             throw LLMError.invalidConfig(String(localized: "未填写联网搜索的 DeepSeek API Key"))
         }
         return makeLLM(LLMProfile.makeDeepSeekWebSearch(), key)
+    }
+
+    /// The inserter the dictation uses, shared with Writing Tools (it caches which apps were prepared).
+    var textInserter: any TextInserting { inserter }
+
+    /// A recorder for the Writing Tools microphone buttons: same capture, speech recognition settings and dictionary.
+    func makeVoiceInputRecorder() -> VoiceInputRecorder {
+        VoiceInputRecorder(
+            audio: audio,
+            audioInputTarget: { [weak self] in self?.settingsStore.audioInputTarget },
+            ensureMicrophone: { [weak self] in await self?.permissionChecker.ensureMicrophone() ?? false },
+            makeConfig: { [weak self] in
+                guard let self else { throw ASRError.invalidConfig("") }
+                return try asrConfig()
+            },
+            makeASR: makeASR,
+            correct: { [weak self] in self?.dictionaryStore.correct($0, extraPackIDs: []) ?? $0 }
+        )
     }
 
     // MARK: - Connection tests (Settings)

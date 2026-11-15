@@ -13,6 +13,25 @@ enum AppContainer {
         presetStore: presetStore, overlay: overlay
     )
     static let router = MainWindowRouter()
+    static let writingToolsPanel = WritingToolsPanelController()
+    static let writingTools: WritingToolsController = {
+        let controller = WritingToolsController(
+            settingsStore: settingsStore,
+            credentialStore: coordinator.credentialStore,
+            inserter: coordinator.textInserter,
+            historyStore: historyStore,
+            recorder: coordinator.makeVoiceInputRecorder(),
+            isDictationBusy: { coordinator.state.isBusy },
+            setMicrophoneBusy: { coordinator.isMicrophoneBusyExternally = $0 },
+            openSettings: {
+                router.tab = .settings(.writingTools)
+                NSApp.activate(ignoringOtherApps: true)
+                AppDelegate.shared?.openMainWindow?()
+            }
+        )
+        controller.presenter = writingToolsPanel
+        return controller
+    }()
     static let updater = AppUpdater(settings: coordinator.settingsStore, isIdle: { coordinator.state == .idle })
     static let updateWindows = UpdateWindowController(updater: updater, settings: coordinator.settingsStore)
 }
@@ -47,6 +66,9 @@ struct OpenTypeApp: App {
                 }
                 .onChange(of: coordinator.settingsStore.translationHotkey) { _, _ in
                     coordinator.applyHotkeySettings()
+                }
+                .onChange(of: coordinator.settingsStore.writingToolsHotkey) { _, _ in
+                    AppContainer.writingTools.applyHotkeySettings()
                 }
         }
         .defaultSize(width: 1000, height: 700)

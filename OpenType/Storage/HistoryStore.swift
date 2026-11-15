@@ -23,6 +23,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case translation
     case helpMeSay
     case rewrite
+    case writingTools
 
     var id: String { rawValue }
 
@@ -32,6 +33,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .translation: String(localized: "翻译")
         case .helpMeSay: String(localized: "帮我说")
         case .rewrite: String(localized: "改写")
+        case .writingTools: String(localized: "书写工具")
         }
     }
 
@@ -41,6 +43,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .translation: "character.bubble"
         case .helpMeSay: "wand.and.stars"
         case .rewrite: "pencil.and.outline"
+        case .writingTools: "wand.and.sparkles"
         }
     }
 }
@@ -88,7 +91,7 @@ enum TextMetrics {
         return count
     }
 
-    private static func isIdeographic(_ scalar: Unicode.Scalar) -> Bool {
+    static func isIdeographic(_ scalar: Unicode.Scalar) -> Bool {
         switch scalar.value {
         case 0x3040...0x30FF, // hiragana, katakana
              0x3400...0x4DBF, 0x4E00...0x9FFF, 0xF900...0xFAFF, // CJK ideographs

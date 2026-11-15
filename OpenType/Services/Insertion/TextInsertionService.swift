@@ -23,6 +23,11 @@ struct InsertionTarget {
     /// Text the user had selected in the focused control when the session started (Voice Rewrite).
     /// `nil` when nothing (or nothing readable) was selected; never set for secure fields.
     var selectedText: String? = nil
+    /// `false` when `selectedText` came from a simulated ⌘C because the app does not expose its selection: it cannot be
+    /// compared with the live selection before writing back.
+    var selectionIsVerifiable = true
+    /// Where the selection (or the caret) is, in Cocoa screen coordinates. Only filled for Writing Tools.
+    var anchorRect: CGRect? = nil
 }
 
 @MainActor
@@ -31,10 +36,17 @@ protocol TextInserting: AnyObject {
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome
     /// Starts preparing apps so their selected text can be read (Voice Rewrite). `isEnabled` is asked each time.
     func startPreparingApps(isEnabled: @escaping () -> Bool)
+    /// Like `captureTarget`, plus the selection's position and, for apps that hide their selection from
+    /// accessibility, a simulated ⌘C fallback (Writing Tools).
+    func captureForWritingTools() async -> InsertionTarget?
+    /// Sends ⌘Z to the app the text was written to. `false` when that app is no longer in front.
+    func sendUndo(to target: InsertionTarget) -> Bool
 }
 
 extension TextInserting {
     func startPreparingApps(isEnabled: @escaping () -> Bool) {}
+    func captureForWritingTools() async -> InsertionTarget? { captureTarget() }
+    func sendUndo(to target: InsertionTarget) -> Bool { false }
 }
 
 /// Handles 3-tier insertion: Accessibility direct write → simulated paste → manual copy.
@@ -99,6 +111,109 @@ final class TextInsertionService: TextInserting {
         )
     }
 
+    // MARK: Writing Tools capture
+
+    func captureForWritingTools() async -> InsertionTarget? {
+        guard var target = captureTarget() else { return nil }
+        guard !target.isSecure else { return target }
+        if let element = target.element { target.anchorRect = Self.anchorRect(of: element) }
+        // Only when the app does not say what is selected at all: an app that reports an empty selection (even
+        // one like VS Code that copies the whole line on an empty ⌘C) must not get a ⌘C.
+        if target.selectedText == nil, Self.selectionIsUnknown(target.element),
+           let copied = await selectionViaCopy(pid: target.pid) {
+            target.selectedText = copied
+            target.selectionIsVerifiable = false
+        }
+        return target
+    }
+
+    func sendUndo(to target: InsertionTarget) -> Bool {
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.pid,
+              let down = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_Z), keyDown: true),
+              let up = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_Z), keyDown: false)
+        else { return false }
+        down.flags = .maskCommand
+        up.flags = .maskCommand
+        down.post(tap: .cgAnnotatedSessionEventTap)
+        up.post(tap: .cgAnnotatedSessionEventTap)
+        return true
+    }
+
+    private static func selectionIsUnknown(_ element: AXUIElement?) -> Bool {
+        guard let element else { return true }
+        var value: CFTypeRef?
+        return AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &value) != .success
+    }
+
+    /// Copies the selection with a simulated ⌘C and puts the clipboard back afterwards.
+    private func selectionViaCopy(pid: pid_t) async -> String? {
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return nil }
+        let pasteboard = NSPasteboard.general
+        let backup = Self.snapshot(of: pasteboard)
+        let before = pasteboard.changeCount
+        await waitForModifierRelease()
+        guard Self.postCommandKey(kVK_ANSI_C) else { return nil }
+        for _ in 0..<15 { // up to ~300 ms for the app to answer
+            if pasteboard.changeCount != before { break }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        guard pasteboard.changeCount != before else { return nil } // nothing was copied: nothing selected
+        let copied = pasteboard.string(forType: .string)
+        Self.restore(backup, to: pasteboard, expectedChangeCount: pasteboard.changeCount)
+        guard let copied, !copied.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              copied.count <= Self.maxSelectionLength else { return nil }
+        return copied
+    }
+
+    /// Screen rectangle of the selection (or the caret), else of the focused control; Cocoa coordinates.
+    private static func anchorRect(of element: AXUIElement) -> CGRect? {
+        var rect: CGRect?
+        var rangeValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeValue) == .success,
+           let rangeValue, CFGetTypeID(rangeValue) == AXValueGetTypeID() {
+            var range = CFRange()
+            if AXValueGetValue(rangeValue as! AXValue, .cfRange, &range) { // type verified above
+                rect = bounds(of: range, in: element)
+                if (rect == nil || rect == .zero), range.length == 0 {
+                    // A caret has no extent in many apps: use the character next to it.
+                    let next = CFRange(location: range.location, length: 1)
+                    let previous = CFRange(location: max(range.location - 1, 0), length: 1)
+                    rect = bounds(of: next, in: element) ?? bounds(of: previous, in: element)
+                }
+            }
+        }
+        if rect == nil || rect == .zero { rect = frame(of: element) }
+        guard let rect, rect != .zero, rect.width.isFinite, rect.height.isFinite,
+              let primary = NSScreen.screens.first else { return nil }
+        // Accessibility uses a top-left origin on the primary screen; Cocoa a bottom-left one.
+        return CGRect(x: rect.minX, y: primary.frame.height - rect.maxY, width: rect.width, height: rect.height)
+    }
+
+    private static func bounds(of range: CFRange, in element: AXUIElement) -> CGRect? {
+        var range = range
+        guard let parameter = AXValueCreate(.cfRange, &range) else { return nil }
+        var value: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(
+            element, kAXBoundsForRangeParameterizedAttribute as CFString, parameter, &value
+        ) == .success, let value, CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+        var rect = CGRect.zero
+        return AXValueGetValue(value as! AXValue, .cgRect, &rect) ? rect : nil // type verified above
+    }
+
+    private static func frame(of element: AXUIElement) -> CGRect? {
+        var positionValue: CFTypeRef?
+        var sizeValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionValue) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeValue) == .success,
+              let positionValue, let sizeValue,
+              CFGetTypeID(positionValue) == AXValueGetTypeID(), CFGetTypeID(sizeValue) == AXValueGetTypeID() else { return nil }
+        var point = CGPoint.zero
+        var size = CGSize.zero
+        guard AXValueGetValue(positionValue as! AXValue, .cgPoint, &point),
+              AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else { return nil }
+        return CGRect(origin: point, size: size)
+    }
+
     // MARK: Insertion
 
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
@@ -129,7 +244,7 @@ final class TextInsertionService: TextInserting {
         }
         // Voice Rewrite replaces the selection: if it changed while we were listening, the result no longer
         // belongs there. Never overwrite something else.
-        if let original = target.selectedText {
+        if let original = target.selectedText, target.selectionIsVerifiable {
             guard let current, Self.selectedText(of: current) == original else {
                 return .focusLost(reason: String(localized: "所选文字在录音期间已改变"))
             }
@@ -163,9 +278,7 @@ final class TextInsertionService: TextInserting {
 
     private func insertViaPasteboard(_ text: String) async -> Bool {
         let pasteboard = NSPasteboard.general
-        let backup: [[(NSPasteboard.PasteboardType, Data)]] = (pasteboard.pasteboardItems ?? []).map { item in
-            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-        }
+        let backup = Self.snapshot(of: pasteboard)
 
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
@@ -181,6 +294,12 @@ final class TextInsertionService: TextInserting {
         try? await Task.sleep(for: .milliseconds(600)) // let the target read the pasteboard
         Self.restore(backup, to: pasteboard, expectedChangeCount: ownChangeCount)
         return true
+    }
+
+    private static func snapshot(of pasteboard: NSPasteboard) -> [[(NSPasteboard.PasteboardType, Data)]] {
+        (pasteboard.pasteboardItems ?? []).map { item in
+            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
+        }
     }
 
     /// Restores the previous clipboard only if nobody (e.g. the user) modified it in the meantime.
@@ -208,10 +327,12 @@ final class TextInsertionService: TextInserting {
         }
     }
 
-    private static func postCommandV() -> Bool {
+    private static func postCommandV() -> Bool { postCommandKey(kVK_ANSI_V) }
+
+    private static func postCommandKey(_ key: Int) -> Bool {
         let source = CGEventSource(stateID: .combinedSessionState)
-        guard let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: true),
-              let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: false)
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(key), keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(key), keyDown: false)
         else { return false }
         down.flags = .maskCommand
         up.flags = .maskCommand

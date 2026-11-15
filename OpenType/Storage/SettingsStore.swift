@@ -385,6 +385,17 @@ final class SettingsStore {
     /// With text selected when dictation starts, the speech is an instruction for rewriting that selection in place.
     var voiceRewriteEnabled: Bool { didSet { defaults.set(voiceRewriteEnabled, forKey: Keys.voiceRewriteEnabled) } }
 
+    // MARK: Writing Tools (书写工具)
+    /// The shortcut opens the Writing Tools panel for the selected text (or the cursor).
+    var writingToolsEnabled: Bool { didSet { defaults.set(writingToolsEnabled, forKey: Keys.writingToolsEnabled) } }
+    var writingToolsHotkey: HotkeyConfig { didSet { defaults.setCodable(writingToolsHotkey, forKey: Keys.writingToolsHotkey) } }
+    /// Profile Writing Tools talks to; `nil` follows the profile that is active in "AI 处理".
+    var writingToolsProfileID: UUID? { didSet { defaults.set(writingToolsProfileID?.uuidString, forKey: Keys.writingToolsProfileID) } }
+    /// Overrides the profile's Model ID for Writing Tools; blank keeps the profile's.
+    var writingToolsModelID: String { didSet { defaults.set(writingToolsModelID, forKey: Keys.writingToolsModelID) } }
+    /// Overrides the profile's reasoning effort for Writing Tools; blank keeps the profile's.
+    var writingToolsReasoningEffort: String { didSet { defaults.set(writingToolsReasoningEffort, forKey: Keys.writingToolsReasoningEffort) } }
+
     // MARK: Privacy
     /// Keep the recognised and final text of each session in the local history. Off: only counters are kept.
     var saveHistoryText: Bool { didSet { defaults.set(saveHistoryText, forKey: Keys.saveHistoryText) } }
@@ -467,6 +478,16 @@ final class SettingsStore {
 
         voiceRewriteEnabled = bool(Keys.voiceRewriteEnabled, true)
 
+        writingToolsEnabled = bool(Keys.writingToolsEnabled, true)
+        if let stored = defaults.codable(HotkeyConfig.self, forKey: Keys.writingToolsHotkey).value, stored.validation == .ok {
+            writingToolsHotkey = stored
+        } else {
+            writingToolsHotkey = .defaultWritingTools
+        }
+        writingToolsProfileID = defaults.string(forKey: Keys.writingToolsProfileID).flatMap(UUID.init(uuidString:))
+        writingToolsModelID = defaults.string(forKey: Keys.writingToolsModelID) ?? ""
+        writingToolsReasoningEffort = defaults.string(forKey: Keys.writingToolsReasoningEffort) ?? ""
+
         saveHistoryText = bool(Keys.saveHistoryText, true)
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
         Diagnostics.isEnabled = diagnosticsEnabled
@@ -486,6 +507,17 @@ final class SettingsStore {
 
     var activeProfile: LLMProfile? {
         llmProfiles.first { $0.id == activeProfileID } ?? llmProfiles.first
+    }
+
+    /// The profile Writing Tools uses, with its own model / effort overrides applied. The profile `id` stays the base
+    /// profile's, so its API key is found under the same credential account.
+    var writingToolsProfile: LLMProfile? {
+        guard var profile = llmProfiles.first(where: { $0.id == writingToolsProfileID }) ?? activeProfile else { return nil }
+        let model = writingToolsModelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !model.isEmpty { profile.modelID = model }
+        let effort = writingToolsReasoningEffort.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !effort.isEmpty { profile.reasoningEffort = effort }
+        return profile
     }
 
     func updateProfile(_ profile: LLMProfile) {
@@ -509,6 +541,7 @@ final class SettingsStore {
         guard llmProfiles.count > 1, let index = llmProfiles.firstIndex(where: { $0.id == id }) else { return nil }
         llmProfiles.remove(at: index)
         if activeProfileID == id { activeProfileID = llmProfiles.first?.id }
+        if writingToolsProfileID == id { writingToolsProfileID = nil }
         return id
     }
 
@@ -598,6 +631,11 @@ final class SettingsStore {
         static let helpMeSayWebSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
         static let helpMeSayWebSearchEagerness = "opentype.helpMeSayWebSearchEagerness"
         static let voiceRewriteEnabled = "opentype.voiceRewriteEnabled"
+        static let writingToolsEnabled = "opentype.writingToolsEnabled"
+        static let writingToolsHotkey = "opentype.writingToolsHotkey"
+        static let writingToolsProfileID = "opentype.writingToolsProfileID"
+        static let writingToolsModelID = "opentype.writingToolsModelID"
+        static let writingToolsReasoningEffort = "opentype.writingToolsReasoningEffort"
         static let saveHistoryText = "opentype.saveHistoryText"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }

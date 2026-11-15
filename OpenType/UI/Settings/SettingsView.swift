@@ -14,6 +14,7 @@ struct SettingsView: View {
             case .ai: AIProcessingSettingsTab(coordinator: coordinator)
             case .translation: TranslationSettingsTab(coordinator: coordinator)
             case .helpMeSay: HelpMeSaySettingsTab(coordinator: coordinator)
+            case .writingTools: WritingToolsSettingsTab(coordinator: coordinator)
             case .privacy: PrivacyPermissionsSettingsTab(coordinator: coordinator)
             }
         }
@@ -76,7 +77,10 @@ private struct GeneralSettingsTab: View {
                     title: "全局快捷键",
                     hotkey: Binding(get: { settingsStore.hotkey }, set: { settingsStore.hotkey = $0 ?? .default }),
                     defaultHotkey: .default,
-                    conflict: { $0 == settingsStore.translationHotkey ? String(localized: "与翻译快捷键相同，请换一个") : nil },
+                    conflict: {
+                        if $0 == settingsStore.translationHotkey { return String(localized: "与翻译快捷键相同，请换一个") }
+                        return $0 == settingsStore.writingToolsHotkey ? String(localized: "与书写工具快捷键相同，请换一个") : nil
+                    },
                     coordinator: coordinator
                 )
                 Toggle("暂停全局快捷键", isOn: $settingsStore.hotkeysPaused)
@@ -437,7 +441,10 @@ private struct TranslationSettingsTab: View {
                     hotkey: $settingsStore.translationHotkey,
                     defaultHotkey: .defaultTranslation,
                     allowsClear: true,
-                    conflict: { $0 == settingsStore.hotkey ? String(localized: "与听写快捷键相同，请换一个") : nil },
+                    conflict: {
+                        if $0 == settingsStore.hotkey { return String(localized: "与听写快捷键相同，请换一个") }
+                        return $0 == settingsStore.writingToolsHotkey ? String(localized: "与书写工具快捷键相同，请换一个") : nil
+                    },
                     coordinator: coordinator
                 )
                 Text("说出一段话，结束后会先整理再翻译成目标语言并插入。长按这个快捷键则是「翻译帮我说」（见「帮我说」标签页）。")
@@ -445,6 +452,64 @@ private struct TranslationSettingsTab: View {
             }
             Section {
                 Text("翻译由「AI 处理」中当前选中的 Profile 完成，需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，翻译仍会调用该模型。翻译失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Writing Tools
+
+private struct WritingToolsSettingsTab: View {
+    let coordinator: DictationSessionCoordinator
+    private var settingsStore: SettingsStore { coordinator.settingsStore }
+
+    /// Model ID of the chosen profile (what a blank field falls back to).
+    private var profileModelID: String {
+        let profile = settingsStore.llmProfiles.first { $0.id == settingsStore.writingToolsProfileID } ?? settingsStore.activeProfile
+        return profile?.modelID ?? ""
+    }
+
+    var body: some View {
+        @Bindable var settingsStore = settingsStore
+        Form {
+            Section("书写工具") {
+                Toggle("启用书写工具", isOn: $settingsStore.writingToolsEnabled)
+                Text("在任意应用里选中文字，按快捷键，在选区旁弹出面板：纠错、改写、调整语气、摘要、要点、列表、表格、翻译，或用一句话（打字或语音）描述想要的修改。没有选中文字时直接打开「创作」，用一句话生成邮件、贴文或消息，插入到光标处。结果页可以继续调整，替换后在原应用里按 ⌘Z 即可还原。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("快捷键") {
+                HotkeyRecorderRow(
+                    title: "书写工具快捷键",
+                    hotkey: Binding(get: { settingsStore.writingToolsHotkey }, set: { settingsStore.writingToolsHotkey = $0 ?? .defaultWritingTools }),
+                    defaultHotkey: .defaultWritingTools,
+                    conflict: {
+                        if $0 == settingsStore.hotkey { return String(localized: "与听写快捷键相同，请换一个") }
+                        return $0 == settingsStore.translationHotkey ? String(localized: "与翻译快捷键相同，请换一个") : nil
+                    },
+                    coordinator: coordinator
+                )
+                Text("再按一次快捷键或按 Esc 可关闭面板。面板不会抢走原应用的焦点，选区保持不变。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("AI 模型") {
+                Picker("配置（Profile）", selection: $settingsStore.writingToolsProfileID) {
+                    Text("跟随「AI 处理」当前配置").tag(UUID?.none)
+                    Divider()
+                    ForEach(settingsStore.llmProfiles) { Text($0.name).tag(Optional($0.id)) }
+                }
+                TextField("Model ID", text: $settingsStore.writingToolsModelID,
+                          prompt: Text("留空则使用配置里的：\(profileModelID)"))
+                    .autocorrectionDisabled()
+                TextField("推理强度（effort）", text: $settingsStore.writingToolsReasoningEffort,
+                          prompt: Text("留空则使用配置里的设置，如 low / medium / high"))
+                    .autocorrectionDisabled()
+                Text("书写工具可以使用与听写不同的模型和推理强度（例如更快的小模型）。API Key、Base URL 和 API 格式取自上面选中的配置；两个栏位留空时完全沿用该配置。推理强度原样发送，请按所用模型的文档填写。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section {
+                Text("选中的文字（或「创作」的需求）会发送到上方配置的 LLM 服务。个别应用不向系统公开所选文字时，OpenType 会模拟一次 ⌘C 来读取，并随后还原剪贴板。需要辅助功能权限。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

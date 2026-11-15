@@ -142,15 +142,30 @@ enum LLMRequestBuilder {
         systemPrompt: String,
         webSearch: WebSearchLevel? = nil
     ) throws -> URLRequest {
+        try makeRequest(
+            profile: profile, apiKey: apiKey, messages: [.user(TextProcessor.userPrompt(transcript: transcript))],
+            systemPrompt: systemPrompt, webSearch: webSearch
+        )
+    }
+
+    /// Builds the request from already-final conversation turns (nothing is wrapped).
+    static func makeRequest(
+        profile: LLMProfile,
+        apiKey: String,
+        messages: [LLMMessage],
+        systemPrompt: String,
+        webSearch: WebSearchLevel? = nil
+    ) throws -> URLRequest {
         guard !profile.modelID.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw LLMError.invalidConfig(String(localized: "未填写 Model ID"))
         }
+        guard !messages.isEmpty else { throw LLMError.invalidConfig(String(localized: "请求内容为空")) }
         var request = URLRequest(url: try endpoint(format: profile.format, baseURL: profile.baseURL))
         request.httpMethod = "POST"
         request.timeoutInterval = profile.timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let userPrompt = TextProcessor.userPrompt(transcript: transcript)
+        let turns = messages.map { ["role": $0.role.rawValue, "content": $0.content] }
         var body: [String: Any]
         switch profile.format {
         case .openAIResponses:
@@ -158,17 +173,15 @@ enum LLMRequestBuilder {
             body = [
                 "model": profile.modelID,
                 "instructions": systemPrompt,
-                "input": userPrompt,
+                // A single user turn keeps the plain-string form every Responses-compatible server accepts.
+                "input": messages.count == 1 && messages[0].role == .user ? messages[0].content as Any : turns as Any,
                 "store": false
             ]
         case .openAIChatCompletions:
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             body = [
                 "model": profile.modelID,
-                "messages": [
-                    ["role": "system", "content": systemPrompt],
-                    ["role": "user", "content": userPrompt]
-                ]
+                "messages": [["role": "system", "content": systemPrompt]] + turns
             ]
         case .anthropicMessages:
             request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
@@ -177,7 +190,7 @@ enum LLMRequestBuilder {
                 "model": profile.modelID,
                 "max_tokens": anthropicMaxTokens,
                 "system": systemPrompt,
-                "messages": [["role": "user", "content": userPrompt]]
+                "messages": turns
             ]
         }
         if let effort = profile.effectiveReasoningEffort {
@@ -436,11 +449,24 @@ struct HTTPLLMProvider: LLMProvider {
         return WebSearchOutput(text: text, progress: progress, usage: accumulator.usage)
     }
 
+    func complete(messages: [LLMMessage], systemPrompt: String) async throws -> LLMOutput {
+        guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
+        let request = try LLMRequestBuilder.makeRequest(
+            profile: profile, apiKey: apiKey, messages: messages, systemPrompt: systemPrompt
+        )
+        let output = try await perform(request, webSearch: nil)
+        return LLMOutput(text: output.text, usage: output.usage)
+    }
+
     private func send(transcript: String, systemPrompt: String, webSearch: WebSearchLevel?) async throws -> WebSearchOutput {
         guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
         let request = try LLMRequestBuilder.makeRequest(
             profile: profile, apiKey: apiKey, transcript: transcript, systemPrompt: systemPrompt, webSearch: webSearch
         )
+        return try await perform(request, webSearch: webSearch)
+    }
+
+    private func perform(_ request: URLRequest, webSearch: WebSearchLevel?) async throws -> WebSearchOutput {
         let (data, response) = try await transport.send(request)
         guard (200..<300).contains(response.statusCode) else {
             throw LLMResponseParser.mapFailure(status: response.statusCode, data: data, secrets: [apiKey])
