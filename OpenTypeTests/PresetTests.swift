@@ -5,18 +5,6 @@ import Testing
 // MARK: - Deterministic text helpers
 
 struct PunctuationFormatterTests {
-    @Test func halfWidthConvertsPunctuationAndSpacesBeforeLatinWords() {
-        #expect(PunctuationFormatter.halfWidth("你好，world。") == "你好, world.")
-        #expect(PunctuationFormatter.halfWidth("（abc）【x】") == "(abc)[x]")
-        #expect(PunctuationFormatter.halfWidth("他说：“好的”") == "他说:\"好的\"")
-        #expect(PunctuationFormatter.halfWidth("ＡＢＣ１２３！") == "ABC123!")
-    }
-
-    @Test func halfWidthLeavesTextWithoutFullWidthCharactersAlone() {
-        let text = "git rebase -i HEAD~3, then push."
-        #expect(PunctuationFormatter.halfWidth(text) == text)
-    }
-
     @Test func stripTrailingPeriodRemovesOnlyTheFinalStop() {
         #expect(PunctuationFormatter.stripTrailingPeriod("好的。") == "好的")
         #expect(PunctuationFormatter.stripTrailingPeriod("Sounds good.") == "Sounds good")
@@ -27,9 +15,9 @@ struct PunctuationFormatterTests {
     }
 
     @Test func presetFormattingOnlyAppliesToCleanupPresets() {
-        let cleanup = PromptPreset(id: "a", symbolName: "x", kind: .cleanup, stripTrailingPeriod: true, halfWidthPunctuation: true)
-        #expect(cleanup.formatted("你好，world。") == "你好, world")
-        let email = PromptPreset(id: "b", symbolName: "x", kind: .helpMeSay, stripTrailingPeriod: true, halfWidthPunctuation: true)
+        let cleanup = PromptPreset(id: "a", symbolName: "x", kind: .cleanup, stripTrailingPeriod: true)
+        #expect(cleanup.formatted("你好，world。") == "你好，world")
+        let email = PromptPreset(id: "b", symbolName: "x", kind: .helpMeSay, stripTrailingPeriod: true)
         #expect(email.formatted("你好，world。") == "你好，world。")
     }
 }
@@ -86,7 +74,7 @@ struct PresetStoreTests {
         let general = PresetStore().defaultPreset
         #expect(general.kind == .cleanup)
         #expect(general.effectivePrompt == nil) // the active profile's prompt applies
-        #expect(!general.stripTrailingPeriod && !general.halfWidthPunctuation && general.dictionaryPackIDs.isEmpty)
+        #expect(!general.stripTrailingPeriod && general.dictionaryPackIDs.isEmpty)
         #expect(general.formatted("你好，世界。") == "你好，世界。")
     }
 
@@ -126,12 +114,12 @@ struct PresetStoreTests {
     @Test func restoreBuiltInsAddsMissingOnesWithoutTouchingEdits() {
         let store = PresetStore()
         var edited = store.preset(id: BuiltInPresets.codeTech)!
-        edited.halfWidthPunctuation = false
+        edited.stripTrailingPeriod = true
         store.update(edited)
         store.delete(id: BuiltInPresets.workEmail)
         store.restoreBuiltIns()
         #expect(store.preset(id: BuiltInPresets.workEmail) != nil)
-        #expect(store.preset(id: BuiltInPresets.codeTech)?.halfWidthPunctuation == false)
+        #expect(store.preset(id: BuiltInPresets.codeTech)?.stripTrailingPeriod == true)
     }
 
     @Test func removeAllRulesClearsEveryRule() {
@@ -156,7 +144,7 @@ struct PresetStoreTests {
         let copy = store.duplicate(BuiltInPresets.codeTech)!
         #expect(copy.id != BuiltInPresets.codeTech && !copy.isBuiltIn)
         #expect(copy.prompt == BuiltInPresets.codeTechPrompt)
-        #expect(copy.halfWidthPunctuation)
+        #expect(copy.dictionaryPackIDs == BuiltInPresets.codingPackIDs + ["ai-concepts", "ai-vendors"])
     }
 
     @Test func persistsAndReloads() async throws {

@@ -183,8 +183,7 @@ private struct PresetEditor: View {
             if preset.kind == .cleanup {
                 Section("标点") {
                     Toggle("去掉末尾的句号", isOn: binding(\.stripTrailingPeriod))
-                    Toggle("使用半角标点", isOn: binding(\.halfWidthPunctuation))
-                    Text("这两项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。")
+                    Text("这一项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }

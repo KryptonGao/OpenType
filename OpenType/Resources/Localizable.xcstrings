@@ -2210,40 +2210,6 @@
         }
       }
     },
-    "使用半角标点": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用半角标点"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use half-width punctuation"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用半形標點"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "半角の句読点を使う"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "반각 문장 부호 사용"
-          }
-        }
-      }
-    },
     "使用当前 AI Profile 的提示词，行为与未使用预设时完全一致。": {
       "localizations": {
         "zh-Hans": {
@@ -3298,36 +3264,36 @@
         }
       }
     },
-    "原样保留代码标识符与术语，使用半角标点，并启用编程词库。": {
+    "原样保留代码标识符与术语，并启用编程词库。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "原样保留代码标识符与术语，使用半角标点，并启用编程词库。"
+            "value": "原样保留代码标识符与术语，并启用编程词库。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keeps code identifiers and terms as spoken, uses half-width punctuation and turns on the coding dictionary packs."
+            "value": "Keeps code identifiers and terms as spoken and turns on the coding dictionary packs."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "原樣保留程式碼識別字與術語，使用半形標點，並啟用程式詞庫。"
+            "value": "原樣保留程式碼識別字與術語，並啟用程式詞庫。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "コードの識別子や用語をそのまま残し、半角句読点を使い、プログラミング用辞書を有効にします。"
+            "value": "コードの識別子や用語をそのまま残し、プログラミング用辞書を有効にします。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "코드 식별자와 용어를 그대로 두고, 반각 문장 부호를 쓰며, 프로그래밍 사전을 켭니다."
+            "value": "코드 식별자와 용어를 그대로 두고, 프로그래밍 사전을 켭니다."
           }
         }
       }
@@ -14790,36 +14756,36 @@
         }
       }
     },
-    "这两项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。": {
+    "这一项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这两项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。"
+            "value": "这一项在 AI 处理之后直接改写结果，所以在原始模式或 AI 失败时同样生效。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "These two change the result directly after AI processing, so they also apply in Raw mode or when the AI fails."
+            "value": "This changes the result directly after AI processing, so it also applies in Raw mode or when the AI fails."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這兩項在 AI 處理之後直接改寫結果，所以在原始模式或 AI 失敗時同樣生效。"
+            "value": "這一項在 AI 處理之後直接改寫結果，所以在原始模式或 AI 失敗時同樣生效。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この 2 つは AI 処理の後に結果を直接書き換えるため、原文モードや AI が失敗したときにも適用されます。"
+            "value": "この設定は AI 処理の後に結果を直接書き換えるため、原文モードや AI が失敗したときにも適用されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 두 항목은 AI 처리 후 결과를 직접 고치므로 원본 모드나 AI 실패 시에도 적용됩니다."
+            "value": "이 항목은 AI 처리 후 결과를 직접 고치므로 원본 모드나 AI 실패 시에도 적용됩니다."
           }
         }
       }

@@ -2307,16 +2307,6 @@ struct PresetCoordinatorTests {
         #expect(harness.inserter.inserted == ["整理后，的文字。"])
     }
 
-    @Test func codePresetConvertsPunctuationEvenWithoutTheLLM() async {
-        let harness = Harness(
-            asr: asr("加个 loading 状态，别忘了。"), presets: presets(["com.apple.dt.Xcode": BuiltInPresets.codeTech]),
-            frontmostBundleID: "com.apple.dt.Xcode",
-            configure: { $0.processingLevel = .raw; $0.llmEnabled = false }
-        )
-        await run(harness)
-        #expect(harness.inserter.inserted == ["加个 loading 状态,别忘了."])
-    }
-
     @Test func terminalPresetInsertsASingleLineCommandWithoutReturn() async {
         let recorder = PromptRecorder()
         let harness = Harness(
