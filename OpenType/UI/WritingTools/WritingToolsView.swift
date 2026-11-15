@@ -51,6 +51,7 @@ struct WritingToolsView: View {
             .frame(height: min(max(bodyHeight, 1), Self.maxBodyHeight))
         }
         .frame(width: Self.width)
+        .clipShape(shape) // nothing may poke out of the rounded corners
         // Empty parts of the card drag the window (controls on top still get their clicks).
         .background { Color.clear.contentShape(Rectangle()).gesture(WindowDragGesture()) }
         .modifier(PanelBackground(material: controller.settingsStore.writingToolsMaterial, shape: shape))
@@ -289,12 +290,15 @@ struct WritingToolsView: View {
                     Toggle("对照原文", isOn: $controller.showOriginal).toggleStyle(.switch).controlSize(.small)
                         .font(.system(size: 12)).foregroundStyle(.secondary).padding(.horizontal, 6)
                     if controller.showOriginal {
-                        Text(source)
-                            .font(.system(size: 12.5)).foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 13).padding(.vertical, 10)
-                            .background(.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        CappedScrollView(maxHeight: 130) {
+                            Text(source)
+                                .font(.system(size: 12.5)).foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 13).padding(.vertical, 10)
+                        }
+                        .background(.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                     }
                 }
             }
@@ -304,34 +308,38 @@ struct WritingToolsView: View {
         }
     }
 
+    /// The answer in its own scroll area (capped), so a long text never pushes "refine" and the buttons out of reach.
     @ViewBuilder private func resultBox(_ result: WritingResult) -> some View {
-        Group {
-            if let rows = result.table {
-                Grid(alignment: .topLeading, horizontalSpacing: 0, verticalSpacing: 0) {
-                    ForEach(rows.indices, id: \.self) { r in
-                        GridRow {
-                            ForEach(rows[r].indices, id: \.self) { c in
-                                Text(rows[r][c])
-                                    .font(.system(size: 12.5, weight: r == 0 ? .semibold : .regular))
-                                    .padding(.horizontal, 8).padding(.vertical, 6)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                                    .background(r == 0 ? Color.primary.opacity(0.06) : .clear)
-                                    .overlay(Rectangle().strokeBorder(Color.primary.opacity(0.18), lineWidth: 0.5))
+        CappedScrollView(maxHeight: 300) {
+            Group {
+                if let rows = result.table {
+                    Grid(alignment: .topLeading, horizontalSpacing: 0, verticalSpacing: 0) {
+                        ForEach(rows.indices, id: \.self) { r in
+                            GridRow {
+                                ForEach(rows[r].indices, id: \.self) { c in
+                                    Text(rows[r][c])
+                                        .font(.system(size: 12.5, weight: r == 0 ? .semibold : .regular))
+                                        .padding(.horizontal, 8).padding(.vertical, 6)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                                        .background(r == 0 ? Color.primary.opacity(0.06) : .clear)
+                                        .overlay(Rectangle().strokeBorder(Color.primary.opacity(0.18), lineWidth: 0.5))
+                                }
                             }
                         }
                     }
+                } else if let diff = result.diff {
+                    Text(Self.attributed(diff, showChanges: controller.showDiff))
+                        .font(.system(size: 14)).lineSpacing(4)
+                } else {
+                    Text(result.text).font(.system(size: 14)).lineSpacing(4)
                 }
-            } else if let diff = result.diff {
-                Text(Self.attributed(diff, showChanges: controller.showDiff))
-                    .font(.system(size: 14)).lineSpacing(4)
-            } else {
-                Text(result.text).font(.system(size: 14)).lineSpacing(4)
             }
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 15).padding(.vertical, 13)
         }
-        .textSelection(.enabled)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 15).padding(.vertical, 13)
         .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(.separator, lineWidth: 0.5))
     }
 
@@ -476,6 +484,21 @@ private extension View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+    }
+}
+
+/// A scroll view that is as tall as its content up to `maxHeight`, then scrolls.
+private struct CappedScrollView<Content: View>: View {
+    let maxHeight: CGFloat
+    @ViewBuilder let content: Content
+    @State private var contentHeight: CGFloat = 0
+
+    var body: some View {
+        ScrollView {
+            content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(height: min(max(contentHeight, 1), maxHeight))
     }
 }
 
