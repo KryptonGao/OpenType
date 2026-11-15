@@ -49,7 +49,8 @@ struct OverlayView: View {
             }
             if let target = coordinator.translationTarget {
                 translationCapsule(target)
-            } else if showsMinimalPresetCapsule {
+            }
+            if showsMinimalPresetCapsule {
                 presetCapsule
             }
         }
@@ -98,10 +99,12 @@ struct OverlayView: View {
     }
 
     /// In minimal mode the preset only gets a capsule when it is not simply the default one (e.g. an app rule applied).
+    /// A translation that applies the preset always shows it, so it is clear which preset the translation follows.
     private var showsMinimalPresetCapsule: Bool {
         guard showsPresetPicker else { return false }
         switch coordinator.state {
-        case .connecting, .recording, .finalizing: return coordinator.activePreset.id != coordinator.presetStore.defaultPresetID
+        case .connecting, .recording, .finalizing:
+            return coordinator.translationTarget != nil || coordinator.activePreset.id != coordinator.presetStore.defaultPresetID
         default: return false
         }
     }
@@ -151,7 +154,8 @@ struct OverlayView: View {
 
             if let target = coordinator.translationTarget {
                 translationPicker(target)
-            } else if showsPresetPicker, coordinator.presetStore.presets.count > 1 {
+            }
+            if showsPresetPicker, coordinator.presetStore.presets.count > 1 {
                 presetPicker
             }
 
@@ -197,9 +201,10 @@ struct OverlayView: View {
         .padding(8) // room for the window shadow
     }
 
-    /// A long press already made this "help me say" (its own prompt), and translation has its own prompt: no preset then.
+    /// A long press already made this "help me say" (its own prompt): no preset then. Translation has its own prompt
+    /// and only shows the preset when the user chose to apply it to translations.
     private var showsPresetPicker: Bool {
-        coordinator.translationTarget == nil && !coordinator.isHelpMeSay && !coordinator.isVoiceRewrite
+        (coordinator.translationTarget == nil || coordinator.translationAppliesPreset) && !coordinator.isHelpMeSay && !coordinator.isVoiceRewrite
     }
 
     /// Popup row: the preset of this session (from the app's rule or the default), changeable until processing starts.

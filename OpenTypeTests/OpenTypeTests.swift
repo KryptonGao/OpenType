@@ -2320,6 +2320,20 @@ struct PresetCoordinatorTests {
         #expect(harness.inserter.inserted == ["Meeting went well"]) // casual chat drops the trailing period
     }
 
+    @Test func presetCanBeSwitchedDuringTranslationOnlyWhenApplied() async {
+        for applies in [false, true] {
+            let harness = Harness(asr: asr(), configure: { $0.translationUsesPreset = applies })
+            let c = harness.coordinator
+            c.beginSession(mode: .toggle, translating: true)
+            await harness.wait { c.state == .recording }
+            #expect(c.translationAppliesPreset == applies)
+            #expect(c.canChangePreset == applies)
+            c.setPreset(c.presetStore.preset(id: BuiltInPresets.casualChat)!)
+            #expect((c.activePreset.id == BuiltInPresets.casualChat) == applies)
+            c.cancelSession()
+        }
+    }
+
     @Test func translationNeverAppliesACommandPreset() async {
         let recorder = PromptRecorder()
         let harness = Harness(

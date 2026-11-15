@@ -326,8 +326,11 @@ final class DictationSessionCoordinator {
         activePreset = preset
     }
 
+    /// `true` while this is a translation session that follows the app's preset (the setting is on).
+    var translationAppliesPreset: Bool { translationTarget != nil && settingsStore.translationUsesPreset }
+
     var canChangePreset: Bool {
-        translationTarget == nil && rewriteSource == nil && (state == .connecting || state == .recording || state == .finalizing)
+        (translationTarget == nil || translationAppliesPreset) && rewriteSource == nil && (state == .connecting || state == .recording || state == .finalizing)
     }
 
     var canChangeTranslationTarget: Bool {
