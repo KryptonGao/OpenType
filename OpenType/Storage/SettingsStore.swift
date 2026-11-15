@@ -396,6 +396,9 @@ final class SettingsStore {
     /// Overrides the profile's reasoning effort for Writing Tools; blank keeps the profile's.
     var writingToolsReasoningEffort: String { didSet { defaults.set(writingToolsReasoningEffort, forKey: Keys.writingToolsReasoningEffort) } }
 
+    /// Background of the Writing Tools panel (default frosted blur).
+    var writingToolsMaterial: OverlayMaterial { didSet { defaults.set(writingToolsMaterial.rawValue, forKey: Keys.writingToolsMaterial) } }
+
     // MARK: Privacy
     /// Keep the recognised and final text of each session in the local history. Off: only counters are kept.
     var saveHistoryText: Bool { didSet { defaults.set(saveHistoryText, forKey: Keys.saveHistoryText) } }
@@ -487,6 +490,7 @@ final class SettingsStore {
         writingToolsProfileID = defaults.string(forKey: Keys.writingToolsProfileID).flatMap(UUID.init(uuidString:))
         writingToolsModelID = defaults.string(forKey: Keys.writingToolsModelID) ?? ""
         writingToolsReasoningEffort = defaults.string(forKey: Keys.writingToolsReasoningEffort) ?? ""
+        writingToolsMaterial = raw(Keys.writingToolsMaterial, .blur)
 
         saveHistoryText = bool(Keys.saveHistoryText, true)
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
@@ -636,6 +640,7 @@ final class SettingsStore {
         static let writingToolsProfileID = "opentype.writingToolsProfileID"
         static let writingToolsModelID = "opentype.writingToolsModelID"
         static let writingToolsReasoningEffort = "opentype.writingToolsReasoningEffort"
+        static let writingToolsMaterial = "opentype.writingToolsMaterial"
         static let saveHistoryText = "opentype.saveHistoryText"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }

@@ -5,10 +5,10 @@ import Observation
 /// Shows the Writing Tools panel (and the "replaced · undo" toast). Implemented by `WritingToolsPanelController`.
 @MainActor
 protocol WritingToolsPresenting: AnyObject {
-    /// Shows the panel next to `anchor` (Cocoa screen coordinates of the selection / caret; `nil` = near the mouse).
-    func show(controller: WritingToolsController, anchor: CGRect?)
+    /// Shows the panel next to the mouse pointer.
+    func show(controller: WritingToolsController)
     func hide()
-    func showToast(message: String, anchor: CGRect?, onUndo: @escaping () -> Void)
+    func showToast(message: String, onUndo: @escaping () -> Void)
 }
 
 /// State and logic of the Writing Tools panel: global shortcut → read the selection → pick a tool → model → write back.
@@ -187,7 +187,7 @@ final class WritingToolsController {
         isVisible = true
         openCount += 1
         Diagnostics.log("writing tools open selection=\(hasSelection) app=\(captured.bundleIdentifier ?? "?")")
-        presenter?.show(controller: self, anchor: captured.anchorRect)
+        presenter?.show(controller: self)
     }
 
     /// Esc / the close button: drops everything. Nothing is written.
@@ -418,7 +418,7 @@ final class WritingToolsController {
         switch outcome {
         case .insertedViaAccessibility, .insertedViaPasteboard:
             let message = replacing ? String(localized: "已替换") : String(localized: "已插入")
-            presenter?.showToast(message: message, anchor: target.anchorRect) { [inserter] in _ = inserter.sendUndo(to: target) }
+            presenter?.showToast(message: message) { [inserter] in _ = inserter.sendUndo(to: target) }
         case .requiresManualCopy(let reason), .focusLost(let reason):
             delivery = .manualCopy
             copyToPasteboard(text)

@@ -490,7 +490,10 @@ private struct WritingToolsSettingsTab: View {
                     },
                     coordinator: coordinator
                 )
-                Text("再按一次快捷键或按 Esc 可关闭面板。面板不会抢走原应用的焦点，选区保持不变。")
+                Picker("面板材质", selection: $settingsStore.writingToolsMaterial) {
+                    ForEach(OverlayMaterial.allCases) { Text($0.displayName).tag($0) }
+                }
+                Text("面板出现在鼠标指针旁，可以拖动。再按一次快捷键或按 Esc 可关闭面板。面板不会抢走原应用的焦点，选区保持不变。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("AI 模型") {

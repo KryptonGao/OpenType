@@ -3,6 +3,8 @@ import SwiftUI
 /// The Writing Tools panel (design: Design/mockups/writing-tools.html).
 struct WritingToolsView: View {
     static let width: CGFloat = 392
+    /// Transparent border around the card, for its shadow.
+    static let margin: CGFloat = 28
     private static let maxBodyHeight: CGFloat = 560
 
     @Bindable var controller: WritingToolsController
@@ -18,6 +20,23 @@ struct WritingToolsView: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 26, style: .continuous) }
 
     var body: some View {
+        card
+            .padding(Self.margin)
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { onContentSizeChange($0) }
+            .background { shortcuts }
+            .task(id: FocusKey(screen: controller.screen, openCount: controller.openCount)) {
+                try? await Task.sleep(for: .milliseconds(60)) // the panel has to be key first
+                switch controller.screen {
+                case .menu: focus = .instruction
+                case .compose: focus = .composePrompt
+                case .result: focus = .refine
+                default: focus = nil
+                }
+            }
+    }
+
+    private var card: some View {
         VStack(spacing: 0) {
             header
             ScrollView {
@@ -31,19 +50,10 @@ struct WritingToolsView: View {
             .frame(height: min(max(bodyHeight, 1), Self.maxBodyHeight))
         }
         .frame(width: Self.width)
-        .modifier(PanelBackground(material: controller.settingsStore.overlayMaterial, shape: shape))
-        .fixedSize(horizontal: false, vertical: true)
-        .onGeometryChange(for: CGSize.self) { $0.size } action: { onContentSizeChange($0) }
-        .background { shortcuts }
-        .task(id: FocusKey(screen: controller.screen, openCount: controller.openCount)) {
-            try? await Task.sleep(for: .milliseconds(60)) // the panel has to be key first
-            switch controller.screen {
-            case .menu: focus = .instruction
-            case .compose: focus = .composePrompt
-            case .result: focus = .refine
-            default: focus = nil
-            }
-        }
+        // Empty parts of the card drag the window (controls on top still get their clicks).
+        .background { Color.clear.contentShape(Rectangle()).gesture(WindowDragGesture()) }
+        .modifier(PanelBackground(material: controller.settingsStore.writingToolsMaterial, shape: shape))
+        .background { CardShadow(shape: shape, radius: 18, y: 8, opacity: 0.28) }
     }
 
     /// ⌘↩ replaces / inserts from anywhere on the result page (even while the refine field has the keyboard).
@@ -423,6 +433,26 @@ struct WritingToolsView: View {
 }
 
 // MARK: - Pieces
+
+/// A soft shadow that follows `shape` exactly and is cut out underneath it, so the translucent material above shows
+/// the desktop and not a dark shape. (A window shadow would not match the rounded corners.)
+struct CardShadow<S: Shape>: View {
+    let shape: S
+    var radius: CGFloat
+    var y: CGFloat
+    var opacity: Double
+
+    var body: some View {
+        shape.fill(Color.black)
+            .shadow(color: .black.opacity(opacity), radius: radius, y: y)
+            .mask {
+                Rectangle()
+                    .overlay { shape.blendMode(.destinationOut) }
+                    .compositingGroup()
+                    .padding(-60)
+            }
+    }
+}
 
 private struct PanelBackground: ViewModifier {
     let material: OverlayMaterial

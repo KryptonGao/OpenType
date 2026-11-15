@@ -17714,40 +17714,6 @@
         }
       }
     },
-    "再按一次快捷键或按 Esc 可关闭面板。面板不会抢走原应用的焦点，选区保持不变。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "再按一次快捷键或按 Esc 可关闭面板。面板不会抢走原应用的焦点，选区保持不变。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Press the shortcut again or Esc to close the panel. The panel does not take focus from the original app, and the selection stays as it is."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "再按一次快速鍵或按 Esc 可關閉面板。面板不會搶走原 App 的焦點，選取範圍保持不變。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "もう一度ショートカットを押すか Esc で閉じます。パネルは元のアプリからフォーカスを奪わず、選択範囲もそのまま残ります。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "단축키를 다시 누르거나 Esc를 누르면 패널이 닫힙니다. 패널은 원래 앱의 포커스를 가져가지 않으며 선택 영역도 그대로 유지됩니다."
-          }
-        }
-      }
-    },
     "书写工具可以使用与听写不同的模型和推理强度（例如更快的小模型）。API Key、Base URL 和 API 格式取自上面选中的配置；两个栏位留空时完全沿用该配置。推理强度原样发送，请按所用模型的文档填写。": {
       "localizations": {
         "zh-Hans": {
@@ -19920,6 +19886,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "요청 내용이 비어 있습니다"
+          }
+        }
+      }
+    },
+    "面板出现在鼠标指针旁，可以拖动。再按一次快捷键或按 Esc 可关闭面板。面板不会抢走原应用的焦点，选区保持不变。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板出现在鼠标指针旁，可以拖动。再按一次快捷键或按 Esc 可关闭面板。面板不会抢走原应用的焦点，选区保持不变。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The panel appears next to the mouse pointer and can be dragged. Press the shortcut again or Esc to close it. It does not take focus from the original app, and the selection stays as it is."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板會出現在滑鼠游標旁，可以拖動。再按一次快速鍵或按 Esc 可關閉面板。面板不會搶走原 App 的焦點，選取範圍保持不變。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パネルはマウスポインタの横に表示され、ドラッグで移動できます。もう一度ショートカットを押すか Esc で閉じます。元のアプリからフォーカスを奪わず、選択範囲もそのまま残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "패널은 마우스 포인터 옆에 나타나며 드래그해서 옮길 수 있습니다. 단축키를 다시 누르거나 Esc를 누르면 닫힙니다. 원래 앱의 포커스를 가져가지 않으며 선택 영역도 그대로 유지됩니다."
+          }
+        }
+      }
+    },
+    "面板材质": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板材质"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panel material"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "面板材質"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パネルの素材"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "패널 재질"
           }
         }
       }

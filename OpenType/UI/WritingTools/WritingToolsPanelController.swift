@@ -14,15 +14,15 @@ final class WritingToolsPanelController: WritingToolsPresenting {
     private weak var controller: WritingToolsController?
     private var pendingContentSize: CGSize?
     private var placement = Placement.below
-    private var anchor: CGRect?
+    /// Transparent border around the visible card: room for its soft shadow (drawn by the view, not the window).
+    private let margin = WritingToolsView.margin
 
-    func show(controller: WritingToolsController, anchor: CGRect?) {
+    func show(controller: WritingToolsController) {
         self.controller = controller
-        self.anchor = anchor
         hideToast()
         if panel == nil { buildPanel(controller: controller) }
         guard let panel else { return }
-        place(panel, initial: true)
+        place(panel)
         panel.makeKeyAndOrderFront(nil) // key (for typing) without activating the app
         installMouseMonitor()
     }
@@ -39,7 +39,7 @@ final class WritingToolsPanelController: WritingToolsPresenting {
         }))
         hosting.sizingOptions = []
         let panel = WritingToolsPanel(
-            contentRect: NSRect(x: 0, y: 0, width: WritingToolsView.width, height: 320),
+            contentRect: NSRect(x: 0, y: 0, width: WritingToolsView.width + 2 * WritingToolsView.margin, height: 320),
             styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
@@ -50,9 +50,9 @@ final class WritingToolsPanelController: WritingToolsPresenting {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = true
+        panel.hasShadow = false // the card draws its own shadow: a window shadow would not follow the rounded corners
         panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
+        panel.isMovable = true // dragged by the card's `WindowDragGesture`
         panel.onCancel = { [weak self] in self?.controller?.close() }
         self.panel = panel
     }
@@ -86,33 +86,31 @@ final class WritingToolsPanelController: WritingToolsPresenting {
         NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) } ?? NSScreen.main ?? NSScreen.screens.first
     }
 
+    /// Keeps the visible card (the frame without its shadow margin) inside the screen.
     private func clamped(_ frame: NSRect) -> NSRect {
         guard let visible = screen(for: NSPoint(x: frame.midX, y: frame.midY))?.visibleFrame else { return frame }
-        var result = frame
-        result.origin.x = min(max(result.minX, visible.minX + 8), max(visible.maxX - result.width - 8, visible.minX + 8))
-        result.origin.y = min(max(result.minY, visible.minY + 8), max(visible.maxY - result.height - 8, visible.minY + 8))
-        return result
+        var card = frame.insetBy(dx: margin, dy: margin)
+        let area = visible.insetBy(dx: 8, dy: 8)
+        card.origin.x = min(max(card.minX, area.minX), max(area.maxX - card.width, area.minX))
+        card.origin.y = min(max(card.minY, area.minY), max(area.maxY - card.height, area.minY))
+        return card.insetBy(dx: -margin, dy: -margin)
     }
 
-    /// Below the selection when there is room, above it otherwise; next to the mouse when its position is unknown.
-    private func place(_ panel: NSPanel, initial: Bool) {
+    /// Right under the mouse pointer (above it when there is no room below), on the screen the pointer is on.
+    private func place(_ panel: NSPanel) {
         let size = panel.frame.size
-        let gap: CGFloat = 10
-        var origin: NSPoint
-        if let anchor {
-            let visible = screen(for: NSPoint(x: anchor.midX, y: anchor.midY))?.visibleFrame ?? .zero
-            origin = NSPoint(x: anchor.minX, y: anchor.minY - gap - size.height)
-            placement = .below
-            if origin.y < visible.minY + 8, anchor.maxY + gap + size.height <= visible.maxY {
-                origin.y = anchor.maxY + gap
-                placement = .above
-            }
-        } else {
-            let mouse = NSEvent.mouseLocation
-            origin = NSPoint(x: mouse.x - size.width / 2, y: mouse.y - size.height - 14)
-            placement = .below
+        let card = NSSize(width: size.width - 2 * margin, height: size.height - 2 * margin)
+        let gap: CGFloat = 14
+        let mouse = NSEvent.mouseLocation
+        let visible = screen(for: mouse)?.visibleFrame ?? .zero
+        var cardOrigin = NSPoint(x: mouse.x - 24, y: mouse.y - gap - card.height)
+        placement = .below
+        if cardOrigin.y < visible.minY + 8, mouse.y + gap + card.height <= visible.maxY - 8 {
+            cardOrigin.y = mouse.y + gap
+            placement = .above
         }
-        panel.setFrame(clamped(NSRect(origin: origin, size: size)), display: true)
+        let frame = NSRect(origin: NSPoint(x: cardOrigin.x - margin, y: cardOrigin.y - margin), size: size)
+        panel.setFrame(clamped(frame), display: true)
     }
 
     // MARK: Click outside
@@ -123,7 +121,7 @@ final class WritingToolsPanelController: WritingToolsPresenting {
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, let panel = self.panel, panel.isVisible,
-                      !panel.frame.contains(NSEvent.mouseLocation) else { return }
+                      !panel.frame.insetBy(dx: self.margin, dy: self.margin).contains(NSEvent.mouseLocation) else { return }
                 self.controller?.close()
             }
         }
@@ -136,7 +134,7 @@ final class WritingToolsPanelController: WritingToolsPresenting {
 
     // MARK: Toast
 
-    func showToast(message: String, anchor: CGRect?, onUndo: @escaping () -> Void) {
+    func showToast(message: String, onUndo: @escaping () -> Void) {
         hideToast()
         let hosting = NSHostingView(rootView: WritingToolsToastView(message: message) { [weak self] in
             onUndo()
@@ -151,10 +149,11 @@ final class WritingToolsPanelController: WritingToolsPresenting {
         toast.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         toast.backgroundColor = .clear
         toast.isOpaque = false
-        toast.hasShadow = true
+        toast.hasShadow = false
         toast.hidesOnDeactivate = false
-        let point = anchor.map { NSPoint(x: $0.minX, y: $0.minY - 12 - size.height) } ?? NSPoint(x: NSEvent.mouseLocation.x - size.width / 2, y: NSEvent.mouseLocation.y - size.height - 14)
-        toast.setFrame(clamped(NSRect(origin: point, size: size)), display: true)
+        let mouse = NSEvent.mouseLocation
+        let origin = NSPoint(x: mouse.x - size.width / 2, y: mouse.y - size.height - 6)
+        toast.setFrame(clamped(NSRect(origin: origin, size: size)), display: true)
         toast.orderFrontRegardless() // never key: the app keeps focus
         self.toast = toast
         toastTask = Task { [weak self] in
@@ -198,7 +197,9 @@ private struct WritingToolsToastView: View {
         .font(.system(size: 13))
         .padding(.horizontal, 14)
         .padding(.vertical, 9)
-        .glassEffect(.regular, in: Capsule())
-        .padding(10) // room for the shadow
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.separator.opacity(0.5)))
+        .background { CardShadow(shape: Capsule(), radius: 8, y: 3, opacity: 0.22) }
+        .padding(14) // room for the shadow
     }
 }

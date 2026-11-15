@@ -261,6 +261,10 @@ struct WritingToolsSettingsTests {
         #expect(settings.activeProfile?.modelID == "big-model") // the dictation profile is untouched
     }
 
+    @Test func panelMaterialDefaultsToFrostedBlur() {
+        #expect(store().writingToolsMaterial == .blur)
+    }
+
     @Test func settingsPersist() {
         let suite = "opentype.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -297,9 +301,9 @@ private final class WTPresenter: WritingToolsPresenting {
     private(set) var hidden = 0
     private(set) var toasts: [String] = []
     private var undo: (() -> Void)?
-    func show(controller: WritingToolsController, anchor: CGRect?) { shown += 1 }
+    func show(controller: WritingToolsController) { shown += 1 }
     func hide() { hidden += 1 }
-    func showToast(message: String, anchor: CGRect?, onUndo: @escaping () -> Void) { toasts.append(message); undo = onUndo }
+    func showToast(message: String, onUndo: @escaping () -> Void) { toasts.append(message); undo = onUndo }
     func tapUndo() { undo?() }
 }
 
