@@ -53,7 +53,7 @@ final class UpdateWindowController: NSObject, NSWindowDelegate {
     }
 
     private func showProgress() {
-        show(&progressWindow, size: CGSize(width: 420, height: 170)) {
+        show(&progressWindow, size: CGSize(width: 420, height: 140)) {
             UpdateProgressView(updater: updater, onClose: { [weak self] in self?.progressWindow?.close() })
         }
     }
@@ -194,7 +194,7 @@ private struct UpdateProgressView: View {
         .padding(.horizontal, 24)
         .padding(.bottom, 20)
         .padding(.top, 6)
-        .frame(width: 420, height: 170)
+        .frame(width: 420, height: 140)
     }
 }
 
