@@ -4,7 +4,7 @@ import SwiftUI
 struct WritingToolsView: View {
     static let width: CGFloat = 392
     /// Transparent border around the card, for its shadow.
-    static let margin: CGFloat = 28
+    static let margin: CGFloat = 44
     private static let maxBodyHeight: CGFloat = 560
 
     @Bindable var controller: WritingToolsController
@@ -53,7 +53,7 @@ struct WritingToolsView: View {
         // Empty parts of the card drag the window (controls on top still get their clicks).
         .background { Color.clear.contentShape(Rectangle()).gesture(WindowDragGesture()) }
         .modifier(PanelBackground(material: controller.settingsStore.writingToolsMaterial, shape: shape))
-        .background { CardShadow(shape: shape, radius: 18, y: 8, opacity: 0.28) }
+        .background { CardShadow(shape: shape, radius: 30, y: 12, opacity: 0.42) }
     }
 
     /// ⌘↩ replaces / inserts from anywhere on the result page (even while the refine field has the keyboard).
@@ -445,11 +445,13 @@ struct CardShadow<S: Shape>: View {
     var body: some View {
         shape.fill(Color.black)
             .shadow(color: .black.opacity(opacity), radius: radius, y: y)
+            .shadow(color: .black.opacity(opacity * 0.7), radius: max(radius / 5, 2), y: max(y / 4, 1))
             .mask {
+                // The padding comes first so the cut-out below is sized like the card, not like the larger rectangle.
                 Rectangle()
+                    .padding(-60)
                     .overlay { shape.blendMode(.destinationOut) }
                     .compositingGroup()
-                    .padding(-60)
             }
     }
 }
