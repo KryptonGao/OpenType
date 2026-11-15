@@ -160,6 +160,8 @@ final class DictationSessionCoordinator {
         translationHotkeyManager.shouldInterceptEscape = { [weak self] in (self?.state ?? .idle) != .idle }
         hotkeyActive = hotkeyManager.startListening()
         translationHotkeyManager.startListening()
+        // Voice Rewrite needs to read the selection of Chromium / Electron apps, which hide it until asked.
+        inserter.startPreparingApps { [weak self] in self?.settingsStore.voiceRewriteEnabled ?? false }
         // Permissions can be granted at any time: keep the status fresh and (re)try the event tap.
         hotkeyRetryTask?.cancel()
         hotkeyRetryTask = Task { [weak self] in

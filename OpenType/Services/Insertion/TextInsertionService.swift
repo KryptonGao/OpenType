@@ -29,12 +29,52 @@ struct InsertionTarget {
 protocol TextInserting: AnyObject {
     func captureTarget() -> InsertionTarget?
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome
+    /// Starts preparing apps so their selected text can be read (Voice Rewrite). `isEnabled` is asked each time.
+    func startPreparingApps(isEnabled: @escaping () -> Bool)
+}
+
+extension TextInserting {
+    func startPreparingApps(isEnabled: @escaping () -> Bool) {}
 }
 
 /// Handles 3-tier insertion: Accessibility direct write → simulated paste → manual copy.
 @MainActor
 final class TextInsertionService: TextInserting {
     private static let secureSubrole = "AXSecureTextField"
+    /// Chromium / Electron apps (Claude, VS Code, Slack, Chrome, …) only build their accessibility tree, and so only
+    /// expose the focused field and its selection, once an assistive technology asks for it with this attribute.
+    private static let manualAccessibility = "AXManualAccessibility"
+
+    private var preparedPIDs: Set<pid_t> = []
+    /// Registered once and kept for the lifetime of the app (the service is app-wide).
+    private var observers: [NSObjectProtocol] = []
+    private var isPreparingEnabled: () -> Bool = { false }
+
+    func startPreparingApps(isEnabled: @escaping () -> Bool) {
+        isPreparingEnabled = isEnabled
+        guard observers.isEmpty else { return }
+        let center = NSWorkspace.shared.notificationCenter
+        observers.append(center.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            MainActor.assumeIsolated { self?.prepare(app) }
+        })
+        observers.append(center.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            MainActor.assumeIsolated { _ = self?.preparedPIDs.remove(app.processIdentifier) }
+        })
+        if let front = NSWorkspace.shared.frontmostApplication { prepare(front) }
+    }
+
+    /// Asks an app to expose its accessibility tree. Done as soon as the app becomes active, so the tree is ready
+    /// long before the user selects text and presses the shortcut. Apps without the attribute just ignore it.
+    private func prepare(_ app: NSRunningApplication) {
+        let pid = app.processIdentifier
+        guard pid != ProcessInfo.processInfo.processIdentifier, !preparedPIDs.contains(pid),
+              isPreparingEnabled(), isAccessibilityTrusted() else { return }
+        preparedPIDs.insert(pid)
+        let result = AXUIElementSetAttributeValue(AXUIElementCreateApplication(pid), Self.manualAccessibility as CFString, kCFBooleanTrue)
+        Diagnostics.log("prepare accessibility app=\(app.bundleIdentifier ?? "?") result=\(result.rawValue)")
+    }
 
     func isAccessibilityTrusted(promptIfNeeded: Bool = false) -> Bool {
         AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": promptIfNeeded] as CFDictionary)
@@ -45,8 +85,10 @@ final class TextInsertionService: TextInserting {
     func captureTarget() -> InsertionTarget? {
         guard let app = NSWorkspace.shared.frontmostApplication,
               app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
+        if isPreparingEnabled() { prepare(app) } // no-op when already done
         let element = isAccessibilityTrusted() ? focusedElement(ofPID: app.processIdentifier) : nil
         let isSecure = element.map(Self.isSecureField) ?? false
+        if Diagnostics.isEnabled { Self.logCapture(app: app, element: element) }
         return InsertionTarget(
             pid: app.processIdentifier,
             appName: app.localizedName ?? String(localized: "未知应用"),
@@ -196,6 +238,20 @@ final class TextInsertionService: TextInserting {
         if AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role) == .success,
            (role as? String) == secureSubrole { return true }
         return false
+    }
+
+    /// Why a selection was (not) readable: never logs the text itself.
+    private static func logCapture(app: NSRunningApplication, element: AXUIElement?) {
+        guard let element else {
+            Diagnostics.log("capture app=\(app.bundleIdentifier ?? "?") focusedElement=none")
+            return
+        }
+        var role: CFTypeRef?
+        _ = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+        var value: CFTypeRef?
+        let error = AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &value)
+        let length = (value as? String)?.count ?? -1
+        Diagnostics.log("capture app=\(app.bundleIdentifier ?? "?") role=\((role as? String) ?? "?") selectedTextError=\(error.rawValue) selectedLength=\(length)")
     }
 
     /// Longest selection that is sent to the model; longer selections are treated as "no selection".
