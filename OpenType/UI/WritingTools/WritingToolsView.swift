@@ -282,6 +282,19 @@ struct WritingToolsView: View {
 
     private var resultScreen: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if controller.isStreaming, let result = controller.result {
+                // The answer is arriving: it grows in place, and "Stop" replaces the buttons.
+                resultBox(result)
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(controller.tool?.loadingText ?? "").font(.system(size: 13, weight: .semibold))
+                    Spacer(minLength: 0)
+                    Button("停止") { controller.stopStreaming() }
+                        .buttonStyle(PillButtonStyle(prominent: false))
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .padding(.horizontal, 6)
+            } else {
             if let result = controller.result {
                 resultBox(result)
                 if controller.tool == .proofread {
@@ -310,12 +323,13 @@ struct WritingToolsView: View {
             refineField
             voiceError
             actions
+            }
         }
     }
 
     /// The answer in its own scroll area (capped), so a long text never pushes "refine" and the buttons out of reach.
     @ViewBuilder private func resultBox(_ result: WritingResult) -> some View {
-        CappedScrollView(maxHeight: 300) {
+        CappedScrollView(maxHeight: 300, followsEnd: controller.isStreaming) {
             Group {
                 if let rows = result.table {
                     Grid(alignment: .topLeading, horizontalSpacing: 0, verticalSpacing: 0) {
@@ -495,14 +509,24 @@ private extension View {
 /// A scroll view that is as tall as its content up to `maxHeight`, then scrolls.
 private struct CappedScrollView<Content: View>: View {
     let maxHeight: CGFloat
+    /// Keeps the end in view while the content grows (a streaming answer).
+    var followsEnd = false
     @ViewBuilder let content: Content
     @State private var contentHeight: CGFloat = 0
 
     var body: some View {
-        ScrollView {
-            content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+                    Color.clear.frame(height: 0).id("end")
+                }
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .onChange(of: contentHeight) { _, _ in
+                if followsEnd { proxy.scrollTo("end", anchor: .bottom) }
+            }
         }
-        .scrollBounceBehavior(.basedOnSize)
         .frame(height: min(max(contentHeight, 1), maxHeight))
     }
 }

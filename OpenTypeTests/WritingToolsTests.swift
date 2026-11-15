@@ -213,6 +213,16 @@ struct LLMMessagesRequestTests {
     }
 }
 
+/// Answers with a server-sent-events body (the default `sendStreaming` replays it line by line).
+private struct SSETransport: HTTPTransport {
+    let body: String
+    var status = 200
+
+    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+    }
+}
+
 private final class MockTransportBox: HTTPTransport, @unchecked Sendable {
     private let lock = NSLock()
     private var stored: URLRequest?
@@ -223,6 +233,129 @@ private final class MockTransportBox: HTTPTransport, @unchecked Sendable {
         let body = #"{"choices":[{"message":{"content":"好的结果"}}],"usage":{"prompt_tokens":10,"completion_tokens":3}}"#
         return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
     }
+}
+
+// MARK: - Streaming answers
+
+struct LLMStreamTests {
+    private func json(_ request: URLRequest) throws -> [String: Any] {
+        let data = try #require(request.httpBody)
+        let object = try JSONSerialization.jsonObject(with: data)
+        return try #require(object as? [String: Any])
+    }
+
+    private func run(_ format: LLMAPIFormat, _ lines: [String]) -> (pieces: [String], accumulator: LLMStreamAccumulator) {
+        var accumulator = LLMStreamAccumulator(format: format)
+        var pieces: [String] = []
+        for line in lines { if let piece = accumulator.consume(line: line) { pieces.append(piece) } }
+        return (pieces, accumulator)
+    }
+
+    @Test func chatCompletionsDeltasAndUsage() {
+        let (pieces, acc) = run(.openAIChatCompletions, [
+            #"data: {"choices":[{"delta":{"role":"assistant","content":""}}]}"#,
+            #"data: {"choices":[{"delta":{"content":"你"}}]}"#,
+            "",
+            #"data: {"choices":[{"delta":{"content":"好"}}]}"#,
+            #"data: {"choices":[],"usage":{"prompt_tokens":7,"completion_tokens":2}}"#,
+            "data: [DONE]"
+        ])
+        #expect(pieces == ["你", "好"])
+        #expect(acc.text == "你好")
+        #expect(acc.usage == TokenUsage(inputTokens: 7, outputTokens: 2))
+    }
+
+    @Test func anthropicEventsAndUsage() {
+        let (pieces, acc) = run(.anthropicMessages, [
+            "event: message_start",
+            #"data: {"type":"message_start","message":{"usage":{"input_tokens":11,"cache_read_input_tokens":4,"output_tokens":1}}}"#,
+            #"data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}"#,
+            #"data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hel"}}"#,
+            #"data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"lo"}}"#,
+            #"data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":5}}"#
+        ])
+        #expect(pieces == ["Hel", "lo"])
+        #expect(acc.usage == TokenUsage(inputTokens: 15, outputTokens: 5))
+    }
+
+    @Test func responsesEventsAndUsage() {
+        let (pieces, acc) = run(.openAIResponses, [
+            #"data: {"type":"response.created","response":{}}"#,
+            #"data: {"type":"response.output_text.delta","delta":"A"}"#,
+            #"data: {"type":"response.output_text.delta","delta":"B"}"#,
+            #"data: {"type":"response.completed","response":{"usage":{"input_tokens":3,"output_tokens":2}}}"#
+        ])
+        #expect(pieces == ["A", "B"])
+        #expect(acc.usage == TokenUsage(inputTokens: 3, outputTokens: 2))
+    }
+
+    @Test func errorsInTheStreamAreReported() {
+        #expect(run(.openAIChatCompletions, [#"data: {"error":{"message":"overloaded"}}"#]).accumulator.errorMessage == "overloaded")
+        #expect(run(.anthropicMessages, [#"data: {"type":"error","error":{"message":"busy"}}"#]).accumulator.errorMessage == "busy")
+        #expect(run(.openAIResponses, [#"data: {"type":"response.failed","response":{"error":{"message":"nope"}}}"#]).accumulator.errorMessage == "nope")
+    }
+
+    @Test func aNonStreamedJsonAnswerStillWorks() {
+        let chat = run(.openAIChatCompletions, [#"{"choices":[{"message":{"content":"整段"}}],"usage":{"prompt_tokens":1,"completion_tokens":1}}"#])
+        #expect(chat.accumulator.text == "整段")
+        let anthropic = run(.anthropicMessages, [#"{"content":[{"type":"text","text":"整段"}],"usage":{"input_tokens":1,"output_tokens":1}}"#])
+        #expect(anthropic.accumulator.text == "整段")
+    }
+
+    @Test func streamRequestsAskForStreaming() throws {
+        for format in LLMAPIFormat.allCases {
+            var profile = LLMProfile.makeDefault()
+            profile.format = format
+            profile.baseURL = format.defaultBaseURL
+            profile.modelID = "m"
+            let request = try LLMRequestBuilder.makeRequest(profile: profile, apiKey: "k", messages: [.user("x")], systemPrompt: "S", stream: true)
+            let body = try json(request)
+            #expect(body["stream"] as? Bool == true)
+            #expect((body["stream_options"] != nil) == (format == .openAIChatCompletions))
+            let plain = try LLMRequestBuilder.makeRequest(profile: profile, apiKey: "k", messages: [.user("x")], systemPrompt: "S")
+            #expect(try json(plain)["stream"] == nil)
+        }
+    }
+
+    @Test func providerStreamsPiecesAndReturnsTheFullText() async throws {
+        var profile = LLMProfile.makeDefault()
+        profile.modelID = "m"
+        let sse = """
+        data: {"choices":[{"delta":{"content":"你"}}]}
+
+        data: {"choices":[{"delta":{"content":"好"}}]}
+
+        data: {"choices":[],"usage":{"prompt_tokens":7,"completion_tokens":2}}
+
+        data: [DONE]
+        """
+        let provider = HTTPLLMProvider(profile: profile, apiKey: "k", transport: SSETransport(body: sse))
+        let received = PieceBox()
+        let output = try await provider.completeStreaming(messages: [.user("x")], systemPrompt: "S") { received.add($0) }
+        #expect(received.pieces == ["你", "好"])
+        #expect(output.text == "你好")
+        #expect(output.usage == TokenUsage(inputTokens: 7, outputTokens: 2))
+    }
+
+    @Test func providerMapsHttpAndStreamErrors() async {
+        var profile = LLMProfile.makeDefault()
+        profile.modelID = "m"
+        let denied = HTTPLLMProvider(profile: profile, apiKey: "k", transport: SSETransport(body: "{}", status: 401))
+        await #expect(throws: LLMError.auth(401)) {
+            _ = try await denied.completeStreaming(messages: [.user("x")], systemPrompt: "S") { _ in }
+        }
+        let empty = HTTPLLMProvider(profile: profile, apiKey: "k", transport: SSETransport(body: "data: [DONE]"))
+        await #expect(throws: LLMError.emptyOutput) {
+            _ = try await empty.completeStreaming(messages: [.user("x")], systemPrompt: "S") { _ in }
+        }
+    }
+}
+
+private final class PieceBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [String] = []
+    var pieces: [String] { lock.withLock { stored } }
+    func add(_ piece: String) { lock.withLock { stored.append(piece) } }
 }
 
 // MARK: - Settings
@@ -345,6 +478,46 @@ private struct WTLLM: LLMProvider {
     }
 }
 
+/// Delivers its answer in pieces and then waits for the test to let it finish.
+private struct WTStreamingLLM: LLMProvider {
+    var chunks: [String]
+    var gate: AsyncStream<Void>
+    var fails = false
+
+    func process(transcript: String, systemPrompt: String) async throws -> String { "" }
+
+    func completeStreaming(messages: [LLMMessage], systemPrompt: String, onDelta: @escaping @Sendable (String) -> Void) async throws -> LLMOutput {
+        for chunk in chunks { onDelta(chunk) }
+        for await _ in gate { break }
+        if fails { throw LLMError.timeout }
+        return LLMOutput(text: chunks.joined(), usage: TokenUsage(inputTokens: 4, outputTokens: 4))
+    }
+}
+
+private final class CallCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    func next() -> Int { lock.withLock { count += 1; return count } }
+}
+
+/// The first answer arrives at once; the second one stops half way until the gate is released.
+private struct WTTwoPhaseLLM: LLMProvider {
+    var counter: CallCounter
+    var gate: AsyncStream<Void>
+
+    func process(transcript: String, systemPrompt: String) async throws -> String { "" }
+
+    func completeStreaming(messages: [LLMMessage], systemPrompt: String, onDelta: @escaping @Sendable (String) -> Void) async throws -> LLMOutput {
+        if counter.next() == 1 {
+            onDelta("第一版")
+            return LLMOutput(text: "第一版")
+        }
+        onDelta("半截")
+        for await _ in gate { break }
+        return LLMOutput(text: "第二版")
+    }
+}
+
 @MainActor
 private struct WTHarness {
     let controller: WritingToolsController
@@ -358,7 +531,8 @@ private struct WTHarness {
 
     final class CopiedBox { var texts: [String] = [] }
 
-    init(answers: [Result<String, LLMError>] = [.success("我们再做调整")], withKey: Bool = true, dictationBusy: Bool = false) {
+    init(answers: [Result<String, LLMError>] = [.success("我们再做调整")], withKey: Bool = true, dictationBusy: Bool = false,
+         provider: (@Sendable (LLMProfile) -> any LLMProvider)? = nil) {
         let settings = SettingsStore(defaults: UserDefaults(suiteName: "opentype.tests.\(UUID().uuidString)")!)
         self.settings = settings
         let credentials = InMemoryCredentialStore()
@@ -368,7 +542,7 @@ private struct WTHarness {
         self.copied = box
         self.controller = WritingToolsController(
             settingsStore: settings, credentialStore: credentials, inserter: inserter, historyStore: history, notifier: notifier,
-            makeLLM: { profile, _ in WTLLM(answers: answers, model: profile.modelID, calls: calls) },
+            makeLLM: { profile, _ in provider?(profile) ?? WTLLM(answers: answers, model: profile.modelID, calls: calls) },
             copyToPasteboard: { box.texts.append($0) },
             isDictationBusy: { dictationBusy },
             applyDelay: .zero
@@ -443,7 +617,7 @@ struct WritingToolsControllerTests {
         await h.controller.open()
         h.controller.run(.proofread)
         #expect(h.controller.screen == .loading)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(h.controller.result?.changeCount == 1)
         #expect(h.controller.replacesSelection)
         #expect(h.controller.resultTitle == WritingTool.proofread.resultTitle)
@@ -466,7 +640,7 @@ struct WritingToolsControllerTests {
         let h = WTHarness()
         await h.controller.open()
         h.controller.run(.rewrite)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         await h.controller.apply()
         h.presenter.tapUndo()
         #expect(h.inserter.undone == 1)
@@ -476,12 +650,12 @@ struct WritingToolsControllerTests {
         let h = WTHarness(answers: [.success("第一版"), .success("第二版"), .success("第三版")])
         await h.controller.open()
         h.controller.run(.rewrite)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(h.controller.result?.text == "第一版")
 
         h.controller.refineText = "再短一点"
         h.controller.submitRefine()
-        await h.wait { h.controller.screen == .result && h.controller.result?.text == "第二版" }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming && h.controller.result?.text == "第二版" }
         let second = h.calls.calls[1].messages
         #expect(second.count == 3)
         #expect(second[1] == .assistant("第一版"))
@@ -489,7 +663,7 @@ struct WritingToolsControllerTests {
         #expect(h.controller.refineText.isEmpty)
 
         h.controller.regenerate() // same three turns again
-        await h.wait { h.controller.result?.text == "第三版" }
+        await h.wait { !h.controller.isStreaming && h.controller.result?.text == "第三版" }
         #expect(h.calls.calls[2].messages == second)
     }
 
@@ -500,7 +674,7 @@ struct WritingToolsControllerTests {
         h.controller.composePrompt = "写一封请假邮件"
         h.controller.compose.customTone = "诚恳"
         h.controller.submitCompose()
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(!h.controller.replacesSelection)
         #expect(h.calls.calls.first?.system.contains("语气：诚恳") == true)
         #expect(h.calls.calls.first?.messages == [.user("【写作需求】\n写一封请假邮件")])
@@ -516,12 +690,12 @@ struct WritingToolsControllerTests {
         await h.controller.open()
         h.controller.composePrompt = "写周报"
         h.controller.submitCompose(markdown: true)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(h.calls.calls[0].system.contains("用 Markdown 语法排版"))
         #expect(h.controller.result?.text == "# 周报\n- 完成 A")
         h.controller.refineText = "再加一项"
         h.controller.submitRefine()
-        await h.wait { h.controller.result?.text.contains("A、B") == true }
+        await h.wait { !h.controller.isStreaming && h.controller.result?.text.contains("A、B") == true }
         #expect(h.calls.calls[1].system.contains("用 Markdown 语法排版")) // the format sticks
         await h.controller.apply()
         #expect(h.inserter.inserted == ["# 周报\n- 完成 A、B"])
@@ -533,7 +707,7 @@ struct WritingToolsControllerTests {
         await h.controller.open()
         h.controller.composePrompt = "写周报"
         h.controller.submitCompose()
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(!h.calls.calls[0].system.contains("用 Markdown 语法排版"))
     }
 
@@ -542,7 +716,7 @@ struct WritingToolsControllerTests {
         await h.controller.open()
         h.controller.translationTarget = .japanese
         h.controller.run(.translate)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(h.calls.calls.first?.system.contains("Japanese") == true)
         await h.controller.apply()
         #expect(h.history.records.first?.translationLabel == TranslationLanguage.japanese.displayName)
@@ -564,7 +738,7 @@ struct WritingToolsControllerTests {
         await h.wait { h.controller.screen == .error }
         #expect(h.controller.failure == .failed(LLMError.rateLimited.userMessage))
         h.controller.regenerate()
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(h.controller.result?.text == "好了")
         #expect(h.history.records.isEmpty) // nothing is recorded until the result is applied
     }
@@ -574,7 +748,7 @@ struct WritingToolsControllerTests {
         h.settings.writingToolsModelID = "tiny-model"
         await h.controller.open()
         h.controller.run(.rewrite)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         #expect(h.calls.calls.first?.model == "tiny-model")
         #expect(h.settings.activeProfile?.modelID != "tiny-model")
     }
@@ -595,7 +769,7 @@ struct WritingToolsControllerTests {
         #expect(h.controller.screen == .menu) // the dropped answer must not bring the result page back
 
         h.controller.run(.rewrite)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         h.controller.back()
         #expect(h.controller.screen == .menu)
     }
@@ -605,7 +779,7 @@ struct WritingToolsControllerTests {
         h.inserter.outcome = .focusLost(reason: "焦点已离开")
         await h.controller.open()
         h.controller.run(.rewrite)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         await h.controller.apply()
         #expect(h.copied.texts == ["我们再做调整"])
         #expect(h.notifier.count == 1)
@@ -618,7 +792,7 @@ struct WritingToolsControllerTests {
         h.settings.saveHistoryText = false
         await h.controller.open()
         h.controller.run(.rewrite)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         await h.controller.apply()
         #expect(h.history.records.first?.rawText == nil)
         #expect(h.history.records.first?.finalText == nil)
@@ -629,7 +803,7 @@ struct WritingToolsControllerTests {
         let h = WTHarness()
         await h.controller.open()
         h.controller.run(.rewrite)
-        await h.wait { h.controller.screen == .result }
+        await h.wait { h.controller.screen == .result && !h.controller.isStreaming }
         h.controller.copyResult()
         #expect(h.copied.texts == ["我们再做调整"])
         #expect(h.controller.copied)
@@ -645,6 +819,76 @@ struct WritingToolsControllerTests {
         #expect(h.controller.result == nil)
         #expect(!h.controller.isVisible)
         #expect(h.history.records.isEmpty)
+    }
+
+    @Test func theAnswerStreamsInAndOnlyTheFinishedResultCanBeApplied() async {
+        let (gate, release) = AsyncStream<Void>.makeStream()
+        let h = WTHarness(provider: { _ in WTStreamingLLM(chunks: ["我们", "再做", "调整"], gate: gate) })
+        await h.controller.open()
+        h.controller.run(.proofread)
+        await h.wait { h.controller.isStreaming && h.controller.result?.text == "我们再做调整" }
+        #expect(h.controller.screen == .result)
+        #expect(h.controller.isStreaming)
+        #expect(h.controller.result?.diff == nil) // plain text while it arrives
+        #expect(!h.controller.canApply)
+        h.controller.copyResult()
+        #expect(h.copied.texts.isEmpty)
+
+        release.yield()
+        await h.wait { !h.controller.isStreaming && h.controller.screen == .result && !h.controller.isStreaming }
+        #expect(h.controller.result?.changeCount == 1) // the diff appears once it is complete
+        #expect(h.controller.canApply)
+        await h.controller.apply()
+        #expect(h.inserter.inserted == ["我们再做调整"])
+        #expect(h.history.records.first?.usage == TokenUsage(inputTokens: 4, outputTokens: 4))
+    }
+
+    @Test func stopDropsThePartialAnswerAndGoesBack() async {
+        let (gate, release) = AsyncStream<Void>.makeStream()
+        let h = WTHarness(provider: { _ in WTStreamingLLM(chunks: ["半截"], gate: gate) })
+        await h.controller.open()
+        h.controller.run(.rewrite)
+        await h.wait { h.controller.isStreaming }
+        h.controller.stopStreaming()
+        release.yield()
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(!h.controller.isStreaming)
+        #expect(h.controller.screen == .menu)
+        #expect(h.controller.result == nil)
+        #expect(h.inserter.inserted.isEmpty)
+    }
+
+    @Test func stoppingARefinementRestoresThePreviousResult() async {
+        let (gate, release) = AsyncStream<Void>.makeStream()
+        let counter = CallCounter()
+        let h = WTHarness(provider: { _ in WTTwoPhaseLLM(counter: counter, gate: gate) })
+        await h.controller.open()
+        h.controller.run(.rewrite)
+        await h.wait { h.controller.result?.text == "第一版" && !h.controller.isStreaming }
+        h.controller.refineText = "再短一点"
+        h.controller.submitRefine()
+        await h.wait { h.controller.isStreaming }
+        #expect(h.controller.result?.text == "半截") // the second answer is growing over the first
+        h.controller.back() // the back button stops it
+        release.yield()
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(!h.controller.isStreaming)
+        #expect(h.controller.screen == .result)
+        #expect(h.controller.result?.text == "第一版")
+        #expect(h.controller.canApply)
+    }
+
+    @Test func aStreamThatBreaksOffShowsTheErrorAndKeepsNothingPartial() async {
+        let (gate, release) = AsyncStream<Void>.makeStream()
+        let h = WTHarness(provider: { _ in WTStreamingLLM(chunks: ["半截"], gate: gate, fails: true) })
+        await h.controller.open()
+        h.controller.run(.rewrite)
+        await h.wait { h.controller.isStreaming }
+        release.yield()
+        await h.wait { h.controller.screen == .error }
+        #expect(!h.controller.isStreaming)
+        #expect(h.controller.result == nil)
+        #expect(h.controller.failure == .failed(LLMError.timeout.userMessage))
     }
 
     @Test func hotkeyIsDistinctFromTheOtherShortcutsByDefault() {

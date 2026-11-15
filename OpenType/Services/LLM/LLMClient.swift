@@ -154,7 +154,8 @@ enum LLMRequestBuilder {
         apiKey: String,
         messages: [LLMMessage],
         systemPrompt: String,
-        webSearch: WebSearchLevel? = nil
+        webSearch: WebSearchLevel? = nil,
+        stream: Bool = false
     ) throws -> URLRequest {
         guard !profile.modelID.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw LLMError.invalidConfig(String(localized: "未填写 Model ID"))
@@ -192,6 +193,10 @@ enum LLMRequestBuilder {
                 "system": systemPrompt,
                 "messages": turns
             ]
+        }
+        if stream {
+            body["stream"] = true
+            if profile.format == .openAIChatCompletions { body["stream_options"] = ["include_usage": true] } // final chunk: token counts
         }
         if let effort = profile.effectiveReasoningEffort {
             switch profile.format {
@@ -337,6 +342,109 @@ enum LLMResponseParser {
     }
 }
 
+// MARK: - Streaming (plain text answers)
+
+/// Reads a streamed (server-sent events) answer of any of the three API formats and yields its text piece by piece.
+/// Also accepts a plain (non-streamed) JSON answer that arrives as one line.
+struct LLMStreamAccumulator {
+    let format: LLMAPIFormat
+    private(set) var text = ""
+    private(set) var usage = TokenUsage.zero
+    private(set) var errorMessage: String?
+    private var anthropicInput = 0
+
+    init(format: LLMAPIFormat) { self.format = format }
+
+    /// Feeds one line; returns the new piece of text it carried, if any.
+    mutating func consume(line raw: String) -> String? {
+        var line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if line.hasPrefix("data:") {
+            line = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+        } else if !line.hasPrefix("{") {
+            return nil // blank lines, `: keep-alive` comments, `event:` names
+        }
+        guard !line.isEmpty, line != "[DONE]",
+              let root = (try? JSONSerialization.jsonObject(with: Data(line.utf8))) as? [String: Any] else { return nil }
+        if let error = root["error"] as? [String: Any] {
+            errorMessage = (error["message"] as? String) ?? String(localized: "流式响应出错")
+            return nil
+        }
+        let piece: String?
+        switch format {
+        case .openAIChatCompletions: piece = chat(root)
+        case .anthropicMessages: piece = anthropic(root)
+        case .openAIResponses: piece = responses(root)
+        }
+        guard let piece, !piece.isEmpty else { return nil }
+        text += piece
+        return piece
+    }
+
+    private mutating func chat(_ root: [String: Any]) -> String? {
+        let reported = LLMResponseParser.usage(format: .openAIChatCompletions, root: root)
+        if !reported.isEmpty { usage = reported }
+        let choice = (root["choices"] as? [[String: Any]])?.first
+        if let content = (choice?["delta"] as? [String: Any])?["content"] as? String { return content }
+        // Not streamed: the whole answer in one message.
+        if text.isEmpty, let content = (choice?["message"] as? [String: Any])?["content"] as? String { return content }
+        return nil
+    }
+
+    private mutating func anthropic(_ root: [String: Any]) -> String? {
+        switch root["type"] as? String {
+        case "message_start":
+            if let message = root["message"] as? [String: Any] {
+                anthropicInput = LLMResponseParser.usage(format: .anthropicMessages, root: message).inputTokens
+                usage = TokenUsage(inputTokens: anthropicInput, outputTokens: usage.outputTokens)
+            }
+            return nil
+        case "content_block_delta":
+            let delta = root["delta"] as? [String: Any]
+            return (delta?["type"] as? String) == "text_delta" ? delta?["text"] as? String : nil
+        case "message_delta":
+            if let output = ((root["usage"] as? [String: Any])?["output_tokens"] as? NSNumber)?.intValue {
+                usage = TokenUsage(inputTokens: anthropicInput, outputTokens: output)
+            }
+            return nil
+        default:
+            // Not streamed: a full message.
+            if text.isEmpty, root["content"] != nil, let data = try? JSONSerialization.data(withJSONObject: root),
+               let full = try? LLMResponseParser.extractText(format: .anthropicMessages, data: data) {
+                usage = LLMResponseParser.usage(format: .anthropicMessages, root: root)
+                return full
+            }
+            return nil
+        }
+    }
+
+    private mutating func responses(_ root: [String: Any]) -> String? {
+        switch root["type"] as? String {
+        case "response.output_text.delta":
+            return root["delta"] as? String
+        case "response.completed":
+            if let response = root["response"] as? [String: Any] {
+                let reported = LLMResponseParser.usage(format: .openAIResponses, root: response)
+                if !reported.isEmpty { usage = reported }
+            }
+            return nil
+        case "response.failed":
+            let error = (root["response"] as? [String: Any])?["error"] as? [String: Any]
+            errorMessage = (error?["message"] as? String) ?? String(localized: "流式响应出错")
+            return nil
+        case "error":
+            errorMessage = (root["message"] as? String) ?? String(localized: "流式响应出错")
+            return nil
+        default:
+            if text.isEmpty, root["output"] != nil, let data = try? JSONSerialization.data(withJSONObject: root),
+               let full = try? LLMResponseParser.extractText(format: .openAIResponses, data: data) {
+                usage = LLMResponseParser.usage(format: .openAIResponses, root: root)
+                return full
+            }
+            return nil
+        }
+    }
+}
+
 // MARK: - Streaming (DeepSeek Chat Completions with web tools)
 
 /// Reads DeepSeek's streamed chat completion: answer text from `delta.content`, tool progress from the choice-level
@@ -456,6 +564,31 @@ struct HTTPLLMProvider: LLMProvider {
         )
         let output = try await perform(request, webSearch: nil)
         return LLMOutput(text: output.text, usage: output.usage)
+    }
+
+    func completeStreaming(
+        messages: [LLMMessage],
+        systemPrompt: String,
+        onDelta: @escaping @Sendable (String) -> Void
+    ) async throws -> LLMOutput {
+        guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
+        let request = try LLMRequestBuilder.makeRequest(
+            profile: profile, apiKey: apiKey, messages: messages, systemPrompt: systemPrompt, stream: true
+        )
+        var accumulator = LLMStreamAccumulator(format: profile.format)
+        let (response, errorBody) = try await transport.sendStreaming(request) { line in
+            if let piece = accumulator.consume(line: line) { onDelta(piece) }
+        }
+        guard (200..<300).contains(response.statusCode) else {
+            throw LLMResponseParser.mapFailure(status: response.statusCode, data: errorBody, secrets: [apiKey])
+        }
+        if let message = accumulator.errorMessage {
+            let safe = String(Diagnostics.redact(message, secrets: [apiKey]).prefix(200))
+            throw LLMError.server(response.statusCode, safe)
+        }
+        let text = LLMResponseParser.clean(accumulator.text)
+        guard !text.isEmpty else { throw LLMError.emptyOutput }
+        return LLMOutput(text: text, usage: accumulator.usage)
     }
 
     private func send(transcript: String, systemPrompt: String, webSearch: WebSearchLevel?) async throws -> WebSearchOutput {

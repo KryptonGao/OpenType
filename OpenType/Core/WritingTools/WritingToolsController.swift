@@ -43,6 +43,8 @@ final class WritingToolsController {
     private(set) var result: WritingResult?
     private(set) var failure: Failure?
     private(set) var copied = false
+    /// The answer is still arriving: `result` holds the text so far (plain), the buttons are replaced by "Stop".
+    private(set) var isStreaming = false
     private(set) var voiceState: VoiceInputRecorder.State = .idle
     private(set) var voiceField: VoiceField?
     private(set) var voiceError: String?
@@ -82,6 +84,8 @@ final class WritingToolsController {
     /// The turns of the last request sent, and (after it succeeded) its answer.
     @ObservationIgnored private var pendingMessages: [LLMMessage] = []
     @ObservationIgnored private var conversation: [LLMMessage] = []
+    /// The finished result the page showed before a refinement started streaming over it (restored when it is stopped).
+    @ObservationIgnored private var resultBeforeStream: WritingResult?
     @ObservationIgnored private var origin: Screen = .menu
     @ObservationIgnored private var previousScreen: Screen = .menu
     @ObservationIgnored private var generation = UUID()
@@ -207,6 +211,8 @@ final class WritingToolsController {
         screen = .menu
         tool = nil
         result = nil
+        resultBeforeStream = nil
+        isStreaming = false
         failure = nil
         copied = false
         voiceError = nil
@@ -245,9 +251,22 @@ final class WritingToolsController {
             generation = UUID() // drop a pending answer
             generationTask?.cancel()
             screen = previousScreen == .result && result == nil ? origin : previousScreen
-        case .result: screen = origin
+        case .result:
+            if isStreaming { stopStreaming() } else { screen = origin }
         case .menu: break
         }
+    }
+
+    /// "Stop" while an answer streams in: the partial text is dropped (a cut-off rewrite must never replace the
+    /// selection) and the page goes back to what it showed before.
+    func stopStreaming() {
+        guard isStreaming else { return }
+        generation = UUID()
+        generationTask?.cancel()
+        isStreaming = false
+        result = resultBeforeStream
+        resultBeforeStream = nil
+        screen = result != nil ? .result : origin
     }
 
     func openCompose() {
@@ -298,14 +317,14 @@ final class WritingToolsController {
 
     /// "Keep refining": the previous answer and the new instruction go back to the model as a conversation.
     func submitRefine() {
-        guard canSubmitRefine, screen == .result, let request, !conversation.isEmpty else { return }
+        guard canSubmitRefine, screen == .result, !isStreaming, let request, !conversation.isEmpty else { return }
         let instruction = refineText.trimmingCharacters(in: .whitespacesAndNewlines)
         begin(request, messages: conversation + [.user(WritingToolsPrompts.refineMessage(instruction))])
     }
 
     /// "Regenerate" / "Try again": the same turns once more.
     func regenerate() {
-        guard let request, !pendingMessages.isEmpty else { return }
+        guard !isStreaming, let request, !pendingMessages.isEmpty else { return }
         begin(request, messages: pendingMessages)
     }
 
@@ -314,6 +333,7 @@ final class WritingToolsController {
         pendingMessages = messages
         tool = request.tool
         if screen != .loading, screen != .error { previousScreen = screen }
+        resultBeforeStream = screen == .result || previousScreen == .result ? (resultBeforeStream ?? result) : nil
         failure = nil
         voiceError = nil
         screen = .loading
@@ -324,9 +344,23 @@ final class WritingToolsController {
     }
 
     private func perform(_ id: UUID, request: WritingRequest, messages: [LLMMessage]) async {
+        // The deltas come in on a background thread: one stream keeps them in order on the main actor.
+        let (pieces, continuation) = AsyncStream<String>.makeStream()
+        let consumer = Task { [weak self] in
+            var text = ""
+            for await piece in pieces {
+                text += piece
+                guard let self, id == generation else { return }
+                receive(text, request: request)
+            }
+        }
         do {
             let (provider, profile) = try resolveProvider()
-            let output = try await provider.complete(messages: messages, systemPrompt: WritingToolsPrompts.systemPrompt(for: request))
+            let output = try await provider.completeStreaming(
+                messages: messages, systemPrompt: WritingToolsPrompts.systemPrompt(for: request)
+            ) { continuation.yield($0) }
+            continuation.finish()
+            await consumer.value
             guard id == generation else { return }
             let answer = output.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !answer.isEmpty else { throw LLMError.emptyOutput }
@@ -337,11 +371,21 @@ final class WritingToolsController {
             refineText = ""
             showOriginal = false
             copied = false
+            isStreaming = false
+            resultBeforeStream = nil
             screen = .result
         } catch is CancellationError {
+            continuation.finish()
             return
         } catch {
+            continuation.finish()
+            consumer.cancel()
             guard id == generation else { return }
+            if isStreaming { // the answer broke off half way: show the error, keep what was there before
+                isStreaming = false
+                result = resultBeforeStream
+                resultBeforeStream = nil
+            }
             switch error as? LLMError {
             case .missingAPIKey?, .invalidConfig?: failure = .noService
             case let llmError?: failure = .failed(llmError.userMessage)
@@ -351,15 +395,26 @@ final class WritingToolsController {
         }
     }
 
-    /// The Writing Tools profile (own model / effort applied) and its provider. The request may run long on a big
-    /// selection, so the timeout is at least 30 s.
+    /// The text so far: the first piece turns the loading skeleton into the result page, which then grows.
+    private func receive(_ text: String, request: WritingRequest) {
+        if !isStreaming {
+            isStreaming = true
+            showOriginal = false
+            copied = false
+        }
+        result = WritingResult(text: text.trimmingCharacters(in: .whitespacesAndNewlines))
+        screen = .result
+    }
+
+    /// The Writing Tools profile (own model / effort applied) and its provider. The whole streamed answer has to
+    /// arrive within the timeout, and a long text takes a while, so it is at least 120 s.
     private func resolveProvider() throws -> (any LLMProvider, LLMProfile) {
         guard var profile = settingsStore.writingToolsProfile else { throw LLMError.invalidConfig(String(localized: "未配置 AI 处理 Profile")) }
         // The API key belongs to the profile's own id (the overrides never change it).
         guard let key = try? credentialStore.load(account: CredentialAccount.llmProfile(profile.id)), !key.isEmpty else {
             throw LLMError.missingAPIKey
         }
-        profile.timeout = max(profile.timeout, 30)
+        profile.timeout = max(profile.timeout, 120)
         return (makeLLM(profile, key), profile)
     }
 
@@ -379,10 +434,10 @@ final class WritingToolsController {
     /// The primary button replaces the selection (a selection exists and the tool edits it) or inserts at the caret.
     var replacesSelection: Bool { hasSelection && tool?.needsSelection == true }
 
-    var canApply: Bool { screen == .result && result != nil && !isApplying }
+    var canApply: Bool { screen == .result && result != nil && !isApplying && !isStreaming }
 
     func copyResult() {
-        guard let text = result?.text else { return }
+        guard !isStreaming, let text = result?.text else { return }
         copyToPasteboard(text)
         copied = true
         copiedTask?.cancel()

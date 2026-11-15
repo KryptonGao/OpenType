@@ -137,6 +137,13 @@ protocol LLMProvider: Sendable {
     /// A raw multi-turn request (no dictation wrapper). The default sends the last user turn through `process`,
     /// which is enough for providers that only implement the dictation entry points (tests).
     func complete(messages: [LLMMessage], systemPrompt: String) async throws -> LLMOutput
+    /// Like `complete`, but the answer arrives piece by piece: `onDelta` is called with each new piece of text (from any
+    /// thread), and the full text and usage are returned at the end. The default delivers everything as one piece.
+    func completeStreaming(
+        messages: [LLMMessage],
+        systemPrompt: String,
+        onDelta: @escaping @Sendable (String) -> Void
+    ) async throws -> LLMOutput
     /// Same as `process`, but also reports token usage. Providers that cannot report it get the default below.
     func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput
     /// Same as above, but with DeepSeek's web-search tool declared. `onProgress` reports each search / page read live;
@@ -186,6 +193,16 @@ extension LLMProvider {
     func complete(messages: [LLMMessage], systemPrompt: String) async throws -> LLMOutput {
         let last = messages.last { $0.role == .user }?.content ?? ""
         return try await processWithUsage(transcript: last, systemPrompt: systemPrompt)
+    }
+
+    func completeStreaming(
+        messages: [LLMMessage],
+        systemPrompt: String,
+        onDelta: @escaping @Sendable (String) -> Void
+    ) async throws -> LLMOutput {
+        let output = try await complete(messages: messages, systemPrompt: systemPrompt)
+        onDelta(output.text)
+        return output
     }
 
     func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput {
