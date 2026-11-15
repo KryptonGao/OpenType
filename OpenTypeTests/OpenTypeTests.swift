@@ -2170,6 +2170,15 @@ struct AppLanguageTests {
             #expect(bundled.contains(language.rawValue), "missing \(language.rawValue).lproj")
         }
     }
+
+    @Test func providerSiteLinksAreHiddenOnlyForSimplifiedChinese() {
+        #expect(!ProviderSite.isShown(forLocalization: "zh-Hans"))
+        for localization in ["en", "zh-Hant", "ja", "ko", nil] {
+            #expect(ProviderSite.isShown(forLocalization: localization), "\(localization ?? "nil")")
+        }
+        #expect(ProviderSite.bailian.url.scheme == "https")
+        #expect(ProviderSite.deepseek.url.scheme == "https")
+    }
 }
 
 // MARK: - Dictionary in the pipeline

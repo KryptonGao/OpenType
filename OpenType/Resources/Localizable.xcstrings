@@ -1002,6 +1002,40 @@
         }
       }
     },
+    "DeepSeek 官网（获取 API Key）": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek 官网（获取 API Key）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek website (get an API key)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek 官網（取得 API Key）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek 公式サイト（API キーの取得）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DeepSeek 공식 사이트(API 키 발급)"
+          }
+        }
+      }
+    },
     "DeepSeek 没有语种参数，只能根据音频自动识别（支持中文、粤语、英语、日语、韩语等 21 种语言），因此「默认识别语言」对它不生效；如需指定语言，请改用阿里云百炼。": {
       "localizations": {
         "zh-Hans": {
@@ -15568,6 +15602,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "알리바바 클라우드 바이롄"
+          }
+        }
+      }
+    },
+    "阿里云百炼官网（获取 API Key）": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阿里云百炼官网（获取 API Key）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud Bailian website (get an API key)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阿里雲百煉官網（取得 API Key）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alibaba Cloud 百煉（Bailian）公式サイト（API キーの取得）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알리바바 클라우드 바이롄 공식 사이트(API 키 발급)"
           }
         }
       }

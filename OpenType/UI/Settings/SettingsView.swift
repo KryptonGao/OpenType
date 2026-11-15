@@ -204,6 +204,7 @@ private struct SpeechRecognitionSettingsTab: View {
                 account: CredentialAccount.bailianAPIKey,
                 credentials: coordinator.credentialStore
             )
+            ProviderSiteLink(site: .bailian)
             DisclosureGroup("高级：自定义 WebSocket 地址") {
                 TextField("wss://…（留空则使用上方区域与 Workspace ID）", text: $settingsStore.asrCustomURL)
                 Text("自定义地址须与所选识别模型的协议一致（qwen-audio 为 /api-ws/v1/inference，qwen3 为 /api-ws/v1/realtime?model=…）。")
@@ -260,6 +261,7 @@ private struct SpeechRecognitionSettingsTab: View {
                 account: CredentialAccount.deepseekASRAPIKey,
                 credentials: coordinator.credentialStore
             )
+            ProviderSiteLink(site: .deepseek)
             HStack {
                 Button("测试连接") { test() }
                     .disabled(testResult == .running)
@@ -597,6 +599,7 @@ private struct HelpMeSaySettingsTab: View {
                     account: CredentialAccount.deepseekWebSearchAPIKey,
                     credentials: coordinator.credentialStore
                 )
+                ProviderSiteLink(site: .deepseek)
                 HStack {
                     Button("测试连接") { testWebSearch() }
                         .disabled(testResult == .running)
