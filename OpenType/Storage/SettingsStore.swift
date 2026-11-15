@@ -355,6 +355,9 @@ final class SettingsStore {
     var translationTargetLanguage: TranslationLanguage { didSet { defaults.set(translationTargetLanguage.rawValue, forKey: Keys.translationTargetLanguage) } }
     /// Preferred regional variant per language (keyed by `TranslationLanguage.rawValue`), e.g. Brazilian vs. European Portuguese.
     var translationRegions: [String: String] { didSet { defaults.set(translationRegions, forKey: Keys.translationRegions) } }
+    /// Whether translation sessions use the preset of the app being dictated into (its style prompt, dictionary packs
+    /// and trailing-period rule). Off by default: translation then runs on its own prompt only.
+    var translationUsesPreset: Bool { didSet { defaults.set(translationUsesPreset, forKey: Keys.translationUsesPreset) } }
     /// Tap-to-toggle shortcut that starts a translation session. `nil` = no shortcut (menu only).
     var translationHotkey: HotkeyConfig? { didSet { persistTranslationHotkey() } }
 
@@ -467,6 +470,7 @@ final class SettingsStore {
 
         translationTargetLanguage = raw(Keys.translationTargetLanguage, .english)
         translationRegions = defaults.dictionary(forKey: Keys.translationRegions) as? [String: String] ?? [:]
+        translationUsesPreset = bool(Keys.translationUsesPreset, false)
         switch defaults.codable(HotkeyConfig.self, forKey: Keys.translationHotkey) {
         case .cleared: translationHotkey = nil // the user explicitly cleared the shortcut
         case .value(let stored): translationHotkey = stored.validation == .ok ? stored : .defaultTranslation
@@ -629,6 +633,7 @@ final class SettingsStore {
         static let activeProfileID = "opentype.activeProfileID"
         static let translationTargetLanguage = "opentype.translationTargetLanguage"
         static let translationRegions = "opentype.translationRegions"
+        static let translationUsesPreset = "opentype.translationUsesPreset"
         static let translationHotkey = "opentype.translationHotkey"
         static let helpMeSayEnabled = "opentype.helpMeSayEnabled"
         static let helpMeSayPrompt = "opentype.helpMeSayPrompt"

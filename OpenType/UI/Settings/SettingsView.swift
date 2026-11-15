@@ -435,6 +435,11 @@ private struct TranslationSettingsTab: View {
                 Text("巴西与葡萄牙的葡萄牙语、台湾与港澳的繁体中文，用词和写法并不相同。翻译成这两种语言时，会明确要求模型使用这里选的地区用语；悬浮窗里也可以临时切换。")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("预设") {
+                Toggle("翻译时套用当前应用的预设", isOn: $settingsStore.translationUsesPreset)
+                Text("开启后，翻译会使用当前应用对应的预设（见「预设」页）：译文遵循该预设的语气与风格，启用它的专有名词词库，并按它的设置去掉句末句号。「Terminal 命令生成」这类命令预设不会用于翻译。关闭时翻译只使用自己的提示词。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("翻译快捷键（按一下开始，再按一下结束；长按为「翻译帮我说」）") {
                 HotkeyRecorderRow(
                     title: "翻译快捷键",

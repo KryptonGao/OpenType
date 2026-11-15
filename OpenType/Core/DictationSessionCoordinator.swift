@@ -298,7 +298,8 @@ final class DictationSessionCoordinator {
     }
 
     /// `true` while the session turns the speech into a polished message: a long press on the shortcut, or a
-    /// "help me say" preset. Translation sessions have their own prompt and never use presets.
+    /// "help me say" preset. Translation sessions have their own prompt; they use the preset only for the style,
+    /// dictionary packs and punctuation (see `sessionPreset`).
     var runsHelpMeSay: Bool {
         rewriteSource == nil && (isHelpMeSay || (translationTarget == nil && activePreset.kind == .helpMeSay))
     }
@@ -312,8 +313,12 @@ final class DictationSessionCoordinator {
         return runsHelpMeSay ? helpMeSayName : nil
     }
 
-    /// The preset in effect for this session; `nil` for translation sessions.
-    private var sessionPreset: PromptPreset? { translationTarget == nil ? activePreset : nil }
+    /// The preset in effect for this session. Translation sessions only have one when the user turned on
+    /// "apply the preset when translating"; a terminal-command preset never applies to a translation.
+    private var sessionPreset: PromptPreset? {
+        guard translationTarget != nil else { return activePreset }
+        return settingsStore.translationUsesPreset && activePreset.kind != .shellCommand ? activePreset : nil
+    }
 
     /// Switches the preset from the overlay. Only possible until the LLM step starts.
     func setPreset(_ preset: PromptPreset) {
@@ -639,9 +644,11 @@ final class DictationSessionCoordinator {
             let region = translationRegion
             do {
                 let (provider, profile) = try resolveProvider()
+                let styleNote = sessionPreset?.effectivePrompt.map { TextProcessor.translationPresetAddendum(presetPrompt: $0) } ?? ""
                 let output = try await provider.processWithUsage(
                     transcript: rawText,
                     systemPrompt: TextProcessor.translationSystemPrompt(target: target, region: region)
+                        + (styleNote.isEmpty ? "" : "\n" + styleNote)
                         + (dictionaryNote.isEmpty ? "" : "\n" + dictionaryNote)
                 )
                 guard isCurrent(id) else { return }

@@ -2287,6 +2287,52 @@ struct PresetCoordinatorTests {
         #expect(harness.coordinator.activePreset.id == BuiltInPresets.general)
     }
 
+    private func translate(_ harness: Harness) async {
+        let c = harness.coordinator
+        c.beginSession(mode: .toggle, translating: true)
+        await harness.wait { c.state == .recording }
+        c.stopRecording()
+        await harness.wait { harness.inserter.inserted.count == 1 }
+    }
+
+    @Test func translationIgnoresThePresetByDefault() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: asr(), llm: .success("Meeting went well."), recorder: recorder,
+            presets: presets(["com.tinyspeck.slackmacgap": BuiltInPresets.casualChat]), frontmostBundleID: "com.tinyspeck.slackmacgap"
+        )
+        await translate(harness)
+        #expect(recorder.calls.first?.prompt == TextProcessor.translationSystemPrompt(target: .english))
+        #expect(harness.inserter.inserted == ["Meeting went well."])
+    }
+
+    @Test func translationAppliesThePresetWhenEnabled() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: asr(), llm: .success("Meeting went well."), recorder: recorder,
+            presets: presets(["com.tinyspeck.slackmacgap": BuiltInPresets.casualChat]), frontmostBundleID: "com.tinyspeck.slackmacgap",
+            configure: { $0.translationUsesPreset = true }
+        )
+        await translate(harness)
+        let prompt = recorder.calls.first?.prompt ?? ""
+        #expect(prompt.hasPrefix(TextProcessor.translationSystemPrompt(target: .english)))
+        #expect(prompt.contains(TextProcessor.translationPresetAddendum(presetPrompt: BuiltInPresets.casualChatPrompt)))
+        #expect(harness.inserter.inserted == ["Meeting went well"]) // casual chat drops the trailing period
+    }
+
+    @Test func translationNeverAppliesACommandPreset() async {
+        let recorder = PromptRecorder()
+        let harness = Harness(
+            asr: asr(), llm: .success("Meeting went well."), recorder: recorder,
+            presets: presets(["com.apple.Terminal": BuiltInPresets.terminalCommand]), frontmostBundleID: "com.apple.Terminal",
+            configure: { $0.translationUsesPreset = true }
+        )
+        await translate(harness)
+        #expect(recorder.calls.first?.prompt.hasPrefix(TextProcessor.translationSystemPrompt(target: .english)) == true)
+        #expect(recorder.calls.first?.prompt.contains("场景风格") == false)
+        #expect(harness.inserter.inserted == ["Meeting went well."])
+    }
+
     @Test func casualPresetUsesItsPromptAndDropsTheTrailingPeriod() async {
         let recorder = PromptRecorder()
         let harness = Harness(

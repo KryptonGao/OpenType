@@ -19957,6 +19957,74 @@
           }
         }
       }
+    },
+    "翻译时套用当前应用的预设": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译时套用当前应用的预设"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply the current app's preset when translating"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻譯時套用目前 App 的預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳時に現在のアプリのプリセットを適用"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "번역할 때 현재 앱의 프리셋 적용"
+          }
+        }
+      }
+    },
+    "开启后，翻译会使用当前应用对应的预设（见「预设」页）：译文遵循该预设的语气与风格，启用它的专有名词词库，并按它的设置去掉句末句号。「Terminal 命令生成」这类命令预设不会用于翻译。关闭时翻译只使用自己的提示词。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后，翻译会使用当前应用对应的预设（见「预设」页）：译文遵循该预设的语气与风格，启用它的专有名词词库，并按它的设置去掉句末句号。「Terminal 命令生成」这类命令预设不会用于翻译。关闭时翻译只使用自己的提示词。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, translation uses the preset for the current app (see the Presets page): the translation follows that preset's tone and style, turns on its dictionary packs, and drops the trailing period if the preset says so. Command presets such as \"Terminal Command Generation\" are never used for translation. When off, translation uses only its own prompt."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟後，翻譯會使用目前 App 對應的預設（見「預設」頁）：譯文遵循該預設的語氣與風格，啟用它的專有名詞詞庫，並依它的設定去掉句末句號。「Terminal 命令生成」這類命令預設不會用於翻譯。關閉時翻譯只使用自己的提示詞。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、翻訳は現在のアプリに対応するプリセット（「プリセット」ページ参照）を使います。訳文はそのプリセットの口調とスタイルに従い、専用の辞書パックを有効にし、設定されていれば文末の句点を取り除きます。「Terminal コマンド生成」のようなコマンド系プリセットは翻訳には使われません。オフのときは翻訳専用のプロンプトだけを使います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켜면 번역이 현재 앱에 해당하는 프리셋(「프리셋」 페이지 참고)을 사용합니다. 번역문은 그 프리셋의 어조와 스타일을 따르고, 해당 전문 용어 사전 팩을 켜며, 설정에 따라 문장 끝 마침표를 제거합니다. 「Terminal 명령 생성」 같은 명령 프리셋은 번역에 사용되지 않습니다. 끄면 번역은 자체 프롬프트만 사용합니다."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

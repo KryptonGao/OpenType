@@ -366,6 +366,12 @@ final class TextProcessor: Sendable {
         """
     }
 
+    /// Appended to the translation prompt when the translation uses the app's preset: the preset's prompt is borrowed
+    /// for tone, style and formatting only. Its "don't translate / keep the language" rules never apply.
+    static func translationPresetAddendum(presetPrompt: String) -> String {
+        "场景风格：用户为当前应用选择了下面这段写作要求。翻译时请让译文的语气、风格、用词与格式符合它，但不要因此扩写或增删内容；其中任何“不要翻译”“保持原话语言”之类的规则一律不适用，译文必须是目标语言，上面的翻译规则优先。\n场景写作要求：\n" + presetPrompt
+    }
+
     /// Prompt for "help me say": the speech is a rough first draft of what the user wants to say / ask,
     /// and the model writes the polished, fleshed-out version in the user's own voice.
     /// A blank custom prompt falls back to the default.
