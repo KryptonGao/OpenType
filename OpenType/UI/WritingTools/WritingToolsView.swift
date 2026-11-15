@@ -22,6 +22,7 @@ struct WritingToolsView: View {
     var body: some View {
         card
             .padding(Self.margin)
+            .focusEffectDisabled()
             .fixedSize(horizontal: false, vertical: true)
             .onGeometryChange(for: CGSize.self) { $0.size } action: { onContentSizeChange($0) }
             .background { shortcuts }
@@ -53,7 +54,7 @@ struct WritingToolsView: View {
         // Empty parts of the card drag the window (controls on top still get their clicks).
         .background { Color.clear.contentShape(Rectangle()).gesture(WindowDragGesture()) }
         .modifier(PanelBackground(material: controller.settingsStore.writingToolsMaterial, shape: shape))
-        .background { CardShadow(shape: shape, radius: 30, y: 12, opacity: 0.42) }
+        .background { CardShadow(shape: shape, radius: 16, y: 6, opacity: 0.16) }
     }
 
     /// ⌘↩ replaces / inserts from anywhere on the result page (even while the refine field has the keyboard).
@@ -152,7 +153,6 @@ struct WritingToolsView: View {
             .padding(.leading, 18)
             .padding(.trailing, 9)
             .background(.primary.opacity(0.08), in: Capsule())
-            .overlay { if focus == .instruction { Capsule().strokeBorder(Color.accentColor, lineWidth: 2) } }
             voiceError
         }
     }
@@ -203,7 +203,6 @@ struct WritingToolsView: View {
             }
             .padding(.top, 12).padding(.leading, 14).padding(.trailing, 10).padding(.bottom, 8)
             .background(.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay { if focus == .composePrompt { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Color.accentColor, lineWidth: 2) } }
             voiceError
             if !controller.canSubmitCompose {
                 FlowLayout(spacing: 6) {
@@ -314,10 +313,10 @@ struct WritingToolsView: View {
                             ForEach(rows[r].indices, id: \.self) { c in
                                 Text(rows[r][c])
                                     .font(.system(size: 12.5, weight: r == 0 ? .semibold : .regular))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.horizontal, 8).padding(.vertical, 6)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                                     .background(r == 0 ? Color.primary.opacity(0.06) : .clear)
-                                    .overlay(Rectangle().strokeBorder(.separator, lineWidth: 0.5))
+                                    .overlay(Rectangle().strokeBorder(Color.primary.opacity(0.18), lineWidth: 0.5))
                             }
                         }
                     }
@@ -374,7 +373,6 @@ struct WritingToolsView: View {
         }
         .padding(.vertical, 8).padding(.leading, 14).padding(.trailing, 8)
         .background(.primary.opacity(0.08), in: Capsule())
-        .overlay { if focus == .refine { Capsule().strokeBorder(Color.accentColor, lineWidth: 2) } }
     }
 
     private var actions: some View {
@@ -445,7 +443,7 @@ struct CardShadow<S: Shape>: View {
     var body: some View {
         shape.fill(Color.black)
             .shadow(color: .black.opacity(opacity), radius: radius, y: y)
-            .shadow(color: .black.opacity(opacity * 0.7), radius: max(radius / 5, 2), y: max(y / 4, 1))
+            .shadow(color: .black.opacity(opacity * 0.5), radius: 2, y: 1)
             .mask {
                 // The padding comes first so the cut-out below is sized like the card, not like the larger rectangle.
                 Rectangle()
@@ -575,10 +573,10 @@ private struct FormatCard: View {
         Button { action(tool) } label: {
             VStack(spacing: 7) {
                 sketch
-                    .aspectRatio(1, contentMode: .fit)
                     .frame(maxWidth: .infinity)
+                    .frame(height: 78)
                     .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(hovering ? Color.accentColor : Color.primary.opacity(0.1), lineWidth: hovering ? 2 : 0.5))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(hovering ? 0.3 : 0.1), lineWidth: 0.5))
                 Text(tool.displayName).font(.system(size: 12.5, weight: .medium))
             }
         }
@@ -591,12 +589,12 @@ private struct FormatCard: View {
     }
 
     private var sketch: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             VStack(alignment: .leading, spacing: 4) { line(40); line(40); line(28) }
             Image(systemName: "arrow.down").font(.system(size: 9, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.7))
-            result
+            result.frame(height: 20, alignment: .top) // the same height for every card
         }
-        .padding(8)
+        .frame(maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder private var result: some View {
@@ -659,8 +657,7 @@ private struct CustomChipField: View {
             .onSubmit(onSubmit)
             .padding(.horizontal, 12).padding(.vertical, 6)
             .frame(minWidth: 104, maxWidth: 200)
-            .background(active || focused ? Color(nsColor: .textBackgroundColor) : Color.primary.opacity(0.08), in: Capsule())
-            .overlay { if active || focused { Capsule().strokeBorder(Color.accentColor, lineWidth: 2) } }
+            .background(active ? Color.accentColor.opacity(0.16) : Color.primary.opacity(focused ? 0.14 : 0.08), in: Capsule())
             .onChange(of: text) { _, new in if new.count > 40 { text = String(new.prefix(40)) } }
     }
 }
