@@ -2,15 +2,25 @@
 
 ## Commits and branches
 
-Unless the user explicitly asks for a PR, commit changes directly to the `main` branch (do not create a new branch or open a PR). Only follow the branch + PR flow when the user explicitly says "submit a PR / open a PR".
+**Do not `git commit` or `git push` on your own.** After making changes, leave them uncommitted in the working tree and wait until the user explicitly says to commit / push (e.g. "commit", "commit and push", "push it"). Only then commit (and push, if asked). A request to commit does not imply a push, and an approval to commit once does not carry over to later changes.
+
+When the user does ask you to commit, commit directly to the `main` branch (do not create a new branch or open a PR) unless they explicitly say "submit a PR / open a PR", in which case follow the branch + PR flow.
+
+The release flow under "Publishing a release" is the one exception: when the user asks to publish a release, its commit / tag / push steps are authorized by that request.
 
 ## README languages
 
 The README exists in five languages, matching the app's UI languages: `README.md` (English, the GitHub default), `README.zh-Hans.md`, `README.zh-Hant.md`, `README.ja.md`, `README.ko.md`. When you change user-facing README content, update all five. Each has its own localized hero / modes images in `assets/readme/` (`hero.<lang>.svg`, `modes.<lang>.svg`). Use the app's own UI terms from `OpenType/Resources/Localizable.xcstrings` (e.g. 帮我说 / 幫我說 / Say It for Me / 代わりに話す / 대신 말하기).
 
-## Package a new .app after making changes
+## Package a new .app for testing (only when needed)
 
-After every code change (once the build/tests pass), you must package a new Release `.app` for the user to test, unless the user explicitly says "don't package".
+Do **not** package a new `.app` after every change. After a code change (once the build/tests pass), use your own judgment on whether the user needs a fresh `.app` to test it:
+
+- **Package** when the change affects runtime behavior the user would want to try by hand: UI, overlay, shortcuts, permissions, audio / transcription / translation / writing-tools flows, settings, prompts, anything involving the signed app's system permissions.
+- **Don't package** for changes that can't be observed in the running app or are already fully covered by tests: documentation (README, AGENTS.md, release notes), comments, refactors with no behavior change, test-only changes, localization-file typos you can verify by reading, etc.
+- If it is unclear, or the user says "don't package" / "package it", follow the user. When you skip packaging, you may say in one short line that you did.
+
+When you do package, use:
 
 ```bash
 xcodebuild build -project OpenType.xcodeproj -scheme OpenType -configuration Release \
