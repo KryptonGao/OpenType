@@ -172,13 +172,13 @@ struct OverlayView: View {
             }
 
             if !coordinator.pendingText.isEmpty, showsPendingText {
-                Text(coordinator.pendingText)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .lineLimit(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                // As tall as the text, up to 180 pt, then it scrolls.
+                ViewThatFits(in: .vertical) {
+                    pendingTextBody
+                    ScrollView { pendingTextBody }.frame(height: 180)
+                }
+                .textSelection(.enabled)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 HStack {
                     Button("复制文本") { coordinator.copyPendingText() }
                         .buttonStyle(.borderedProminent)
@@ -208,6 +208,11 @@ struct OverlayView: View {
     }
 
     /// Popup row: the preset of this session (from the app's rule or the default), changeable until processing starts.
+    private var pendingTextBody: some View {
+        MarkdownContent(coordinator.pendingText)
+            .padding(8)
+    }
+
     private var presetPicker: some View {
         HStack(spacing: 8) {
             Image(systemName: coordinator.activePreset.symbolName).foregroundStyle(.secondary)

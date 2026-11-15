@@ -174,7 +174,7 @@ private struct UpdatePromptView: View {
                             if updater.releaseNotes.isEmpty {
                                 Text("此版本没有提供更新说明。").foregroundStyle(.secondary)
                             } else {
-                                MarkdownView(updater.releaseNotes)
+                                MarkdownContent(updater.releaseNotes)
                             }
                         }
                         .textSelection(.enabled)

@@ -183,7 +183,7 @@ private struct HistoryDetail: View {
                 }
 
                 if let final = record.finalText {
-                    block("结果", final)
+                    block("结果", final, markdown: true)
                     if let raw = record.rawText, raw != final { block("识别原文", raw, secondary: true) }
                 } else {
                     Text("这条记录没有保存文字（保存文字开关关闭时产生）。").foregroundStyle(.secondary)
@@ -212,10 +212,16 @@ private struct HistoryDetail: View {
         return record.kind.displayName
     }
 
-    private func block(_ title: LocalizedStringKey, _ text: String, secondary: Bool = false) -> some View {
+    private func block(_ title: LocalizedStringKey, _ text: String, secondary: Bool = false, markdown: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.subheadline).foregroundStyle(.secondary)
-            Text(text)
+            Group {
+                if markdown {
+                    MarkdownContent(text, fontSize: 13)
+                } else {
+                    Text(text)
+                }
+            }
                 .textSelection(.enabled)
                 .foregroundStyle(secondary ? .secondary : .primary)
                 .frame(maxWidth: .infinity, alignment: .leading)

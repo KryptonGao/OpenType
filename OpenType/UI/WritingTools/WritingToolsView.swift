@@ -138,6 +138,10 @@ struct WritingToolsView: View {
     private var commandField: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
+                Image(systemName: "apple.intelligence")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.85))
+                    .frame(width: 20)
                 TextField("描述你想要的修改", text: $controller.instruction, axis: .vertical)
                     .textFieldStyle(.plain)
                     .focusEffectDisabled()
@@ -151,7 +155,7 @@ struct WritingToolsView: View {
                 }
             }
             .padding(.vertical, 9)
-            .padding(.leading, 18)
+            .padding(.leading, 14)
             .padding(.trailing, 9)
             .background(.primary.opacity(0.08), in: Capsule())
             voiceError
@@ -185,13 +189,19 @@ struct WritingToolsView: View {
     private var composeScreen: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(spacing: 6) {
-                TextField("想写什么？例如：写一封向主管请两天假的邮件", text: $controller.composePrompt, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .focusEffectDisabled()
-                    .font(.system(size: 14))
-                    .lineLimit(3...8)
-                    .focused($focus, equals: .composePrompt)
-                    .onSubmit { controller.submitCompose() }
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "apple.intelligence")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.primary.opacity(0.85))
+                        .frame(width: 20, height: 20)
+                    TextField("想写什么？例如：写一封向主管请两天假的邮件", text: $controller.composePrompt, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .focusEffectDisabled()
+                        .font(.system(size: 14))
+                        .lineLimit(3...8)
+                        .focused($focus, equals: .composePrompt)
+                        .onSubmit { controller.submitCompose() }
+                }
                 HStack {
                     MicButton(controller: controller, field: .composePrompt)
                     Spacer()
@@ -350,10 +360,10 @@ struct WritingToolsView: View {
                     Text(Self.attributed(diff, showChanges: controller.showDiff))
                         .font(.system(size: 14)).lineSpacing(4)
                 } else if controller.isStreaming {
-                    FadingStreamText(settled: controller.streamSettledText, chunks: controller.streamChunks)
-                        .font(.system(size: 14)).lineSpacing(4)
+                    MarkdownContent(controller.streamSettledText + controller.streamChunks.map(\.text).joined(),
+                                    fontSize: 14, animatesNewText: true)
                 } else {
-                    Text(result.text).font(.system(size: 14)).lineSpacing(4)
+                    MarkdownContent(result.text, fontSize: 14)
                 }
             }
             .textSelection(.enabled)
@@ -506,28 +516,6 @@ private extension View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-    }
-}
-
-/// The text of a streaming answer: settled text, then the recent pieces, each fading in from where it appeared.
-private struct FadingStreamText: View {
-    let settled: String
-    let chunks: [StreamChunk]
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
-            Text(attributed(at: context.date))
-        }
-    }
-
-    private func attributed(at now: Date) -> AttributedString {
-        var text = AttributedString(settled)
-        for chunk in chunks {
-            var part = AttributedString(chunk.text)
-            part.foregroundColor = Color.primary.opacity(StreamPacing.opacity(age: now.timeIntervalSince(chunk.revealedAt)))
-            text += part
-        }
-        return text
     }
 }
 

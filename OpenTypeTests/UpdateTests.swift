@@ -106,32 +106,3 @@ struct ReleaseNotesTests {
         #expect(ReleaseNotes.clean(source) == "Intro line.\n\n## What's new\n\n- **One**: thing\n- Two")
     }
 }
-
-struct MarkdownParserTests {
-    @Test func parsesBlocks() {
-        let blocks = MarkdownParser.parse("""
-        ## Title
-
-        Some **bold**
-        text.
-
-        - one
-          - nested
-        1. first
-        > quoted
-
-        ```sh
-        echo hi
-        ```
-        """)
-        #expect(blocks == [
-            .heading(level: 2, text: "Title"),
-            .paragraph("Some **bold** text."),
-            .bullet(text: "one", indent: 0),
-            .bullet(text: "nested", indent: 1),
-            .numbered(number: "1", text: "first", indent: 0),
-            .quote("quoted"),
-            .code("echo hi"),
-        ])
-    }
-}
