@@ -133,7 +133,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 
 ### 幫我說的網路搜尋
 
-僅支援 DeepSeek，且使用獨立的 API Key。預設關閉，在「設定 → 幫我說」中開啟並填入 DeepSeek Key 後生效。
+僅支援 DeepSeek，且使用獨立的 API Key。預設關閉，在「設定 → AI 處理」中開啟並填入 DeepSeek Key 後生效。「幫我說」和「翻譯幫我說」共用這項設定，「螢幕提問」也預設沿用，也可以在「設定 → 螢幕提問」中單獨設定開關和積極度。
 
 - **請求**：「幫我說」與「翻譯幫我說」不再使用「AI 處理」選取的設定檔，而是固定請求 `https://api.deepseek.com/chat/completions`、模型 `deepseek-flash`，並宣告 DeepSeek 伺服器端的 `deepseek_web_search` 工具。搜尋與網頁讀取都在 DeepSeek 伺服器端完成，用戶端無需迴圈呼叫，是否搜尋由模型決定。
 - **搜尋積極度**：開啟思考模式（DeepSeek 的多步驟「深度搜尋」，更願意主動搜尋），改用串流請求，可用滑桿調整（0–100%，預設 80%）。

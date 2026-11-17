@@ -1216,7 +1216,7 @@ struct CoordinatorTests {
         #expect(recorder.calls.first?.prompt == "自定义提示")
     }
 
-    @Test func helpMeSayWebSearchUsesFixedDeepSeekProfileAndOwnKey() async {
+    @Test func webSearchUsesFixedDeepSeekProfileAndOwnKey() async {
         final class Seen: @unchecked Sendable { var profiles: [LLMProfile] = []; var keys: [String] = [] }
         func run(enabled: Bool, withKey: Bool) async -> (flags: [Bool], prompt: String?, seen: Seen, state: DictationState) {
             let recorder = PromptRecorder()
@@ -1225,7 +1225,7 @@ struct CoordinatorTests {
             let settings = SettingsStore(defaults: UserDefaults(suiteName: suite)!)
             settings.asrWorkspaceID = "ws-test"
             settings.soundFeedbackEnabled = false
-            settings.helpMeSayWebSearchEnabled = enabled
+            settings.webSearchEnabled = enabled
             settings.fallbackToRawOnLLMFailure = false
             let credentials = InMemoryCredentialStore()
             try? credentials.save("asr-key", account: CredentialAccount.bailianAPIKey)
@@ -1325,7 +1325,7 @@ struct CoordinatorTests {
         let harness = Harness(
             asr: { FakeASR(scriptOnFinish: [.completed(itemID: "i1", transcript: "原话")]) },
             llm: .success("Olá"), recorder: recorder,
-            configure: { $0.helpMeSayWebSearchEnabled = true }
+            configure: { $0.webSearchEnabled = true }
         )
         try? harness.credentials.save("search-key", account: CredentialAccount.deepseekWebSearchAPIKey)
         let c = harness.coordinator
@@ -1827,22 +1827,22 @@ struct SettingsStoreTests {
         let s = SettingsStore(defaults: defaults)
         #expect(s.helpMeSayEnabled)
         #expect(s.voiceRewriteEnabled)
-        #expect(!s.helpMeSayWebSearchEnabled) // opt-in
-        #expect(s.helpMeSayWebSearchEagerness == 80 && s.helpMeSayWebSearchLevel == nil) // off until enabled
+        #expect(!s.webSearchEnabled) // opt-in
+        #expect(s.webSearchEagerness == 80 && s.webSearchLevel == nil) // off until enabled
         #expect(s.helpMeSayPrompt == TextProcessor.defaultHelpMeSayPrompt)
         s.helpMeSayEnabled = false
-        s.helpMeSayWebSearchEnabled = true
+        s.webSearchEnabled = true
         s.helpMeSayPrompt = "自定义"
-        #expect(s.helpMeSayWebSearchLevel == .aggressive)
-        s.helpMeSayWebSearchEagerness = 40
-        #expect(s.helpMeSayWebSearchLevel == .balanced)
-        s.helpMeSayWebSearchEagerness = 0
-        #expect(s.helpMeSayWebSearchLevel == nil) // 0 % == off
-        s.helpMeSayWebSearchEagerness = 150
-        #expect(s.helpMeSayWebSearchEagerness == 100) // clamped
-        s.helpMeSayWebSearchEagerness = 25
+        #expect(s.webSearchLevel == .aggressive)
+        s.webSearchEagerness = 40
+        #expect(s.webSearchLevel == .balanced)
+        s.webSearchEagerness = 0
+        #expect(s.webSearchLevel == nil) // 0 % == off
+        s.webSearchEagerness = 150
+        #expect(s.webSearchEagerness == 100) // clamped
+        s.webSearchEagerness = 25
         let reloaded = SettingsStore(defaults: defaults)
-        #expect(reloaded.helpMeSayWebSearchEnabled && reloaded.helpMeSayWebSearchEagerness == 25)
+        #expect(reloaded.webSearchEnabled && reloaded.webSearchEagerness == 25)
         #expect(!reloaded.helpMeSayEnabled)
         #expect(reloaded.helpMeSayPrompt == "自定义")
         #expect(TextProcessor.helpMeSaySystemPrompt(custom: "  \n ") == TextProcessor.defaultHelpMeSayPrompt)

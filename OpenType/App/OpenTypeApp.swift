@@ -21,7 +21,7 @@ enum AppContainer {
             inserter: coordinator.textInserter,
             historyStore: historyStore,
             recorder: coordinator.makeVoiceInputRecorder(),
-            isDictationBusy: { coordinator.state.isBusy },
+            isDictationBusy: { coordinator.state.isBusy || coordinator.isMicrophoneBusyExternally || screenAsk.isVisible },
             setMicrophoneBusy: { coordinator.isMicrophoneBusyExternally = $0 },
             openSettings: {
                 router.tab = .settings(.writingTools)
@@ -32,7 +32,19 @@ enum AppContainer {
         controller.presenter = writingToolsPanel
         return controller
     }()
-    static let updater = AppUpdater(settings: coordinator.settingsStore, isIdle: { coordinator.state == .idle })
+    static let screenAskPanel = ScreenAskPanelController()
+    static let screenAsk: ScreenAskController = {
+        let controller = ScreenAskController(
+            settings: settingsStore, credentials: coordinator.credentialStore, history: historyStore,
+            recorder: coordinator.makeVoiceInputRecorder(),
+            isBusy: { coordinator.state.isBusy || coordinator.isMicrophoneBusyExternally || writingTools.voiceState != .idle },
+            setMicrophoneBusy: { coordinator.isMicrophoneBusyExternally = $0 },
+            prepareCapture: { writingTools.close(); coordinator.cancelSession() }
+        )
+        controller.presenter = screenAskPanel
+        return controller
+    }()
+    static let updater = AppUpdater(settings: coordinator.settingsStore, isIdle: { coordinator.state == .idle && !screenAsk.isVisible })
     static let updateWindows = UpdateWindowController(updater: updater, settings: coordinator.settingsStore)
 }
 
@@ -67,12 +79,22 @@ struct OpenTypeApp: App {
                 .onChange(of: coordinator.settingsStore.translationHotkey) { _, _ in
                     coordinator.applyHotkeySettings()
                 }
+                .onChange(of: coordinator.settingsStore.screenAskHotkey) { _, _ in
+                    AppContainer.screenAsk.applyHotkeySettings()
+                }
+                .onChange(of: coordinator.settingsStore.screenAskEnabled) { _, enabled in
+                    if !enabled { AppContainer.screenAsk.close() }
+                }
                 .onChange(of: coordinator.settingsStore.writingToolsHotkey) { _, _ in
                     AppContainer.writingTools.applyHotkeySettings()
                 }
         }
         .defaultSize(width: 1000, height: 700)
         .commands {
+            CommandMenu("屏幕提问") {
+                Button("选取屏幕区域") { AppContainer.screenAsk.toggle() }
+                    .disabled(!coordinator.settingsStore.screenAskEnabled || coordinator.state.isBusy)
+            }
             CommandGroup(replacing: .appSettings) {
                 Button("设置…") {
                     router.tab = .settings(.general)

@@ -39,6 +39,9 @@ struct HotkeyConfig: Codable, Equatable, Sendable {
     /// ⌃⌥W — default shortcut for the Writing Tools panel.
     static let defaultWritingTools = HotkeyConfig(keyCode: 13, modifiers: [.maskControl, .maskAlternate])
 
+    /// ⇧⌘6 — select a screen region and ask about it.
+    static let defaultScreenAsk = HotkeyConfig(keyCode: 22, modifiers: [.maskCommand, .maskShift])
+
     static let escapeKeyCode: Int64 = 53
     static let classicModifiers: CGEventFlags = [.maskControl, .maskAlternate, .maskShift, .maskCommand]
     static let allModifiers: CGEventFlags = classicModifiers.union(.maskSecondaryFn)

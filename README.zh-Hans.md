@@ -133,7 +133,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 
 ### 帮我说的联网搜索
 
-仅支持 DeepSeek，且使用独立的 API Key。默认关闭，在「设置 → 帮我说」中开启并填入 DeepSeek Key 后生效。
+仅支持 DeepSeek，且使用独立的 API Key。默认关闭，在「设置 → AI 处理」中开启并填入 DeepSeek Key 后生效。「帮我说」和「翻译帮我说」共用这一设置，「屏幕提问」也默认沿用，也可以在「设置 → 屏幕提问」里单独设置开关和积极度。
 
 - **请求**：「帮我说」与「翻译帮我说」不再使用「AI 处理」选中的 Profile，而是固定请求 `https://api.deepseek.com/chat/completions`、模型 `deepseek-flash`，并声明 DeepSeek 服务端的 `deepseek_web_search` 工具。搜索与网页读取都在 DeepSeek 服务端完成，客户端无需循环调用，是否搜索由模型决定。
 - **搜索积极度**：开启思考模式（DeepSeek 的多步“深度搜索”，更愿意主动搜索），改用流式请求，可用滑块调节（0–100%，默认 80%）。

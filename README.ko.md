@@ -133,7 +133,7 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 
 ### 대신 말하기의 웹 검색
 
-DeepSeek만 지원하며 별도의 API 키를 사용합니다. 기본값은 꺼짐이며, '설정 → 대신 말하기'에서 켜고 DeepSeek 키를 입력하면 적용됩니다.
+DeepSeek만 지원하며 별도의 API 키를 사용합니다. 기본값은 꺼짐이며, '설정 → AI 처리'에서 켜고 DeepSeek 키를 입력하면 적용됩니다. '대신 말하기'와 '번역해서 대신 말하기'가 이 설정을 공유하며, '화면 질문'도 기본적으로 따릅니다. '설정 → 화면 질문'에서 켜기/끄기와 적극도를 따로 설정할 수도 있습니다.
 
 - **요청**: '대신 말하기'와 '번역해서 대신 말하기'는 더 이상 'AI 처리'에서 선택한 프로필을 쓰지 않고, 항상 `https://api.deepseek.com/chat/completions`에 모델 `deepseek-flash`로 요청하며 DeepSeek 서버 측 `deepseek_web_search` 도구를 선언합니다. 검색과 웹페이지 읽기는 모두 DeepSeek 서버에서 이루어지므로 클라이언트가 도구 호출을 반복할 필요가 없고, 검색 여부는 모델이 결정합니다.
 - **검색 적극도**: 생각 모드(DeepSeek의 다단계 '딥 서치'로, 더 적극적으로 검색함)를 켜고 스트리밍 요청을 사용합니다. 슬라이더로 조절할 수 있습니다(0–100%, 기본값 80%).

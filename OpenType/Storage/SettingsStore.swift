@@ -367,21 +367,68 @@ final class SettingsStore {
     /// Custom system prompt for help-me-say; blank falls back to `TextProcessor.defaultHelpMeSayPrompt`.
     var helpMeSayPrompt: String { didSet { defaults.set(helpMeSayPrompt, forKey: Keys.helpMeSayPrompt) } }
 
-    /// Lets the model search the web (DeepSeek's server-side `deepseek_web_search`) to enrich the result.
-    /// Only takes effect when the active profile points at DeepSeek's API.
-    var helpMeSayWebSearchEnabled: Bool { didSet { defaults.set(helpMeSayWebSearchEnabled, forKey: Keys.helpMeSayWebSearchEnabled) } }
+    /// Shared web search / page reading (DeepSeek's server-side `deepseek_web_search`) for "help me say" and, unless it has
+    /// its own setting, Screen Ask. Runs on DeepSeek with its own key, independent of the active Profile.
+    var webSearchEnabled: Bool { didSet { defaults.set(webSearchEnabled, forKey: Keys.webSearchEnabled) } }
     /// How readily the model searches, 0–100 %. 0 % is the same as switching web search off.
-    var helpMeSayWebSearchEagerness: Int {
+    var webSearchEagerness: Int {
         didSet {
-            let clamped = min(100, max(0, helpMeSayWebSearchEagerness))
-            if clamped != helpMeSayWebSearchEagerness { helpMeSayWebSearchEagerness = clamped; return }
-            defaults.set(clamped, forKey: Keys.helpMeSayWebSearchEagerness)
+            let clamped = min(100, max(0, webSearchEagerness))
+            if clamped != webSearchEagerness { webSearchEagerness = clamped; return }
+            defaults.set(clamped, forKey: Keys.webSearchEagerness)
         }
     }
 
     /// The level to run with, or `nil` when web search is off (switch off or 0 %).
+    var webSearchLevel: WebSearchLevel? {
+        webSearchEnabled ? WebSearchLevel(eagerness: webSearchEagerness) : nil
+    }
+
+    /// "Help me say"'s own eagerness (0–100 %); `nil` follows the shared value. The on/off switch stays shared.
+    var helpMeSayWebSearchEagerness: Int? {
+        didSet {
+            if let value = helpMeSayWebSearchEagerness {
+                let clamped = min(100, max(0, value))
+                if clamped != value { helpMeSayWebSearchEagerness = clamped; return }
+                defaults.set(clamped, forKey: Keys.helpMeSayOwnWebSearchEagerness)
+            } else {
+                defaults.removeObject(forKey: Keys.helpMeSayOwnWebSearchEagerness)
+            }
+        }
+    }
+
+    /// The level "help me say" runs with, or `nil` when web search is off (shared switch off, or eagerness 0 %).
     var helpMeSayWebSearchLevel: WebSearchLevel? {
-        helpMeSayWebSearchEnabled ? WebSearchLevel(eagerness: helpMeSayWebSearchEagerness) : nil
+        webSearchEnabled ? WebSearchLevel(eagerness: helpMeSayWebSearchEagerness ?? webSearchEagerness) : nil
+    }
+
+    /// Screen Ask's own web search switch; `inherit` follows the shared settings above.
+    var screenAskWebSearchMode: FeatureOverride { didSet { defaults.set(screenAskWebSearchMode.rawValue, forKey: Keys.screenAskWebSearchMode) } }
+    /// Screen Ask's own eagerness (0–100 %); `nil` follows the shared value.
+    var screenAskWebSearchEagerness: Int? {
+        didSet {
+            if let value = screenAskWebSearchEagerness {
+                let clamped = min(100, max(0, value))
+                if clamped != value { screenAskWebSearchEagerness = clamped; return }
+                defaults.set(clamped, forKey: Keys.screenAskWebSearchEagerness)
+            } else {
+                defaults.removeObject(forKey: Keys.screenAskWebSearchEagerness)
+            }
+        }
+    }
+
+    /// Eagerness Screen Ask runs with: its own value, else the shared one.
+    var screenAskEffectiveWebSearchEagerness: Int { screenAskWebSearchEagerness ?? webSearchEagerness }
+
+    /// The level Screen Ask runs with, or `nil` when web search is off for it.
+    var screenAskWebSearchLevel: WebSearchLevel? {
+        let enabled: Bool
+        switch screenAskWebSearchMode {
+        case .inherit: enabled = webSearchEnabled
+        case .on: enabled = true
+        case .off: enabled = false
+        }
+        return enabled ? WebSearchLevel(eagerness: screenAskEffectiveWebSearchEagerness) : nil
     }
 
     // MARK: Voice Rewrite (选中文本 + 语音改写)
@@ -401,6 +448,13 @@ final class SettingsStore {
 
     /// Background of the Writing Tools panel (default frosted blur).
     var writingToolsMaterial: OverlayMaterial { didSet { defaults.set(writingToolsMaterial.rawValue, forKey: Keys.writingToolsMaterial) } }
+
+    // MARK: Screen Ask
+    var screenAskEnabled: Bool { didSet { defaults.set(screenAskEnabled, forKey: Keys.screenAskEnabled) } }
+    var screenAskHotkey: HotkeyConfig { didSet { defaults.setCodable(screenAskHotkey, forKey: Keys.screenAskHotkey) } }
+    var screenAskProfileID: UUID? { didSet { defaults.set(screenAskProfileID?.uuidString, forKey: Keys.screenAskProfileID) } }
+    var screenAskModelID: String { didSet { defaults.set(screenAskModelID, forKey: Keys.screenAskModelID) } }
+    var screenAskReasoningEffort: String { didSet { defaults.set(screenAskReasoningEffort, forKey: Keys.screenAskReasoningEffort) } }
 
     // MARK: Privacy
     /// Keep the recognised and final text of each session in the local history. Off: only counters are kept.
@@ -480,8 +534,8 @@ final class SettingsStore {
         helpMeSayEnabled = bool(Keys.helpMeSayEnabled, true)
         helpMeSayPrompt = defaults.string(forKey: Keys.helpMeSayPrompt) ?? TextProcessor.defaultHelpMeSayPrompt
 
-        helpMeSayWebSearchEnabled = bool(Keys.helpMeSayWebSearchEnabled, false)
-        helpMeSayWebSearchEagerness = min(100, max(0, defaults.object(forKey: Keys.helpMeSayWebSearchEagerness) as? Int ?? 80))
+        webSearchEnabled = bool(Keys.webSearchEnabled, false)
+        webSearchEagerness = min(100, max(0, defaults.object(forKey: Keys.webSearchEagerness) as? Int ?? 80))
 
         voiceRewriteEnabled = bool(Keys.voiceRewriteEnabled, true)
 
@@ -495,6 +549,17 @@ final class SettingsStore {
         writingToolsModelID = defaults.string(forKey: Keys.writingToolsModelID) ?? ""
         writingToolsReasoningEffort = defaults.string(forKey: Keys.writingToolsReasoningEffort) ?? ""
         writingToolsMaterial = raw(Keys.writingToolsMaterial, .blur)
+
+        helpMeSayWebSearchEagerness = (defaults.object(forKey: Keys.helpMeSayOwnWebSearchEagerness) as? Int).map { min(100, max(0, $0)) }
+        screenAskWebSearchMode = raw(Keys.screenAskWebSearchMode, .inherit)
+        screenAskWebSearchEagerness = (defaults.object(forKey: Keys.screenAskWebSearchEagerness) as? Int).map { min(100, max(0, $0)) }
+        screenAskEnabled = bool(Keys.screenAskEnabled, true)
+        screenAskHotkey = defaults.codable(HotkeyConfig.self, forKey: Keys.screenAskHotkey).value.flatMap {
+            $0.validation == .ok ? $0 : nil
+        } ?? .defaultScreenAsk
+        screenAskProfileID = defaults.string(forKey: Keys.screenAskProfileID).flatMap(UUID.init(uuidString:))
+        screenAskModelID = defaults.string(forKey: Keys.screenAskModelID) ?? ""
+        screenAskReasoningEffort = defaults.string(forKey: Keys.screenAskReasoningEffort) ?? ""
 
         saveHistoryText = bool(Keys.saveHistoryText, true)
         diagnosticsEnabled = bool(Keys.diagnosticsEnabled, false)
@@ -528,6 +593,16 @@ final class SettingsStore {
         return profile
     }
 
+    /// Preserve the base profile identity so credentials still resolve to the same API key.
+    var screenAskProfile: LLMProfile? {
+        guard var profile = llmProfiles.first(where: { $0.id == screenAskProfileID }) ?? activeProfile else { return nil }
+        let model = screenAskModelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effort = screenAskReasoningEffort.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !model.isEmpty { profile.modelID = model }
+        if !effort.isEmpty { profile.reasoningEffort = effort }
+        return profile
+    }
+
     func updateProfile(_ profile: LLMProfile) {
         guard let index = llmProfiles.firstIndex(where: { $0.id == profile.id }) else { return }
         llmProfiles[index] = profile
@@ -550,6 +625,7 @@ final class SettingsStore {
         llmProfiles.remove(at: index)
         if activeProfileID == id { activeProfileID = llmProfiles.first?.id }
         if writingToolsProfileID == id { writingToolsProfileID = nil }
+        if screenAskProfileID == id { screenAskProfileID = nil }
         return id
     }
 
@@ -637,8 +713,12 @@ final class SettingsStore {
         static let translationHotkey = "opentype.translationHotkey"
         static let helpMeSayEnabled = "opentype.helpMeSayEnabled"
         static let helpMeSayPrompt = "opentype.helpMeSayPrompt"
-        static let helpMeSayWebSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
-        static let helpMeSayWebSearchEagerness = "opentype.helpMeSayWebSearchEagerness"
+        // Key names predate web search moving from "help me say" to the shared AI processing settings: kept for existing users.
+        static let webSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
+        static let webSearchEagerness = "opentype.helpMeSayWebSearchEagerness"
+        static let helpMeSayOwnWebSearchEagerness = "opentype.helpMeSayOwnWebSearchEagerness"
+        static let screenAskWebSearchMode = "opentype.screenAskWebSearchMode"
+        static let screenAskWebSearchEagerness = "opentype.screenAskWebSearchEagerness"
         static let voiceRewriteEnabled = "opentype.voiceRewriteEnabled"
         static let writingToolsEnabled = "opentype.writingToolsEnabled"
         static let writingToolsHotkey = "opentype.writingToolsHotkey"
@@ -646,7 +726,18 @@ final class SettingsStore {
         static let writingToolsModelID = "opentype.writingToolsModelID"
         static let writingToolsReasoningEffort = "opentype.writingToolsReasoningEffort"
         static let writingToolsMaterial = "opentype.writingToolsMaterial"
+        static let screenAskEnabled = "opentype.screenAskEnabled"
+        static let screenAskHotkey = "opentype.screenAskHotkey"
+        static let screenAskProfileID = "opentype.screenAskProfileID"
+        static let screenAskModelID = "opentype.screenAskModelID"
+        static let screenAskReasoningEffort = "opentype.screenAskReasoningEffort"
         static let saveHistoryText = "opentype.saveHistoryText"
         static let diagnosticsEnabled = "opentype.diagnosticsEnabled"
     }
+}
+
+/// A per-feature override of a shared setting: follow it, force it on, or force it off.
+enum FeatureOverride: String, CaseIterable, Identifiable, Sendable {
+    case inherit, on, off
+    var id: String { rawValue }
 }

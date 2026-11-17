@@ -133,7 +133,7 @@ Shortcuts take effect automatically once permissions are granted. If a switch is
 
 ### Web search for Say It for Me
 
-DeepSeek only, with its own separate API key. Off by default; turn it on under “Settings → Say It for Me” and enter a DeepSeek key.
+DeepSeek only, with its own separate API key. Off by default; turn it on under “Settings → AI Processing” and enter a DeepSeek key. “Say It for Me” and “Translate & Say It for Me” use this shared setting, and “Screen Ask” follows it too unless you give it its own on/off and eagerness under “Settings → Screen Ask”.
 
 - **Request**: “Say It for Me” and “Translate & Say It for Me” no longer use the profile selected under “AI Processing”. They always call `https://api.deepseek.com/chat/completions` with the model `deepseek-flash` and declare DeepSeek’s server-side `deepseek_web_search` tool. Searching and page reading both happen on DeepSeek’s servers, so the client needs no tool-call loop, and the model decides whether to search.
 - **Search eagerness**: thinking mode is enabled (DeepSeek’s multi-step “deep search”, which is more willing to search proactively) and streaming is used. Adjust it with the slider (0–100%, default 80%).

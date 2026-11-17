@@ -962,7 +962,7 @@ final class DictationSessionCoordinator {
         try await resolveWebSearchProvider().processWithWebSearch(
             transcript: "嗯那个今天天气呃很好我们去公园",
             systemPrompt: TextProcessor.systemPrompt(base: "", level: .standard),
-            level: settingsStore.helpMeSayWebSearchLevel ?? .aggressive,
+            level: settingsStore.webSearchLevel ?? .aggressive,
             onProgress: { _ in }
         ).text
     }

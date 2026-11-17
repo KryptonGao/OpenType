@@ -108,6 +108,24 @@ struct URLSessionTransport: HTTPTransport {
 // MARK: - Request building (pure, unit-tested)
 
 enum LLMRequestBuilder {
+    private static func messageBody(_ message: LLMMessage, format: LLMAPIFormat) -> [String: Any] {
+        guard let image = message.imageJPEG else { return ["role": message.role.rawValue, "content": message.content] }
+        let base64 = image.base64EncodedString()
+        let content: [[String: Any]]
+        switch format {
+        case .openAIResponses:
+            content = [["type": "input_image", "image_url": "data:image/jpeg;base64," + base64],
+                       ["type": "input_text", "text": message.content]]
+        case .openAIChatCompletions:
+            content = [["type": "image_url", "image_url": ["url": "data:image/jpeg;base64," + base64]],
+                       ["type": "text", "text": message.content]]
+        case .anthropicMessages:
+            content = [["type": "image", "source": ["type": "base64", "media_type": "image/jpeg", "data": base64]],
+                       ["type": "text", "text": message.content]]
+        }
+        return ["role": message.role.rawValue, "content": content]
+    }
+
     static let anthropicVersion = "2023-06-01"
     static let anthropicMaxTokens = 4096
     static let webSearchToolName = "deepseek_web_search"
@@ -166,7 +184,7 @@ enum LLMRequestBuilder {
         request.timeoutInterval = profile.timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let turns = messages.map { ["role": $0.role.rawValue, "content": $0.content] }
+        let turns = messages.map { messageBody($0, format: profile.format) }
         var body: [String: Any]
         switch profile.format {
         case .openAIResponses:
@@ -175,7 +193,7 @@ enum LLMRequestBuilder {
                 "model": profile.modelID,
                 "instructions": systemPrompt,
                 // A single user turn keeps the plain-string form every Responses-compatible server accepts.
-                "input": messages.count == 1 && messages[0].role == .user ? messages[0].content as Any : turns as Any,
+                "input": messages.count == 1 && messages[0].role == .user && messages[0].imageJPEG == nil ? messages[0].content as Any : turns as Any,
                 "store": false
             ]
         case .openAIChatCompletions:
@@ -555,6 +573,41 @@ struct HTTPLLMProvider: LLMProvider {
         let progress = accumulator.finalProgress
         Diagnostics.log("web search calls=\(progress.calls) results=\(progress.results) pages=\(progress.pages)")
         return WebSearchOutput(text: text, progress: progress, usage: accumulator.usage)
+    }
+
+    func completeStreamingWithWebSearch(
+        messages: [LLMMessage],
+        systemPrompt: String,
+        level: WebSearchLevel,
+        onDelta: @escaping @Sendable (String) -> Void,
+        onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+    ) async throws -> WebSearchOutput {
+        guard profile.format == .openAIChatCompletions else {
+            let output = try await completeStreaming(messages: messages, systemPrompt: systemPrompt, onDelta: onDelta)
+            return WebSearchOutput(text: output.text, progress: WebSearchProgress(), usage: output.usage)
+        }
+        guard !apiKey.isEmpty else { throw LLMError.missingAPIKey }
+        let request = try LLMRequestBuilder.makeRequest(
+            profile: profile, apiKey: apiKey, messages: messages, systemPrompt: systemPrompt, webSearch: level
+        )
+        var accumulator = ChatStreamAccumulator()
+        onProgress(accumulator.progress)
+        let (response, errorBody) = try await transport.sendStreaming(request) { line in
+            let before = accumulator.text.count
+            let changed = accumulator.consume(line: line)
+            if accumulator.text.count > before { onDelta(String(accumulator.text.dropFirst(before))) }
+            if changed { onProgress(accumulator.progress) }
+        }
+        guard (200..<300).contains(response.statusCode) else {
+            throw LLMResponseParser.mapFailure(status: response.statusCode, data: errorBody, secrets: [apiKey])
+        }
+        if let message = accumulator.errorMessage {
+            let safe = String(Diagnostics.redact(message, secrets: [apiKey]).prefix(200))
+            throw LLMError.server(response.statusCode, safe)
+        }
+        let text = LLMResponseParser.clean(accumulator.text)
+        guard !text.isEmpty else { throw LLMError.emptyOutput }
+        return WebSearchOutput(text: text, progress: accumulator.finalProgress, usage: accumulator.usage)
     }
 
     func complete(messages: [LLMMessage], systemPrompt: String) async throws -> LLMOutput {

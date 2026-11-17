@@ -24,6 +24,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case helpMeSay
     case rewrite
     case writingTools
+    case screenAsk
 
     var id: String { rawValue }
 
@@ -34,6 +35,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .helpMeSay: String(localized: "帮我说")
         case .rewrite: String(localized: "改写")
         case .writingTools: String(localized: "书写工具")
+        case .screenAsk: String(localized: "屏幕提问")
         }
     }
 
@@ -44,6 +46,7 @@ enum SessionKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .helpMeSay: "wand.and.stars"
         case .rewrite: "pencil.and.outline"
         case .writingTools: "square.and.pencil"
+        case .screenAsk: "viewfinder"
         }
     }
 }
@@ -54,6 +57,8 @@ struct SessionRecord: Codable, Identifiable, Equatable, Sendable {
     enum Delivery: String, Codable, Sendable {
         case inserted
         case manualCopy
+        /// Shown in a panel only (Screen Ask): nothing was inserted or copied.
+        case displayed
     }
 
     var id = UUID()

@@ -551,40 +551,6 @@
         }
       }
     },
-    "0%：不搜索（等同关闭，仍用「AI 处理」的 Profile）；1–33% 保守：只在你明确要求查证时搜索，用快速模式；34–66% 适中：遇到拿不准的具体事实才搜索；67–100% 积极：凡涉及可查证的事实都会先搜索核实。保守档不开思考模式，更快更省；适中和积极档用多步深度搜索，更耗时。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "0%：不搜索（等同关闭，仍用「AI 处理」的 Profile）；1–33% 保守：只在你明确要求查证时搜索，用快速模式；34–66% 适中：遇到拿不准的具体事实才搜索；67–100% 积极：凡涉及可查证的事实都会先搜索核实。保守档不开思考模式，更快更省；适中和积极档用多步深度搜索，更耗时。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "0%: no search (same as off; the profile under “AI Processing” is still used). 1–33% Conservative: searches only when you explicitly ask for verification, in fast mode. 34–66% Balanced: searches only for specific facts it is unsure about. 67–100% Aggressive: searches to verify any fact that can be checked. Conservative does not use thinking mode, so it is faster and cheaper; Balanced and Aggressive use multi-step deep search and take longer."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "0%：不搜尋（等同關閉，仍使用「AI 處理」的設定檔）；1–33% 保守：只在你明確要求查證時搜尋，使用快速模式；34–66% 適中：遇到拿不準的具體事實才搜尋；67–100% 積極：凡涉及可查證的事實都會先搜尋核實。保守檔不開啟思考模式，更快更省；適中與積極檔使用多步驟深度搜尋，較耗時。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "0%：検索しない（オフと同じで、「AI 処理」のプロファイルを使用）。1〜33% 控えめ：明示的に確認を求められたときだけ高速モードで検索。34〜66% 標準：確信のない具体的な事実があるときだけ検索。67〜100% 積極的：確認できる事実が含まれていれば必ず先に検索して裏付けを取る。控えめは思考モードを使わないため高速で低コスト。標準と積極的は多段階の詳細検索を行うため時間がかかります。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "0%: 검색 안 함(끄기와 동일하며 'AI 처리'의 프로필을 계속 사용). 1–33% 보수적: 사용자가 명시적으로 확인을 요청할 때만 빠른 모드로 검색. 34–66% 보통: 확실하지 않은 구체적 사실이 있을 때만 검색. 67–100% 적극적: 확인 가능한 사실이 있으면 먼저 검색해 검증. 보수적 단계는 생각 모드를 쓰지 않아 더 빠르고 저렴하며, 보통·적극적 단계는 다단계 심층 검색을 사용해 더 오래 걸립니다."
-          }
-        }
-      }
-    },
     "AI 厂商与产品": {
       "localizations": {
         "zh-Hans": {
@@ -1662,40 +1628,6 @@
           "stringUnit": {
             "state": "translated",
             "value": ". 인식된 내용은 보존되었습니다. 복사한 후 다시 시도해 주세요"
-          }
-        }
-      }
-    },
-    "「帮我说」与「翻译帮我说」由「AI 处理」中当前选中的 Profile 完成（开启上面的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「帮我说」与「翻译帮我说」由「AI 处理」中当前选中的 Profile 完成（开启上面的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“Say It for Me” and “Translate & Say It for Me” use the profile currently selected under “AI Processing” (or DeepSeek when web search above is on) and need an API key; they call the model even if AI text post-processing is off or Raw mode is selected. The output can be long, so if requests often time out, raise the timeout in the profile. If the model call fails, whether the raw transcript is used instead depends on “Fall back to raw ASR text when AI fails or times out”."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「幫我說」與「翻譯幫我說」會使用「AI 處理」中目前選取的設定檔（開啟上方的網路搜尋時改用 DeepSeek），且需要填寫 API Key；即使關閉了 AI 文字後處理或選擇了原始模式，仍會呼叫該模型。產生的內容較長，若經常逾時，可在設定檔中調高逾時時間。模型呼叫失敗時，是否改用辨識原文取決於「AI 失敗或逾時時回退使用 ASR 原文」。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「代わりに話す」と「翻訳して代わりに話す」は、「AI 処理」で現在選択中のプロファイル（上のウェブ検索をオンにしている場合は DeepSeek）を使用し、API キーの入力が必要です。AI テキスト後処理をオフにしていたり、生のモードを選んでいても、このモデルが呼び出されます。生成内容が長いため、よくタイムアウトする場合はプロファイルでタイムアウト時間を長くしてください。モデルの呼び出しに失敗したとき認識原文を使うかどうかは、「AI の失敗またはタイムアウト時に ASR 原文にフォールバック」の設定によります。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "'대신 말하기'와 '번역해서 대신 말하기'는 'AI 처리'에서 현재 선택된 프로필(위의 웹 검색을 켜면 DeepSeek)을 사용하며 API 키가 필요합니다. AI 텍스트 후처리를 끄거나 원본 모드를 선택해도 이 모델이 호출됩니다. 생성 내용이 길어 시간 초과가 자주 발생하면 프로필에서 시간 제한을 늘리세요. 모델 호출이 실패했을 때 인식 원문을 대신 사용할지는 'AI 실패 또는 시간 초과 시 ASR 원문으로 대체' 설정에 따릅니다."
           }
         }
       }
@@ -5674,40 +5606,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "앱 규칙"
-          }
-        }
-      }
-    },
-    "开启后，「帮我说」与「翻译帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与普通翻译不受影响。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启后，「帮我说」与「翻译帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与普通翻译不受影响。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When on, “Say It for Me” and “Translate & Say It for Me” are handled by DeepSeek (api.deepseek.com, model deepseek-flash; both fixed). The model searches the web on its own when it needs to verify facts or get recent information, and works what it finds into the result. Searching and page reading are done on DeepSeek’s servers and whether to search is up to the model; this noticeably increases latency (thinking mode is enabled for multi-step search, with a 180-second timeout). While searching, the overlay shows live what is being searched and how many results were found, and afterwards tells you whether a search actually happened; this is billed separately at DeepSeek’s web tool pricing. The profile selected under “AI Processing” is not used in this case; regular dictation and regular translation are unaffected."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "開啟後，「幫我說」與「翻譯幫我說」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，皆為固定值）完成：模型在需要查證或較新資訊時會自行搜尋網路，並把查到的資料融入成品。搜尋與網頁讀取由 DeepSeek 伺服器端完成，是否搜尋由模型決定，會明顯增加耗時（開啟思考模式以便多步驟搜尋，逾時 180 秒）；搜尋時懸浮視窗會即時顯示正在搜尋的內容與已搜尋到的結果數，完成後提示是否真的搜尋過，並依 DeepSeek 網路工具的價格另外計費。此時不使用「AI 處理」中選取的設定檔；一般聽寫與一般翻譯不受影響。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オンにすると、「代わりに話す」と「翻訳して代わりに話す」は DeepSeek（api.deepseek.com、モデルは deepseek-flash、いずれも固定）で処理されます。モデルは事実確認や新しい情報が必要なときに自らウェブを検索し、得られた情報を仕上がりに反映します。検索とページの読み取りは DeepSeek のサーバー側で行われ、検索するかどうかはモデルが判断するため、処理時間が大きく増えます（多段階検索のため思考モードが有効になり、タイムアウトは 180 秒）。検索中はオーバーレイに検索内容と取得した結果数がリアルタイムで表示され、完了後に実際に検索したかどうかが通知されます。料金は DeepSeek のウェブツールの価格で別途課金されます。この場合、「AI 処理」で選択したプロファイルは使用されません。通常の音声入力と通常の翻訳には影響しません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "켜면 '대신 말하기'와 '번역해서 대신 말하기'는 DeepSeek(api.deepseek.com, 모델 deepseek-flash, 둘 다 고정값)이 처리합니다. 모델은 사실 확인이나 최신 정보가 필요할 때 스스로 웹을 검색하고, 찾은 자료를 결과물에 반영합니다. 검색과 웹페이지 읽기는 DeepSeek 서버에서 이루어지며 검색 여부는 모델이 결정하므로 시간이 눈에 띄게 늘어납니다(다단계 검색을 위해 생각 모드를 켜며 시간 제한은 180초). 검색하는 동안 오버레이 창에 검색 중인 내용과 찾은 결과 수가 실시간으로 표시되고, 완료 후에는 실제로 검색했는지 알려 주며, DeepSeek 웹 도구 요금으로 별도 과금됩니다. 이때는 'AI 처리'에서 선택한 프로필을 사용하지 않으며, 일반 받아쓰기와 일반 번역에는 영향이 없습니다."
           }
         }
       }
@@ -12168,40 +12066,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "번역해서 대신 말하기"
-          }
-        }
-      }
-    },
-    "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Translate & Say It for Me: hold the translation shortcut set under the “Translation” tab to do the same thing, but the finished message is written directly in the target language (you can switch the language and regional wording temporarily in the overlay). For example, hold the translation shortcut and say “Tell my landlord the pipe will leak next month and needs fixing, and ask when it’s convenient” to get a complete, polite message in the target language. It shares the web search (searching and page reading) and System Prompt settings below with “Say It for Me”; if the model call fails, untranslated text is not inserted and the recognized text stays in the overlay for you to copy."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "翻譯幫我說：長按「翻譯」標籤頁中設定的翻譯快速鍵，做同樣的事，但成品直接以翻譯目標語言寫出（懸浮視窗中可暫時切換語言與地區用語）。例：按住翻譯快速鍵說「跟房東說下個月水管漏水要修，問他什麼時候方便」，會得到一段完整、得體的目標語言訊息。它與「幫我說」共用下方的網路搜尋（搜尋與讀取網頁）和 System Prompt 設定；模型呼叫失敗時不會插入未翻譯的文字，辨識原文會保留在懸浮視窗中供複製。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "翻訳して代わりに話す：「翻訳」タブで設定した翻訳ショートカットを長押しすると同じ処理を行いますが、仕上がりは翻訳先の言語で直接書かれます（オーバーレイで言語や地域ごとの表現を一時的に切り替えられます）。例：翻訳ショートカットを押しながら「大家さんに、来月水道管から水漏れするので修理が必要だと伝えて、いつ都合がいいか聞いて」と話すと、翻訳先の言語で丁寧にまとまったメッセージが得られます。下のウェブ検索（検索とページの読み取り）と System Prompt の設定は「代わりに話す」と共通です。モデルの呼び出しに失敗した場合は未翻訳のテキストは挿入されず、認識原文はオーバーレイに残るのでコピーできます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "번역해서 대신 말하기: '번역' 탭에서 설정한 번역 단축키를 길게 누르면 같은 일을 하되, 결과물이 번역 대상 언어로 바로 작성됩니다(오버레이 창에서 언어와 지역별 표현을 임시로 바꿀 수 있음). 예: 번역 단축키를 누른 채 '집주인에게 다음 달에 수도관이 새서 수리가 필요하다고 말하고 언제 편한지 물어봐 줘'라고 말하면 대상 언어로 완결되고 정중한 메시지가 만들어집니다. 아래의 웹 검색(검색 및 웹페이지 읽기)과 System Prompt 설정은 '대신 말하기'와 공유합니다. 모델 호출이 실패하면 번역되지 않은 텍스트는 삽입되지 않으며, 인식 원문은 오버레이 창에 남아 복사할 수 있습니다."
           }
         }
       }
@@ -20090,6 +19954,1366 @@
           "stringUnit": {
             "state": "translated",
             "value": "켜면 번역이 현재 앱에 해당하는 프리셋(「프리셋」 페이지 참고)을 사용합니다. 번역문은 그 프리셋의 어조와 스타일을 따르고, 해당 전문 용어 사전 팩을 켜며, 설정에 따라 문장 끝 마침표를 제거합니다. 「Terminal 명령 생성」 같은 명령 프리셋은 번역에 사용되지 않습니다. 끄면 번역은 자체 프롬프트만 사용합니다."
+          }
+        }
+      }
+    },
+    "屏幕提问": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Ask"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕提问"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕提問"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面に質問"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 질문"
+          }
+        }
+      }
+    },
+    "屏幕提问：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Ask: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕提问：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕提問：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面に質問：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 질문: %@"
+          }
+        }
+      }
+    },
+    "启用屏幕提问": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable Screen Ask"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用屏幕提问"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用螢幕提問"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面に質問を有効にする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 질문 활성화"
+          }
+        }
+      }
+    },
+    "屏幕提问快捷键": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Ask shortcut"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕提问快捷键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕提問快捷鍵"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面に質問のショートカット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 질문 단축키"
+          }
+        }
+      }
+    },
+    "与屏幕提问快捷键相同，请换一个": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conflicts with the Screen Ask shortcut. Choose another."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与屏幕提问快捷键相同，请换一个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "與螢幕提問快捷鍵相同，請換一個"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面に質問のショートカットと重複しています。別のキーを選んでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 질문 단축키와 같습니다. 다른 키를 선택하세요."
+          }
+        }
+      }
+    },
+    "无法处理所选图片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to process the selected image."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法处理所选图片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法處理所選圖片"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択した画像を処理できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택한 이미지를 처리할 수 없습니다."
+          }
+        }
+      }
+    },
+    "无法打开默认浏览器": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to open the default browser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开默认浏览器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法開啟預設瀏覽器"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトのブラウザを開けません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본 브라우저를 열 수 없습니다."
+          }
+        }
+      }
+    },
+    "拖动以选取屏幕区域 · Esc 取消": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag to select a screen region · Esc to cancel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖动以选取屏幕区域 · Esc 取消"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖移以選取螢幕區域 · Esc 取消"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドラッグして画面の範囲を選択 · Esc でキャンセル"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "드래그하여 화면 영역 선택 · Esc로 취소"
+          }
+        }
+      }
+    },
+    "请先配置 AI 模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure an AI model first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先配置 AI 模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先設定 AI 模型"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先に AI モデルを設定してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "먼저 AI 모델을 설정하세요."
+          }
+        }
+      }
+    },
+    "留空则使用配置里的设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave blank to use the profile setting"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空则使用配置里的设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空則使用設定檔的設定"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空欄の場合はプロファイルの設定を使用"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "비워 두면 프로필 설정 사용"
+          }
+        }
+      }
+    },
+    "打开屏幕录制设置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Screen Recording Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开屏幕录制设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟螢幕錄製設定"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面収録の設定を開く"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 기록 설정 열기"
+          }
+        }
+      }
+    },
+    "请在「系统设置 → 隐私与安全性 → 屏幕与系统音频录制」中允许 OpenType，然后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow OpenType in System Settings → Privacy & Security → Screen & System Audio Recording, then try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在「系统设置 → 隐私与安全性 → 屏幕与系统音频录制」中允许 OpenType，然后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請在「系統設定 → 隱私權與安全性 → 螢幕與系統音訊錄製」中允許 OpenType，然後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「システム設定 → プライバシーとセキュリティ → 画面収録とシステムオーディオ録音」で OpenType を許可してから、再試行してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정 → 개인정보 보호 및 보안 → 화면 및 시스템 오디오 기록에서 OpenType을 허용한 다음 다시 시도하세요."
+          }
+        }
+      }
+    },
+    "按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 搜索所选图片。按 Esc 或再次按快捷键关闭。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press the shortcut and drag to select a screen region. Type or speak a question beside the selection, or search the selected image with Google in your default browser. Press Esc or the shortcut again to close."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 搜索所选图片。按 Esc 或再次按快捷键关闭。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按快捷鍵後拖移選取螢幕區域，在選區旁輸入問題或用語音提問；也可以在預設瀏覽器中用 Google 搜尋所選圖片。按 Esc 或再次按快捷鍵關閉。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ショートカットを押して画面の範囲をドラッグで選択します。選択範囲の横で文字や音声で質問したり、デフォルトのブラウザで選択した画像を Google 検索できます。Esc または同じショートカットでもう一度押すと閉じます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "단축키를 누른 뒤 드래그하여 화면 영역을 선택하세요. 선택 영역 옆에서 글이나 음성으로 질문하거나 기본 브라우저에서 선택한 이미지를 Google로 검색할 수 있습니다. Esc 또는 단축키를 다시 누르면 닫힙니다."
+          }
+        }
+      }
+    },
+    "Ask 默认跟随语音「AI 处理」的配置，也可以单独选择配置、模型和 effort。请使用支持图片输入的模型；API Key、Base URL 和 API 格式取自所选配置。语音输入沿用「语音识别」设置。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask follows the voice AI Processing profile by default. You can choose a separate profile, model, and effort. Use a model that supports image input. API Key, Base URL, and API format come from the selected profile. Voice input uses your Speech Recognition settings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask 默认跟随语音「AI 处理」的配置，也可以单独选择配置、模型和 effort。请使用支持图片输入的模型；API Key、Base URL 和 API 格式取自所选配置。语音输入沿用「语音识别」设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask 預設沿用語音「AI 處理」的設定檔，也可以單獨選擇設定檔、模型和 effort。請使用支援圖片輸入的模型；API Key、Base URL 和 API 格式取自所選設定檔。語音輸入沿用「語音辨識」設定。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask はデフォルトで音声の「AI 処理」プロファイルを使用します。プロファイル、モデル、effort を個別に指定することもできます。画像入力に対応したモデルを使用してください。API Key、Base URL、API 形式は選択したプロファイルから取得します。音声入力は「音声認識」の設定を使用します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask는 기본적으로 음성의 「AI 처리」 프로필을 따릅니다. 프로필, 모델, effort를 별도로 선택할 수도 있습니다. 이미지 입력을 지원하는 모델을 사용하세요. API Key, Base URL, API 형식은 선택한 프로필에서 가져옵니다. 음성 입력은 「음성 인식」 설정을 사용합니다."
+          }
+        }
+      }
+    },
+    "选取屏幕区域": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select Screen Region"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选取屏幕区域"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選取螢幕區域"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面の範囲を選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 영역 선택"
+          }
+        }
+      }
+    },
+    "「帮我说」与「翻译帮我说」由「AI 处理」中当前选中的 Profile 完成（开启「AI 处理」里的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「帮我说」与「翻译帮我说」由「AI 处理」中当前选中的 Profile 完成（开启「AI 处理」里的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Say It for Me” and “Translate & Say It for Me” use the profile currently selected under “AI Processing” (or DeepSeek when web search under “AI Processing” is on) and need an API key; they call the model even if AI text post-processing is off or Raw mode is selected. The output can be long, so if requests often time out, raise the timeout in the profile. If the model call fails, whether the raw transcript is used instead depends on “Fall back to raw ASR text when AI fails or times out”."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「幫我說」與「翻譯幫我說」會使用「AI 處理」中目前選取的設定檔（開啟「AI 處理」中的網路搜尋時改用 DeepSeek），且需要填寫 API Key；即使關閉了 AI 文字後處理或選擇了原始模式，仍會呼叫該模型。產生的內容較長，若經常逾時，可在設定檔中調高逾時時間。模型呼叫失敗時，是否改用辨識原文取決於「AI 失敗或逾時時回退使用 ASR 原文」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「代わりに話す」と「翻訳して代わりに話す」は、「AI 処理」で現在選択中のプロファイル（「AI 処理」のウェブ検索をオンにしている場合は DeepSeek）を使用し、API キーの入力が必要です。AI テキスト後処理をオフにしていたり、生のモードを選んでいても、このモデルが呼び出されます。生成内容が長いため、よくタイムアウトする場合はプロファイルでタイムアウト時間を長くしてください。モデルの呼び出しに失敗したとき認識原文を使うかどうかは、「AI の失敗またはタイムアウト時に ASR 原文にフォールバック」の設定によります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "'대신 말하기'와 '번역해서 대신 말하기'는 'AI 처리'에서 현재 선택된 프로필('AI 처리'의 웹 검색을 켜면 DeepSeek)을 사용하며 API 키가 필요합니다. AI 텍스트 후처리를 끄거나 원본 모드를 선택해도 이 모델이 호출됩니다. 생성 내용이 길어 시간 초과가 자주 발생하면 프로필에서 시간 제한을 늘리세요. 모델 호출이 실패했을 때 인식 원문을 대신 사용할지는 'AI 실패 또는 시간 초과 시 ASR 원문으로 대체' 설정에 따릅니다."
+          }
+        }
+      }
+    },
+    "开启后，「帮我说」、「翻译帮我说」与「屏幕提问」（可在其设置中单独开关）改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时这些功能不使用上方选中的 Profile；普通听写与普通翻译不受影响。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后，「帮我说」、「翻译帮我说」与「屏幕提问」（可在其设置中单独开关）改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时这些功能不使用上方选中的 Profile；普通听写与普通翻译不受影响。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, “Say It for Me”, “Translate & Say It for Me” and “Screen Ask” (which can be switched separately in its own settings) are handled by DeepSeek (api.deepseek.com, model deepseek-flash; both fixed). The model searches the web on its own when it needs to verify facts or get recent information, and works what it finds into the result. Searching and page reading are done on DeepSeek’s servers and whether to search is up to the model; this noticeably increases latency (thinking mode is enabled for multi-step search, with a 180-second timeout). While searching, the overlay shows live what is being searched and how many results were found, and afterwards tells you whether a search actually happened; this is billed separately at DeepSeek’s web tool pricing. These features then do not use the profile selected above; regular dictation and regular translation are unaffected."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟後，「幫我說」、「翻譯幫我說」與「螢幕提問」（可在其設定中單獨開關）改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，皆為固定值）完成：模型在需要查證或較新資訊時會自行搜尋網路，並把查到的資料融入成品。搜尋與網頁讀取由 DeepSeek 伺服器端完成，是否搜尋由模型決定，會明顯增加耗時（開啟思考模式以便多步驟搜尋，逾時 180 秒）；搜尋時懸浮視窗會即時顯示正在搜尋的內容與已搜尋到的結果數，完成後提示是否真的搜尋過，並依 DeepSeek 網路工具的價格另外計費。此時這些功能不使用上方選取的設定檔；一般聽寫與一般翻譯不受影響。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、「代わりに話す」、「翻訳して代わりに話す」、「画面に質問」（それぞれの設定で個別に切り替え可能）は DeepSeek（api.deepseek.com、モデルは deepseek-flash、いずれも固定）で処理されます。モデルは事実確認や新しい情報が必要なときに自らウェブを検索し、得られた情報を仕上がりに反映します。検索とページの読み取りは DeepSeek のサーバー側で行われ、検索するかどうかはモデルが判断するため、処理時間が大きく増えます（多段階検索のため思考モードが有効になり、タイムアウトは 180 秒）。検索中はオーバーレイに検索内容と取得した結果数がリアルタイムで表示され、完了後に実際に検索したかどうかが通知されます。料金は DeepSeek のウェブツールの価格で別途課金されます。この場合、これらの機能は上で選択したプロファイルを使用しません。通常の音声入力と通常の翻訳には影響しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켜면 '대신 말하기', '번역해서 대신 말하기', '화면 질문'(각 설정에서 따로 켜고 끌 수 있음)은 DeepSeek(api.deepseek.com, 모델 deepseek-flash, 둘 다 고정값)이 처리합니다. 모델은 사실 확인이나 최신 정보가 필요할 때 스스로 웹을 검색하고, 찾은 자료를 결과물에 반영합니다. 검색과 웹페이지 읽기는 DeepSeek 서버에서 이루어지며 검색 여부는 모델이 결정하므로 시간이 눈에 띄게 늘어납니다(다단계 검색을 위해 생각 모드를 켜며 시간 제한은 180초). 검색하는 동안 오버레이 창에 검색 중인 내용과 찾은 결과 수가 실시간으로 표시되고, 완료 후에는 실제로 검색했는지 알려 주며, DeepSeek 웹 도구 요금으로 별도 과금됩니다. 이때 이 기능들은 위에서 선택한 프로필을 사용하지 않으며, 일반 받아쓰기와 일반 번역에는 영향이 없습니다."
+          }
+        }
+      }
+    },
+    "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用「AI 处理」里的联网搜索（搜索与读取网页）和下面的 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用「AI 处理」里的联网搜索（搜索与读取网页）和下面的 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate & Say It for Me: hold the translation shortcut set under the “Translation” tab to do the same thing, but the finished message is written directly in the target language (you can switch the language and regional wording temporarily in the overlay). For example, hold the translation shortcut and say “Tell my landlord the pipe will leak next month and needs fixing, and ask when it’s convenient” to get a complete, polite message in the target language. It shares the web search (searching and page reading) under “AI Processing” and the System Prompt setting below with “Say It for Me”; if the model call fails, untranslated text is not inserted and the recognized text stays in the overlay for you to copy."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻譯幫我說：長按「翻譯」標籤頁中設定的翻譯快速鍵，做同樣的事，但成品直接以翻譯目標語言寫出（懸浮視窗中可暫時切換語言與地區用語）。例：按住翻譯快速鍵說「跟房東說下個月水管漏水要修，問他什麼時候方便」，會得到一段完整、得體的目標語言訊息。它與「幫我說」共用「AI 處理」中的網路搜尋（搜尋與讀取網頁）和下方的 System Prompt 設定；模型呼叫失敗時不會插入未翻譯的文字，辨識原文會保留在懸浮視窗中供複製。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳して代わりに話す：「翻訳」タブで設定した翻訳ショートカットを長押しすると同じ処理を行いますが、仕上がりは翻訳先の言語で直接書かれます（オーバーレイで言語や地域ごとの表現を一時的に切り替えられます）。例：翻訳ショートカットを押しながら「大家さんに、来月水道管から水漏れするので修理が必要だと伝えて、いつ都合がいいか聞いて」と話すと、翻訳先の言語で丁寧にまとまったメッセージが得られます。「AI 処理」のウェブ検索（検索とページの読み取り）と下の System Prompt の設定は「代わりに話す」と共通です。モデルの呼び出しに失敗した場合は未翻訳のテキストは挿入されず、認識原文はオーバーレイに残るのでコピーできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "번역해서 대신 말하기: '번역' 탭에서 설정한 번역 단축키를 길게 누르면 같은 일을 하되, 결과물이 번역 대상 언어로 바로 작성됩니다(오버레이 창에서 언어와 지역별 표현을 임시로 바꿀 수 있음). 예: 번역 단축키를 누른 채 '집주인에게 다음 달에 수도관이 새서 수리가 필요하다고 말하고 언제 편한지 물어봐 줘'라고 말하면 대상 언어로 완결되고 정중한 메시지가 만들어집니다. 'AI 처리'의 웹 검색(검색 및 웹페이지 읽기)과 아래의 System Prompt 설정은 '대신 말하기'와 공유합니다. 모델 호출이 실패하면 번역되지 않은 텍스트는 삽입되지 않으며, 인식 원문은 오버레이 창에 남아 복사할 수 있습니다."
+          }
+        }
+      }
+    },
+    "联网搜索": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联网搜索"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web Search"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路搜尋"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブ検索"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹 검색"
+          }
+        }
+      }
+    },
+    "开启": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켜기"
+          }
+        }
+      }
+    },
+    "跟随「AI 处理」（当前开启）": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随「AI 处理」（当前开启）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow “AI Processing” (currently on)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟隨「AI 處理」（目前開啟）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「AI 処理」に従う（現在オン）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "'AI 처리' 따르기(현재 켜짐)"
+          }
+        }
+      }
+    },
+    "跟随「AI 处理」（当前关闭）": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随「AI 处理」（当前关闭）"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow “AI Processing” (currently off)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟隨「AI 處理」（目前關閉）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「AI 処理」に従う（現在オフ）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "'AI 처리' 따르기(현재 꺼짐)"
+          }
+        }
+      }
+    },
+    "未单独设置时，沿用「AI 处理」里的联网搜索开关和积极度、DeepSeek API Key。联网搜索开启时，屏幕提问改由 DeepSeek（固定模型 deepseek-flash）回答，不使用上面选中的配置；请确认该模型能读取图片，否则选区图片无法被理解。搜索与读取网页由 DeepSeek 服务端完成，会增加耗时并按其联网工具价格另外计费，回答时会显示搜索进度。积极度 0% 等同不搜索。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未单独设置时，沿用「AI 处理」里的联网搜索开关和积极度、DeepSeek API Key。联网搜索开启时，屏幕提问改由 DeepSeek（固定模型 deepseek-flash）回答，不使用上面选中的配置；请确认该模型能读取图片，否则选区图片无法被理解。搜索与读取网页由 DeepSeek 服务端完成，会增加耗时并按其联网工具价格另外计费，回答时会显示搜索进度。积极度 0% 等同不搜索。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unless set here, Screen Ask follows the web search switch, eagerness and DeepSeek API key under “AI Processing”. When web search is on, Screen Ask is answered by DeepSeek (fixed model deepseek-flash) instead of the profile selected above; make sure that model can read images, or the selected region cannot be understood. Searching and page reading are done on DeepSeek’s servers, add latency and are billed separately at DeepSeek’s web tool pricing; search progress is shown while answering. An eagerness of 0% means no searching."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未單獨設定時，沿用「AI 處理」中的網路搜尋開關與積極度、DeepSeek API Key。網路搜尋開啟時，螢幕提問改由 DeepSeek（固定模型 deepseek-flash）回答，不使用上方選取的設定檔；請確認該模型能讀取圖片，否則無法理解選取區域的圖片。搜尋與讀取網頁由 DeepSeek 伺服器端完成，會增加耗時並依其網路工具價格另外計費，回答時會顯示搜尋進度。積極度 0% 等同不搜尋。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "個別に設定しない場合、「画面に質問」は「AI 処理」のウェブ検索のオン/オフ、積極度、DeepSeek API キーに従います。ウェブ検索がオンのときは、上で選択したプロファイルではなく DeepSeek（固定モデル deepseek-flash）が回答します。このモデルが画像を読み取れることを確認してください。読み取れないと選択範囲の画像を理解できません。検索とページの読み取りは DeepSeek のサーバー側で行われ、処理時間が増え、ウェブツールの価格で別途課金されます。回答中は検索の進捗が表示されます。積極度 0% は検索しないのと同じです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "따로 설정하지 않으면 '화면 질문'은 'AI 처리'의 웹 검색 켜기/끄기, 적극도, DeepSeek API 키를 따릅니다. 웹 검색이 켜져 있으면 위에서 선택한 프로필 대신 DeepSeek(고정 모델 deepseek-flash)이 답변합니다. 이 모델이 이미지를 읽을 수 있는지 확인하세요. 읽을 수 없으면 선택한 영역의 이미지를 이해하지 못합니다. 검색과 웹페이지 읽기는 DeepSeek 서버에서 이루어지고 시간이 늘어나며 웹 도구 요금으로 별도 과금됩니다. 답변하는 동안 검색 진행 상황이 표시됩니다. 적극도 0%는 검색하지 않는 것과 같습니다."
+          }
+        }
+      }
+    },
+    "Ask": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提問"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문"
+          }
+        }
+      }
+    },
+    "Image Search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片搜索"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image Search"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圖片搜尋"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像検索"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미지 검색"
+          }
+        }
+      }
+    },
+    "发送": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "傳送"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보내기"
+          }
+        }
+      }
+    },
+    "停止生成": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止生成"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop generating"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止生成"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成を停止"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "생성 중지"
+          }
+        }
+      }
+    },
+    "语音输入": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音输入"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice input"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語音輸入"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声入力"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "음성 입력"
+          }
+        }
+      }
+    },
+    "结束录音": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束录音"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop recording"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結束錄音"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を終了"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음 종료"
+          }
+        }
+      }
+    },
+    "正在录音…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在录音…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在錄音…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음 중…"
+          }
+        }
+      }
+    },
+    "正在转写…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在转写…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribing…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在轉寫…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こし中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "받아쓰는 중…"
+          }
+        }
+      }
+    },
+    "联网搜索已在「AI 处理」中开启。这里单独选择「帮我说」与「翻译帮我说」的搜索积极度；未单独设置时沿用「AI 处理」里的值。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联网搜索已在「AI 处理」中开启。这里单独选择「帮我说」与「翻译帮我说」的搜索积极度；未单独设置时沿用「AI 处理」里的值。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search is on under “AI Processing”. Choose the search eagerness for “Say It for Me” and “Translate & Say It for Me” separately here; unless set, they use the value from “AI Processing”."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路搜尋已在「AI 處理」中開啟。這裡單獨選擇「幫我說」與「翻譯幫我說」的搜尋積極度；未單獨設定時沿用「AI 處理」中的值。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブ検索は「AI 処理」でオンになっています。ここでは「代わりに話す」と「翻訳して代わりに話す」の検索の積極度を個別に選べます。個別に設定しない場合は「AI 処理」の値に従います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹 검색이 'AI 처리'에서 켜져 있습니다. 여기서 '대신 말하기'와 '번역해서 대신 말하기'의 검색 적극도를 따로 고를 수 있으며, 따로 설정하지 않으면 'AI 처리'의 값을 따릅니다."
+          }
+        }
+      }
+    },
+    "联网搜索在「AI 处理」中开启后才会生效（含 DeepSeek API Key）。开启后可在这里单独选择「帮我说」与「翻译帮我说」的搜索积极度；未单独设置时沿用「AI 处理」里的值。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联网搜索在「AI 处理」中开启后才会生效（含 DeepSeek API Key）。开启后可在这里单独选择「帮我说」与「翻译帮我说」的搜索积极度；未单独设置时沿用「AI 处理」里的值。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search takes effect once it is turned on under “AI Processing” (including the DeepSeek API key). After that you can choose the search eagerness for “Say It for Me” and “Translate & Say It for Me” separately here; unless set, they use the value from “AI Processing”."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路搜尋需先在「AI 處理」中開啟（含 DeepSeek API Key）才會生效。開啟後可在這裡單獨選擇「幫我說」與「翻譯幫我說」的搜尋積極度；未單獨設定時沿用「AI 處理」中的值。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブ検索は「AI 処理」でオンにする（DeepSeek API キーを含む）と有効になります。オンにすると、ここで「代わりに話す」と「翻訳して代わりに話す」の検索の積極度を個別に選べます。個別に設定しない場合は「AI 処理」の値に従います。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹 검색은 'AI 처리'에서 켜야(DeepSeek API 키 포함) 적용됩니다. 켠 뒤에는 여기서 '대신 말하기'와 '번역해서 대신 말하기'의 검색 적극도를 따로 고를 수 있으며, 따로 설정하지 않으면 'AI 처리'의 값을 따릅니다."
+          }
+        }
+      }
+    },
+    "0%：不搜索（等同关闭，仍用「AI 处理」的 Profile）；1–33% 保守：只在你明确要求查证时搜索，用快速模式；34–66% 适中：遇到拿不准的具体事实才搜索；67–100% 积极：凡涉及可查证的事实都会先搜索核实。保守档不开思考模式，更快更省；适中和积极档用多步深度搜索，更耗时。这里是默认值，「帮我说」与「屏幕提问」未单独设置时沿用；它们各自的积极度请分别在「帮我说」「屏幕提问」设置页里选择。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0%：不搜索（等同关闭，仍用「AI 处理」的 Profile）；1–33% 保守：只在你明确要求查证时搜索，用快速模式；34–66% 适中：遇到拿不准的具体事实才搜索；67–100% 积极：凡涉及可查证的事实都会先搜索核实。保守档不开思考模式，更快更省；适中和积极档用多步深度搜索，更耗时。这里是默认值，「帮我说」与「屏幕提问」未单独设置时沿用；它们各自的积极度请分别在「帮我说」「屏幕提问」设置页里选择。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0%: no search (same as off; the profile under “AI Processing” is still used). 1–33% Conservative: searches only when you explicitly ask for verification, in fast mode. 34–66% Balanced: searches only for specific facts it is unsure about. 67–100% Aggressive: searches to verify any fact that can be checked. Conservative does not use thinking mode, so it is faster and cheaper; Balanced and Aggressive use multi-step deep search and take longer. This is the default: “Say It for Me” and “Screen Ask” use it unless set separately; choose each one’s own eagerness on its own settings page."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0%：不搜尋（等同關閉，仍使用「AI 處理」的設定檔）；1–33% 保守：只在你明確要求查證時搜尋，使用快速模式；34–66% 適中：遇到拿不準的具體事實才搜尋；67–100% 積極：凡涉及可查證的事實都會先搜尋核實。保守檔不開啟思考模式，更快更省；適中與積極檔使用多步驟深度搜尋，較耗時。這裡是預設值，「幫我說」與「螢幕提問」未單獨設定時沿用；它們各自的積極度請分別在「幫我說」「螢幕提問」設定頁中選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0%：検索しない（オフと同じで、「AI 処理」のプロファイルを使用）。1〜33% 控えめ：明示的に確認を求められたときだけ高速モードで検索。34〜66% 標準：確信のない具体的な事実があるときだけ検索。67〜100% 積極的：確認できる事実が含まれていれば必ず先に検索して裏付けを取る。控えめは思考モードを使わないため高速で低コスト。標準と積極的は多段階の詳細検索を行うため時間がかかります。ここは既定値です。「代わりに話す」と「画面に質問」は個別に設定しない場合これに従います。それぞれの積極度は各設定ページで選んでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0%: 검색 안 함(끄기와 동일하며 'AI 처리'의 프로필을 계속 사용). 1–33% 보수적: 사용자가 명시적으로 확인을 요청할 때만 빠른 모드로 검색. 34–66% 보통: 확실하지 않은 구체적 사실이 있을 때만 검색. 67–100% 적극적: 확인 가능한 사실이 있으면 먼저 검색해 검증. 보수적 단계는 생각 모드를 쓰지 않아 더 빠르고 저렴하며, 보통·적극적 단계는 다단계 심층 검색을 사용해 더 오래 걸립니다. 이 값은 기본값입니다. '대신 말하기'와 '화면 질문'은 따로 설정하지 않으면 이 값을 따르며, 각각의 적극도는 해당 설정 페이지에서 고르세요."
+          }
+        }
+      }
+    },
+    "默认搜索积极度": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认搜索积极度"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default search eagerness"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設搜尋積極度"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既定の検索の積極度"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본 검색 적극도"
+          }
+        }
+      }
+    },
+    "跟随默认": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随默认"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Using default"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟隨預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既定に従う"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본값 따름"
+          }
+        }
+      }
+    },
+    "恢复为默认 %lld%%": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复为默认 %lld%%"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset to default (%lld%%)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復為預設 %lld%%"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既定（%lld%%）に戻す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본값(%lld%%)으로 되돌리기"
+          }
+        }
+      }
+    },
+    "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到 Google。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到 Google。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Recording permission is required. The selected image is sent to your AI service only when you submit a question. Clicking Image Search uploads it to Google. Screenshots are never saved; the text of questions and answers is recorded in History (with “Save text” turned off on the History page, only statistics are kept)."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要螢幕錄製權限。選取區域後，只有送出問題時才會將選區圖片傳送給所選 AI 服務；點擊「圖片搜尋」會將選區圖片上傳至 Google。截圖不會儲存；問題與回答的文字會記入「歷史」（在歷史頁關閉「儲存文字」後只記錄統計）。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面収録の許可が必要です。質問を送信するときにのみ、選択した画像が AI サービスへ送信されます。「画像検索」をクリックすると Google に画像がアップロードされます。スクリーンショットは保存されません。質問と回答のテキストは「履歴」に記録されます（履歴ページで「テキストを保存」をオフにすると統計のみ記録されます）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 기록 권한이 필요합니다. 질문을 전송할 때만 선택한 이미지가 AI 서비스로 전송됩니다. '이미지 검색'을 클릭하면 이미지가 Google에 업로드됩니다. 스크린샷은 저장되지 않으며, 질문과 답변의 텍스트는 '기록'에 남습니다('기록' 페이지에서 '텍스트 저장'을 끄면 통계만 기록됩니다)."
+          }
+        }
+      }
+    },
+    "问题": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问题"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "問題"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문"
+          }
+        }
+      }
+    },
+    "回答": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "답변"
           }
         }
       }

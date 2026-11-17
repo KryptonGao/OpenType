@@ -25,6 +25,15 @@ struct MenuBarView: View {
         microphoneMenu
         presetMenu
 
+        if settingsStore.screenAskEnabled {
+            Button {
+                AppContainer.writingTools.close()
+                AppContainer.screenAsk.toggle()
+            } label: {
+                Label("屏幕提问：\(settingsStore.screenAskHotkey.displayName)", systemImage: "viewfinder")
+            }
+        }
+
         Divider()
 
         Section("权限状态") {

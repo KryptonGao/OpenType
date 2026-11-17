@@ -15,6 +15,7 @@ struct SettingsView: View {
             case .translation: TranslationSettingsTab(coordinator: coordinator)
             case .helpMeSay: HelpMeSaySettingsTab(coordinator: coordinator)
             case .writingTools: WritingToolsSettingsTab(coordinator: coordinator)
+            case .screenAsk: ScreenAskSettingsTab(coordinator: coordinator)
             case .privacy: PrivacyPermissionsSettingsTab(coordinator: coordinator)
             }
         }
@@ -78,6 +79,7 @@ private struct GeneralSettingsTab: View {
                     hotkey: Binding(get: { settingsStore.hotkey }, set: { settingsStore.hotkey = $0 ?? .default }),
                     defaultHotkey: .default,
                     conflict: {
+                        if $0 == settingsStore.screenAskHotkey { return String(localized: "与屏幕提问快捷键相同，请换一个") }
                         if $0 == settingsStore.translationHotkey { return String(localized: "与翻译快捷键相同，请换一个") }
                         return $0 == settingsStore.writingToolsHotkey ? String(localized: "与书写工具快捷键相同，请换一个") : nil
                     },
@@ -299,7 +301,29 @@ private struct AIProcessingSettingsTab: View {
     let coordinator: DictationSessionCoordinator
     @State private var testResult: TestResult = .idle
 
+    @State private var webSearchTestResult: TestResult = .idle
     private var settingsStore: SettingsStore { coordinator.settingsStore }
+
+
+    private var eagernessLabel: String {
+        let value = settingsStore.webSearchEagerness
+        guard let level = WebSearchLevel(eagerness: value) else { return String(localized: "\(value)%（不搜索）") }
+        return "\(value)%（\(level.displayName)）"
+    }
+
+    private func testWebSearch() {
+        webSearchTestResult = .running
+        Task {
+            do {
+                let output = try await coordinator.testWebSearchConnection()
+                webSearchTestResult = .success(String(localized: "连接成功，示例输出：\(output)"))
+            } catch let error as LLMError {
+                webSearchTestResult = .failure(error.userMessage)
+            } catch {
+                webSearchTestResult = .failure(error.localizedDescription)
+            }
+        }
+    }
 
     var body: some View {
         @Bindable var settingsStore = settingsStore
@@ -367,6 +391,41 @@ private struct AIProcessingSettingsTab: View {
                 }
             }
 
+            Section("联网搜索（DeepSeek）") {
+                Toggle("允许模型联网搜索并读取网页", isOn: $settingsStore.webSearchEnabled)
+                Text("开启后，「帮我说」、「翻译帮我说」与「屏幕提问」（可在其设置中单独开关）改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时这些功能不使用上方选中的 Profile；普通听写与普通翻译不受影响。")
+                    .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text("默认搜索积极度")
+                        Spacer()
+                        Text(eagernessLabel).monospacedDigit().foregroundStyle(.secondary)
+                    }
+                    Slider(
+                        value: Binding(
+                            get: { Double(settingsStore.webSearchEagerness) },
+                            set: { settingsStore.webSearchEagerness = Int($0.rounded()) }
+                        ),
+                        in: 0...100, step: 5
+                    )
+                    .disabled(!settingsStore.webSearchEnabled)
+                }
+                Text("0%：不搜索（等同关闭，仍用「AI 处理」的 Profile）；1–33% 保守：只在你明确要求查证时搜索，用快速模式；34–66% 适中：遇到拿不准的具体事实才搜索；67–100% 积极：凡涉及可查证的事实都会先搜索核实。保守档不开思考模式，更快更省；适中和积极档用多步深度搜索，更耗时。这里是默认值，「帮我说」与「屏幕提问」未单独设置时沿用；它们各自的积极度请分别在「帮我说」「屏幕提问」设置页里选择。")
+                    .font(.caption).foregroundStyle(.secondary)
+                SecretField(
+                    title: "DeepSeek API Key",
+                    account: CredentialAccount.deepseekWebSearchAPIKey,
+                    credentials: coordinator.credentialStore
+                )
+                ProviderSiteLink(site: .deepseek)
+                HStack {
+                    Button("测试连接") { testWebSearch() }
+                        .disabled(webSearchTestResult == .running)
+                    TestResultView(result: webSearchTestResult)
+                }
+                Text("此 Key 单独保存，与语音识别、AI 处理的 Key 互不影响。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("System Prompt") {
                 TextEditor(text: profile.systemPrompt)
                     .font(.callout)
@@ -449,6 +508,7 @@ private struct TranslationSettingsTab: View {
                     defaultHotkey: .defaultTranslation,
                     allowsClear: true,
                     conflict: {
+                        if $0 == settingsStore.screenAskHotkey { return String(localized: "与屏幕提问快捷键相同，请换一个") }
                         if $0 == settingsStore.hotkey { return String(localized: "与听写快捷键相同，请换一个") }
                         return $0 == settingsStore.writingToolsHotkey ? String(localized: "与书写工具快捷键相同，请换一个") : nil
                     },
@@ -492,6 +552,7 @@ private struct WritingToolsSettingsTab: View {
                     hotkey: Binding(get: { settingsStore.writingToolsHotkey }, set: { settingsStore.writingToolsHotkey = $0 ?? .defaultWritingTools }),
                     defaultHotkey: .defaultWritingTools,
                     conflict: {
+                        if $0 == settingsStore.screenAskHotkey { return String(localized: "与屏幕提问快捷键相同，请换一个") }
                         if $0 == settingsStore.hotkey { return String(localized: "与听写快捷键相同，请换一个") }
                         return $0 == settingsStore.translationHotkey ? String(localized: "与翻译快捷键相同，请换一个") : nil
                     },
@@ -531,28 +592,7 @@ private struct WritingToolsSettingsTab: View {
 
 private struct HelpMeSaySettingsTab: View {
     let coordinator: DictationSessionCoordinator
-    @State private var testResult: TestResult = .idle
     private var settingsStore: SettingsStore { coordinator.settingsStore }
-
-    private var eagernessLabel: String {
-        let value = settingsStore.helpMeSayWebSearchEagerness
-        guard let level = WebSearchLevel(eagerness: value) else { return String(localized: "\(value)%（不搜索）") }
-        return "\(value)%（\(level.displayName)）"
-    }
-
-    private func testWebSearch() {
-        testResult = .running
-        Task {
-            do {
-                let output = try await coordinator.testWebSearchConnection()
-                testResult = .success(String(localized: "连接成功，示例输出：\(output)"))
-            } catch let error as LLMError {
-                testResult = .failure(error.userMessage)
-            } catch {
-                testResult = .failure(error.localizedDescription)
-            }
-        }
-    }
 
     var body: some View {
         @Bindable var settingsStore = settingsStore
@@ -568,44 +608,17 @@ private struct HelpMeSaySettingsTab: View {
                 Toggle("长按快捷键触发「帮我说」/「翻译帮我说」", isOn: $settingsStore.helpMeSayEnabled)
                 Text("按住「通用」里设置的听写快捷键不放，直到悬浮窗显示「帮我说」后开始说话，松开即结束。识别完成后，模型不只是整理文字，还会弄清你想表达的意思，把它细化、补全、理顺，写成可以直接发出的成品，再自动插入。轻按一下快捷键仍是普通听写。")
                     .font(.caption).foregroundStyle(.secondary)
-                Text("翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用下面的联网搜索（搜索与读取网页）和 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。")
+                Text("翻译帮我说：长按「翻译」标签页里设置的翻译快捷键，做同样的事，但成品直接用翻译目标语言写出（悬浮窗里可临时切换语言与地区用语）。例：按住翻译快捷键说「跟房东说下个月水管漏水要修，问他什么时候方便」，得到一段完整、得体的目标语言消息。它与「帮我说」共用「AI 处理」里的联网搜索（搜索与读取网页）和下面的 System Prompt 设置；模型调用失败时不会插入未翻译的文字，识别原文会保留在悬浮窗中供复制。")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("例：说「跟老师说我明天发烧了想请一天假」，会得到一段完整、礼貌的请假消息；说「帮我问下这个报错怎么解决」，会被整理成问题明确、条件完整的提问。")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Section("联网搜索（DeepSeek）") {
-                Toggle("允许模型联网搜索并读取网页", isOn: $settingsStore.helpMeSayWebSearchEnabled)
-                Text("开启后，「帮我说」与「翻译帮我说」改由 DeepSeek（api.deepseek.com，模型 deepseek-flash，均为固定值）完成：模型在需要查证或较新信息时自行搜索网络，并把查到的资料融入成品。搜索与网页读取由 DeepSeek 服务端完成，是否搜索由模型决定，会明显增加耗时（开启思考模式以便多步搜索，超时 180 秒）；搜索时悬浮窗会实时显示正在搜索的内容和已搜到的结果数，完成后提示是否真的搜索过，并按 DeepSeek 联网工具的价格另外计费。此时不使用「AI 处理」里选中的 Profile；普通听写与普通翻译不受影响。")
-                    .font(.caption).foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack {
-                        Text("搜索积极度")
-                        Spacer()
-                        Text(eagernessLabel).monospacedDigit().foregroundStyle(.secondary)
-                    }
-                    Slider(
-                        value: Binding(
-                            get: { Double(settingsStore.helpMeSayWebSearchEagerness) },
-                            set: { settingsStore.helpMeSayWebSearchEagerness = Int($0.rounded()) }
-                        ),
-                        in: 0...100, step: 5
-                    )
-                    .disabled(!settingsStore.helpMeSayWebSearchEnabled)
-                }
-                Text("0%：不搜索（等同关闭，仍用「AI 处理」的 Profile）；1–33% 保守：只在你明确要求查证时搜索，用快速模式；34–66% 适中：遇到拿不准的具体事实才搜索；67–100% 积极：凡涉及可查证的事实都会先搜索核实。保守档不开思考模式，更快更省；适中和积极档用多步深度搜索，更耗时。")
-                    .font(.caption).foregroundStyle(.secondary)
-                SecretField(
-                    title: "DeepSeek API Key",
-                    account: CredentialAccount.deepseekWebSearchAPIKey,
-                    credentials: coordinator.credentialStore
-                )
-                ProviderSiteLink(site: .deepseek)
-                HStack {
-                    Button("测试连接") { testWebSearch() }
-                        .disabled(testResult == .running)
-                    TestResultView(result: testResult)
-                }
-                Text("此 Key 单独保存，与语音识别、AI 处理的 Key 互不影响。")
+            Section("联网搜索") {
+                WebSearchEagernessOverrideRow(override: $settingsStore.helpMeSayWebSearchEagerness, shared: settingsStore.webSearchEagerness)
+                    .disabled(!settingsStore.webSearchEnabled)
+                Text(settingsStore.webSearchEnabled
+                     ? "联网搜索已在「AI 处理」中开启。这里单独选择「帮我说」与「翻译帮我说」的搜索积极度；未单独设置时沿用「AI 处理」里的值。"
+                     : "联网搜索在「AI 处理」中开启后才会生效（含 DeepSeek API Key）。开启后可在这里单独选择「帮我说」与「翻译帮我说」的搜索积极度；未单独设置时沿用「AI 处理」里的值。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("System Prompt") {
@@ -620,7 +633,7 @@ private struct HelpMeSaySettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section {
-                Text("「帮我说」与「翻译帮我说」由「AI 处理」中当前选中的 Profile 完成（开启上面的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。")
+                Text("「帮我说」与「翻译帮我说」由「AI 处理」中当前选中的 Profile 完成（开启「AI 处理」里的联网搜索时改用 DeepSeek），需要已填写 API Key；即使关闭了 AI 文本后处理或选择了原始模式，它仍会调用该模型。生成内容较长，如经常超时，可在 Profile 中调大超时时间。模型调用失败时，是否改用识别原文取决于「AI 失败或超时时回退使用 ASR 原文」。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -778,5 +791,103 @@ private struct UpdateSettingsSection: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Per-feature web search eagerness
+
+/// Slider for a feature's own web search eagerness. Untouched, it shows (and follows) the shared value from "AI 处理";
+/// moving it sets the feature's own value, and "跟随" returns to following.
+private struct WebSearchEagernessOverrideRow: View {
+    @Binding var override: Int?
+    let shared: Int
+
+    private var value: Int { override ?? shared }
+    private var label: String {
+        guard let level = WebSearchLevel(eagerness: value) else { return String(localized: "\(value)%（不搜索）") }
+        return "\(value)%（\(level.displayName)）"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text("搜索积极度")
+                Spacer()
+                Text(label).monospacedDigit().foregroundStyle(.secondary)
+                if override != nil {
+                    Button("恢复为默认 \(shared)%") { override = nil }.buttonStyle(.borderless)
+                } else {
+                    Text("跟随默认").font(.caption).foregroundStyle(.tertiary)
+                }
+            }
+            Slider(
+                value: Binding(get: { Double(value) }, set: { override = Int($0.rounded()) }),
+                in: 0...100, step: 5
+            )
+        }
+    }
+}
+
+// MARK: - Screen Ask
+
+private struct ScreenAskSettingsTab: View {
+    let coordinator: DictationSessionCoordinator
+    private var settings: SettingsStore { coordinator.settingsStore }
+
+    var body: some View {
+        @Bindable var settings = settings
+        Form {
+            Section("屏幕提问") {
+                Toggle("启用屏幕提问", isOn: $settings.screenAskEnabled)
+                Text("按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 搜索所选图片。按 Esc 或再次按快捷键关闭。")
+                    .font(.caption).foregroundStyle(.secondary)
+                HotkeyRecorderRow(
+                    title: "屏幕提问快捷键",
+                    hotkey: Binding(get: { settings.screenAskHotkey }, set: { settings.screenAskHotkey = $0 ?? .defaultScreenAsk }),
+                    defaultHotkey: .defaultScreenAsk,
+                    conflict: {
+                        if $0 == settings.hotkey { return String(localized: "与听写快捷键相同，请换一个") }
+                        if $0 == settings.translationHotkey { return String(localized: "与翻译快捷键相同，请换一个") }
+                        return $0 == settings.writingToolsHotkey ? String(localized: "与书写工具快捷键相同，请换一个") : nil
+                    }, coordinator: coordinator
+                )
+            }
+            Section("AI 模型") {
+                Picker("配置（Profile）", selection: $settings.screenAskProfileID) {
+                    Text("跟随「AI 处理」当前配置").tag(UUID?.none)
+                    ForEach(settings.llmProfiles) { Text($0.name).tag(Optional($0.id)) }
+                }
+                TextField("Model ID", text: $settings.screenAskModelID,
+                          prompt: Text("留空则使用配置里的设置"))
+                    .autocorrectionDisabled()
+                TextField("推理强度（effort）", text: $settings.screenAskReasoningEffort,
+                          prompt: Text("留空则使用配置里的设置，如 low / medium / high"))
+                    .autocorrectionDisabled()
+                Text("Ask 默认跟随语音「AI 处理」的配置，也可以单独选择配置、模型和 effort。请使用支持图片输入的模型；API Key、Base URL 和 API 格式取自所选配置。语音输入沿用「语音识别」设置。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("联网搜索") {
+                Picker("联网搜索", selection: $settings.screenAskWebSearchMode) {
+                    Text(settings.webSearchEnabled ? "跟随「AI 处理」（当前开启）" : "跟随「AI 处理」（当前关闭）").tag(FeatureOverride.inherit)
+                    Text("开启").tag(FeatureOverride.on)
+                    Text("关闭").tag(FeatureOverride.off)
+                }
+                if settings.screenAskWebSearchMode != .off {
+                    WebSearchEagernessOverrideRow(override: $settings.screenAskWebSearchEagerness, shared: settings.webSearchEagerness)
+                }
+                Text("未单独设置时，沿用「AI 处理」里的联网搜索开关和积极度、DeepSeek API Key。联网搜索开启时，屏幕提问改由 DeepSeek（固定模型 deepseek-flash）回答，不使用上面选中的配置；请确认该模型能读取图片，否则选区图片无法被理解。搜索与读取网页由 DeepSeek 服务端完成，会增加耗时并按其联网工具价格另外计费，回答时会显示搜索进度。积极度 0% 等同不搜索。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("隐私与权限") {
+                Text("需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击 Image Search 会将选区图片上传到 Google。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("打开屏幕录制设置") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
     }
 }

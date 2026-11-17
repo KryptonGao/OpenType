@@ -127,6 +127,8 @@ struct LLMMessage: Equatable, Sendable {
     enum Role: String, Sendable { case user, assistant }
     var role: Role
     var content: String
+    /// JPEG attachment for screen questions; absent for all existing text-only flows.
+    var imageJPEG: Data? = nil
 
     static func user(_ content: String) -> LLMMessage { LLMMessage(role: .user, content: content) }
     static func assistant(_ content: String) -> LLMMessage { LLMMessage(role: .assistant, content: content) }
@@ -144,6 +146,15 @@ protocol LLMProvider: Sendable {
         systemPrompt: String,
         onDelta: @escaping @Sendable (String) -> Void
     ) async throws -> LLMOutput
+    /// A raw multi-turn request with DeepSeek's web tools declared (Screen Ask). Text arrives through `onDelta` as it is
+    /// generated, tool activity through `onProgress`. The default ignores the tools and streams a plain answer.
+    func completeStreamingWithWebSearch(
+        messages: [LLMMessage],
+        systemPrompt: String,
+        level: WebSearchLevel,
+        onDelta: @escaping @Sendable (String) -> Void,
+        onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+    ) async throws -> WebSearchOutput
     /// Same as `process`, but also reports token usage. Providers that cannot report it get the default below.
     func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput
     /// Same as above, but with DeepSeek's web-search tool declared. `onProgress` reports each search / page read live;
@@ -203,6 +214,17 @@ extension LLMProvider {
         let output = try await complete(messages: messages, systemPrompt: systemPrompt)
         onDelta(output.text)
         return output
+    }
+
+    func completeStreamingWithWebSearch(
+        messages: [LLMMessage],
+        systemPrompt: String,
+        level: WebSearchLevel,
+        onDelta: @escaping @Sendable (String) -> Void,
+        onProgress: @escaping @Sendable (WebSearchProgress) -> Void
+    ) async throws -> WebSearchOutput {
+        let output = try await completeStreaming(messages: messages, systemPrompt: systemPrompt, onDelta: onDelta)
+        return WebSearchOutput(text: output.text, progress: WebSearchProgress(), usage: output.usage)
     }
 
     func processWithUsage(transcript: String, systemPrompt: String) async throws -> LLMOutput {
@@ -402,6 +424,20 @@ final class TextProcessor: Sendable {
             when = "联网搜索（积极）：你有联网搜索和读取网页的工具，请积极使用。只要内容里出现具体的现实世界事实——公司、人物、职位或人事变动、产品与版本、新闻与事件、数据、地点、专业术语、报错信息、网址等——或者说话人表示记不清、不确定、想确认（如“是不是”“记不得”“确定一下”“查一下”），就必须先搜索核实，再动笔，不要凭记忆。只有整段话纯属个人日常事务、完全不涉及可查证的外部事实时才可以不搜。"
         }
         return when + "把查到的可靠事实（准确的人名、职位、日期、版本、术语等）自然融入成品，让它准确、具体、完整，但不要另写一篇回答；搜索没有结果或来源相互矛盾时，用不下结论的措辞，不要编造。成品里不要加入引用标记、链接或来源说明，除非用户原话要求。"
+    }
+
+    /// Screen Ask version of the web search guidance: answers a question, so it must not talk about "the finished text".
+    static func screenAskWebSearchAddendum(for level: WebSearchLevel) -> String {
+        let when: String
+        switch level {
+        case .conservative:
+            when = "You can search the web and read pages, but use that sparingly: only when the user explicitly asks you to look something up or verify it, or the answer depends on very recent information. Prefer one or two searches; otherwise answer directly."
+        case .balanced:
+            when = "You can search the web and read pages. Search before answering when the question involves concrete, checkable facts (people, companies, products and versions, news, data, error messages, songs, places) that you are not sure about; do not search for common knowledge or things visible in the image that you can read directly."
+        case .aggressive:
+            when = "You can search the web and read pages, and you should use that readily. Whenever the question or the image involves concrete real-world facts (people, companies, products and versions, news, data, songs, places, error messages, URLs), identify them from the image first, then search to verify before answering instead of relying on memory."
+        }
+        return when + " Use the screen region to decide what to search for. If searches return nothing or sources conflict, say so instead of guessing. Mention the key source names in prose, but do not add citation markers."
     }
 
     static func userPrompt(transcript: String) -> String {

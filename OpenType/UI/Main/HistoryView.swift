@@ -183,8 +183,13 @@ private struct HistoryDetail: View {
                 }
 
                 if let final = record.finalText {
-                    block("结果", final, markdown: true)
-                    if let raw = record.rawText, raw != final { block("识别原文", raw, secondary: true) }
+                    if record.kind == .screenAsk {
+                        if let question = record.rawText { block("问题", question) }
+                        block("回答", final, markdown: true)
+                    } else {
+                        block("结果", final, markdown: true)
+                        if let raw = record.rawText, raw != final { block("识别原文", raw, secondary: true) }
+                    }
                 } else {
                     Text("这条记录没有保存文字（保存文字开关关闭时产生）。").foregroundStyle(.secondary)
                 }
@@ -193,8 +198,10 @@ private struct HistoryDetail: View {
                 Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 8) {
                     meta("时间", record.date.formatted(date: .abbreviated, time: .standard))
                     meta("字数", "\(record.wordCount)")
-                    meta("录音时长", StatsFormat.duration(record.recordingSeconds))
-                    meta("去向", record.delivery == .inserted ? String(localized: "已插入光标处") : String(localized: "需手动复制"))
+                    if record.kind != .screenAsk {
+                        meta("录音时长", StatsFormat.duration(record.recordingSeconds))
+                        meta("去向", record.delivery == .inserted ? String(localized: "已插入光标处") : String(localized: "需手动复制"))
+                    }
                     if let model = record.model { meta("模型", model) }
                     if !record.usage.isEmpty {
                         meta("Token", String(localized: "输入 \(record.usage.inputTokens.formatted()) · 输出 \(record.usage.outputTokens.formatted()) · 合计 \(record.usage.total.formatted())"))
