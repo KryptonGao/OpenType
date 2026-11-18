@@ -402,6 +402,7 @@ final class SettingsStore {
         webSearchEnabled ? WebSearchLevel(eagerness: helpMeSayWebSearchEagerness ?? webSearchEagerness) : nil
     }
 
+    var screenAskImageSearchEngine: ImageSearchEngine { didSet { defaults.set(screenAskImageSearchEngine.rawValue, forKey: Keys.screenAskImageSearchEngine) } }
     /// Screen Ask's own web search switch; `inherit` follows the shared settings above.
     var screenAskWebSearchMode: FeatureOverride { didSet { defaults.set(screenAskWebSearchMode.rawValue, forKey: Keys.screenAskWebSearchMode) } }
     /// Screen Ask's own eagerness (0–100 %); `nil` follows the shared value.
@@ -551,6 +552,7 @@ final class SettingsStore {
         writingToolsMaterial = raw(Keys.writingToolsMaterial, .blur)
 
         helpMeSayWebSearchEagerness = (defaults.object(forKey: Keys.helpMeSayOwnWebSearchEagerness) as? Int).map { min(100, max(0, $0)) }
+        screenAskImageSearchEngine = raw(Keys.screenAskImageSearchEngine, .google)
         screenAskWebSearchMode = raw(Keys.screenAskWebSearchMode, .inherit)
         screenAskWebSearchEagerness = (defaults.object(forKey: Keys.screenAskWebSearchEagerness) as? Int).map { min(100, max(0, $0)) }
         screenAskEnabled = bool(Keys.screenAskEnabled, true)
@@ -717,6 +719,7 @@ final class SettingsStore {
         static let webSearchEnabled = "opentype.helpMeSayWebSearchEnabled"
         static let webSearchEagerness = "opentype.helpMeSayWebSearchEagerness"
         static let helpMeSayOwnWebSearchEagerness = "opentype.helpMeSayOwnWebSearchEagerness"
+        static let screenAskImageSearchEngine = "opentype.screenAskImageSearchEngine"
         static let screenAskWebSearchMode = "opentype.screenAskWebSearchMode"
         static let screenAskWebSearchEagerness = "opentype.screenAskWebSearchEagerness"
         static let voiceRewriteEnabled = "opentype.voiceRewriteEnabled"

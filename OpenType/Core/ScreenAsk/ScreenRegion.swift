@@ -37,36 +37,61 @@ struct ScreenRegion {
 }
 
 /// Browser-side multipart upload: no public image host, clipboard changes, or browser-specific scripting.
-@MainActor
-enum GoogleImageSearch {
-    static func html(imageData: Data) -> String {
-        """
-        <!doctype html><html><head><meta charset="utf-8"><title>Google Image Search</title>
+enum ImageSearchEngine: String, CaseIterable {
+    case google = "Google"
+    case bing = "Bing"
+
+    private var uploadURL: URL {
+        switch self {
+        case .google: URL(string: "https://lens.google.com/v3/upload")!
+        case .bing: URL(string: "https://www.bing.com/images/detail/search?iss=sbiupload&FORM=ANCMS1#enterInsights")!
+        }
+    }
+
+    func html(imageData: Data) -> String {
+        let base64 = imageData.base64EncodedString()
+        let input: String
+        let prepareFile: String
+        switch self {
+        case .google:
+            input = #"<input type="file" name="encoded_image" accept="image/png">"#
+            prepareFile = """
+            const bytes=Uint8Array.from(atob('\(base64)'), c=>c.charCodeAt(0));
+            const files=new DataTransfer();
+            files.items.add(new File([bytes], 'OpenType.png', {type:'image/png'}));
+            document.querySelector('input').files=files.files;
+            """
+        case .bing:
+            input = #"<input type="hidden" name="imageBin" value="\#(base64)">"#
+            prepareFile = ""
+        }
+
+        let action = uploadURL.absoluteString.replacingOccurrences(of: "&", with: "&amp;")
+        return """
+        <!doctype html><html><head><meta charset="utf-8"><title>\(rawValue) Image Search</title>
         <meta name="referrer" content="no-referrer"></head><body>
-        <form method="post" enctype="multipart/form-data" action="https://lens.google.com/v3/upload">
-        <input type="file" name="encoded_image" accept="image/png"><button type="submit">Google Image Search</button>
+        <form method="post" enctype="multipart/form-data" action="\(action)">
+        \(input)<button type="submit">\(rawValue) Image Search</button>
         </form><script>
-        const bytes=Uint8Array.from(atob('\(imageData.base64EncodedString())'), c=>c.charCodeAt(0));
-        const files=new DataTransfer();
-        files.items.add(new File([bytes], 'OpenType.png', {type:'image/png'}));
-        document.querySelector('input').files=files.files;
+        \(prepareFile)
         document.querySelector('form').submit();
         </script></body></html>
         """
     }
 
-    static func open(image: CGImage) throws {
+    @MainActor
+    func open(image: CGImage) throws {
         guard let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
             throw LLMError.badResponse(String(localized: "无法处理所选图片"))
         }
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("OpenType-ImageSearch", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
                                                attributes: [.posixPermissions: 0o700])
-        removeExpiredFiles(in: folder)
+        Self.removeExpiredFiles(in: folder)
         let url = folder.appendingPathComponent(UUID().uuidString + ".html")
         try Data(html(imageData: png).utf8).write(to: url, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-        guard let browser = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https://lens.google.com")!) else {
+        guard let browser = NSWorkspace.shared.urlForApplication(toOpen: uploadURL) else {
             try? FileManager.default.removeItem(at: url)
             throw LLMError.network(String(localized: "无法打开默认浏览器"))
         }

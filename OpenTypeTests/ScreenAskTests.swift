@@ -214,21 +214,44 @@ struct ScreenAskControllerTests {
         #expect(rect.maxX <= -200)
     }
 
-    @Test func imageSearchCarriesTheActualImageAndClearsTheSession() throws {
-        let settings = SettingsStore(defaults: UserDefaults(suiteName: "opentype.tests.\(UUID().uuidString)")!)
+    @Test func imageSearchUsesTheSelectedEngineAndClearsTheSession() throws {
+        let suite = "opentype.tests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = SettingsStore(defaults: defaults)
+        var engines: [ImageSearchEngine] = []
         var searchedWidth = 0
-        let controller = ScreenAskController(settings: settings, credentials: InMemoryCredentialStore(),
-                                             imageSearch: { searchedWidth = $0.width }, notify: { _ in })
+        let controller = ScreenAskController(settings: settings, credentials: InMemoryCredentialStore(), imageSearch: { image, engine in
+            searchedWidth = image.width
+            engines.append(engine)
+        }, notify: { _ in })
         let context = try #require(CGContext(data: nil, width: 20, height: 10, bitsPerComponent: 8, bytesPerRow: 0,
                                              space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
-        controller.selected(ScreenRegion(image: try #require(context.makeImage()), frame: .zero))
+        let region = ScreenRegion(image: try #require(context.makeImage()), frame: .zero)
+        controller.selected(region)
         controller.searchImage()
+        #expect(engines == [.google])
         #expect(searchedWidth == 20)
         #expect(!controller.isVisible)
-        let html = GoogleImageSearch.html(imageData: Data([1, 2, 3]))
-        #expect(html.contains("https://lens.google.com/v3/upload"))
-        #expect(html.contains("encoded_image"))
-        #expect(html.contains("AQID"))
+
+        controller.selected(region)
+        settings.screenAskImageSearchEngine = .bing
+        #expect(engines == [.google])
+        controller.searchImage()
+        #expect(engines == [.google, .bing])
+        #expect(!controller.isVisible)
+        #expect(SettingsStore(defaults: defaults).screenAskImageSearchEngine == .bing)
+    }
+
+    @Test func imageSearchFormsSubmitTheImageInEachEnginesFormat() {
+        let data = Data([1, 2, 3])
+        let google = ImageSearchEngine.google.html(imageData: data)
+        #expect(google.contains("https://lens.google.com/v3/upload"))
+        #expect(google.contains("encoded_image"))
+        #expect(google.contains("atob('AQID')"))
+        let bing = ImageSearchEngine.bing.html(imageData: data)
+        #expect(bing.contains("https://www.bing.com/images/detail/search?iss=sbiupload&amp;FORM=ANCMS1#enterInsights"))
+        #expect(bing.contains(#"name="imageBin" value="AQID""#))
     }
 }
 

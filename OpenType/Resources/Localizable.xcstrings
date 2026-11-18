@@ -20366,36 +20366,36 @@
         }
       }
     },
-    "按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 搜索所选图片。按 Esc 或再次按快捷键关闭。": {
+    "按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 或 Bing 搜索所选图片。按 Esc 或再次按快捷键关闭。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Press the shortcut and drag to select a screen region. Type or speak a question beside the selection, or search the selected image with Google in your default browser. Press Esc or the shortcut again to close."
+            "value": "Press the shortcut and drag to select a screen region. Type or speak a question beside the selection, or search the selected image with Google or Bing in your default browser. Press Esc or the shortcut again to close."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 搜索所选图片。按 Esc 或再次按快捷键关闭。"
+            "value": "按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 或 Bing 搜索所选图片。按 Esc 或再次按快捷键关闭。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "按快捷鍵後拖移選取螢幕區域，在選區旁輸入問題或用語音提問；也可以在預設瀏覽器中用 Google 搜尋所選圖片。按 Esc 或再次按快捷鍵關閉。"
+            "value": "按快捷鍵後拖移選取螢幕區域，在選區旁輸入問題或用語音提問；也可以在預設瀏覽器中用 Google 或 Bing 搜尋所選圖片。按 Esc 或再次按快捷鍵關閉。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ショートカットを押して画面の範囲をドラッグで選択します。選択範囲の横で文字や音声で質問したり、デフォルトのブラウザで選択した画像を Google 検索できます。Esc または同じショートカットでもう一度押すと閉じます。"
+            "value": "ショートカットを押して画面の範囲をドラッグで選択します。選択範囲の横で文字や音声で質問したり、デフォルトのブラウザで選択した画像を Google または Bing で検索できます。Esc または同じショートカットでもう一度押すと閉じます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "단축키를 누른 뒤 드래그하여 화면 영역을 선택하세요. 선택 영역 옆에서 글이나 음성으로 질문하거나 기본 브라우저에서 선택한 이미지를 Google로 검색할 수 있습니다. Esc 또는 단축키를 다시 누르면 닫힙니다."
+            "value": "단축키를 누른 뒤 드래그하여 화면 영역을 선택하세요. 선택 영역 옆에서 글이나 음성으로 질문하거나 기본 브라우저에서 선택한 이미지를 Google 또는 Bing으로 검색할 수 있습니다. Esc 또는 단축키를 다시 누르면 닫힙니다."
           }
         }
       }
@@ -20770,6 +20770,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "질문"
+          }
+        }
+      }
+    },
+    "图片搜索引擎": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image search engine"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片搜索引擎"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圖片搜尋引擎"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像検索エンジン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미지 검색 엔진"
           }
         }
       }
@@ -21216,36 +21250,36 @@
         }
       }
     },
-    "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到 Google。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。": {
+    "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到所选搜索引擎。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到 Google。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。"
+            "value": "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到所选搜索引擎。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Screen Recording permission is required. The selected image is sent to your AI service only when you submit a question. Clicking Image Search uploads it to Google. Screenshots are never saved; the text of questions and answers is recorded in History (with “Save text” turned off on the History page, only statistics are kept)."
+            "value": "Screen Recording permission is required. The selected image is sent to your AI service only when you submit a question. Clicking Image Search uploads it to the selected search engine. Screenshots are never saved; the text of questions and answers is recorded in History (with “Save text” turned off on the History page, only statistics are kept)."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要螢幕錄製權限。選取區域後，只有送出問題時才會將選區圖片傳送給所選 AI 服務；點擊「圖片搜尋」會將選區圖片上傳至 Google。截圖不會儲存；問題與回答的文字會記入「歷史」（在歷史頁關閉「儲存文字」後只記錄統計）。"
+            "value": "需要螢幕錄製權限。選取區域後，只有送出問題時才會將選區圖片傳送給所選 AI 服務；點擊「圖片搜尋」會將選區圖片上傳至所選搜尋引擎。截圖不會儲存；問題與回答的文字會記入「歷史」（在歷史頁關閉「儲存文字」後只記錄統計）。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "画面収録の許可が必要です。質問を送信するときにのみ、選択した画像が AI サービスへ送信されます。「画像検索」をクリックすると Google に画像がアップロードされます。スクリーンショットは保存されません。質問と回答のテキストは「履歴」に記録されます（履歴ページで「テキストを保存」をオフにすると統計のみ記録されます）。"
+            "value": "画面収録の許可が必要です。質問を送信するときにのみ、選択した画像が AI サービスへ送信されます。「画像検索」をクリックすると 選択した検索エンジンに画像がアップロードされます。スクリーンショットは保存されません。質問と回答のテキストは「履歴」に記録されます（履歴ページで「テキストを保存」をオフにすると統計のみ記録されます）。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "화면 기록 권한이 필요합니다. 질문을 전송할 때만 선택한 이미지가 AI 서비스로 전송됩니다. '이미지 검색'을 클릭하면 이미지가 Google에 업로드됩니다. 스크린샷은 저장되지 않으며, 질문과 답변의 텍스트는 '기록'에 남습니다('기록' 페이지에서 '텍스트 저장'을 끄면 통계만 기록됩니다)."
+            "value": "화면 기록 권한이 필요합니다. 질문을 전송할 때만 선택한 이미지가 AI 서비스로 전송됩니다. '이미지 검색'을 클릭하면 선택한 검색 엔진에 이미지가 업로드됩니다. 스크린샷은 저장되지 않으며, 질문과 답변의 텍스트는 '기록'에 남습니다('기록' 페이지에서 '텍스트 저장'을 끄면 통계만 기록됩니다)."
           }
         }
       }

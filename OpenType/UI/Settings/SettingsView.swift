@@ -839,7 +839,7 @@ private struct ScreenAskSettingsTab: View {
         Form {
             Section("屏幕提问") {
                 Toggle("启用屏幕提问", isOn: $settings.screenAskEnabled)
-                Text("按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 搜索所选图片。按 Esc 或再次按快捷键关闭。")
+                Text("按快捷键后拖动选取屏幕区域，在选区旁输入问题或用语音提问；也可以在默认浏览器中用 Google 或 Bing 搜索所选图片。按 Esc 或再次按快捷键关闭。")
                     .font(.caption).foregroundStyle(.secondary)
                 HotkeyRecorderRow(
                     title: "屏幕提问快捷键",
@@ -851,6 +851,11 @@ private struct ScreenAskSettingsTab: View {
                         return $0 == settings.writingToolsHotkey ? String(localized: "与书写工具快捷键相同，请换一个") : nil
                     }, coordinator: coordinator
                 )
+                Picker("图片搜索引擎", selection: $settings.screenAskImageSearchEngine) {
+                    ForEach(ImageSearchEngine.allCases, id: \.self) { engine in
+                        Text(verbatim: engine.rawValue).tag(engine)
+                    }
+                }
             }
             Section("AI 模型") {
                 Picker("配置（Profile）", selection: $settings.screenAskProfileID) {
@@ -879,7 +884,7 @@ private struct ScreenAskSettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("隐私与权限") {
-                Text("需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击 Image Search 会将选区图片上传到 Google。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。")
+                Text("需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到所选搜索引擎。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("打开屏幕录制设置") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {

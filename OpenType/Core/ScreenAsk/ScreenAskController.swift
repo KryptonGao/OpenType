@@ -40,7 +40,7 @@ final class ScreenAskController {
     @ObservationIgnored private let isBusy: () -> Bool
     @ObservationIgnored private let setMicrophoneBusy: (Bool) -> Void
     @ObservationIgnored private let makeLLM: (LLMProfile, String) -> any LLMProvider
-    @ObservationIgnored private let imageSearch: (CGImage) throws -> Void
+    @ObservationIgnored private let imageSearch: (CGImage, ImageSearchEngine) throws -> Void
     @ObservationIgnored private let prepareCapture: () -> Void
     @ObservationIgnored private let notify: (String) -> Void
     @ObservationIgnored private var region: ScreenRegion?
@@ -57,7 +57,7 @@ final class ScreenAskController {
          selection: ScreenSelectionController = ScreenSelectionController(), recorder: VoiceInputRecorder? = nil,
          isBusy: @escaping () -> Bool = { false }, setMicrophoneBusy: @escaping (Bool) -> Void = { _ in },
          makeLLM: @escaping (LLMProfile, String) -> any LLMProvider = { HTTPLLMProvider(profile: $0, apiKey: $1) },
-         imageSearch: @escaping (CGImage) throws -> Void = { try GoogleImageSearch.open(image: $0) },
+         imageSearch: @escaping (CGImage, ImageSearchEngine) throws -> Void = { try $1.open(image: $0) },
          prepareCapture: @escaping () -> Void = {},
          notify: @escaping (String) -> Void = { message in
              let alert = NSAlert()
@@ -172,7 +172,7 @@ final class ScreenAskController {
 
     func searchImage() {
         guard let region else { return }
-        do { try imageSearch(region.image); close() }
+        do { try imageSearch(region.image, settings.screenAskImageSearchEngine); close() }
         catch { self.error = Self.message(error) }
     }
 
