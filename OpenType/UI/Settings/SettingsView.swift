@@ -884,7 +884,7 @@ private struct ScreenAskSettingsTab: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("隐私与权限") {
-                Text("需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到所选搜索引擎。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。")
+                Text("需要屏幕录制权限。提交时，选区图片和问题会发给所配置的 AI 服务（联网搜索生效时发给 DeepSeek）。截图不存入历史。「图片搜索」会在本机创建临时文件，由默认浏览器将图片上传至所选搜索引擎。关闭「保存文字」后，新的历史记录只含统计。")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("打开屏幕录制设置") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {

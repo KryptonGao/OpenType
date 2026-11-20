@@ -151,7 +151,8 @@ xcodebuild -project OpenType.xcodeproj -scheme OpenType -configuration Release -
 
 ## 隐私与安全
 
-- 录音会发送到你选择的语音识别服务（阿里云百炼实时流式，或 DeepSeek 录完后整段上传）；转写文本会发送到你配置的 LLM 服务。除此之外没有任何其他网络请求。
+- 录音会发送到你选择的语音识别服务（阿里云百炼实时流式，或 DeepSeek 录完后整段上传）。转写文本会发送到你配置的 LLM 服务。
+- 「屏幕提问」会将选区图片和问题发给你配置的 AI 服务（联网搜索生效时发给 DeepSeek `deepseek-flash`）。截图不存入历史。单独使用「图片搜索」时，OpenType 会在本机创建包含截图的临时 HTML 文件，并用默认浏览器打开它，将图片上传至 Google Lens 或 Bing。
 - API Key 以明文 JSON 保存在 `~/.opentype/credentials.json`（目录 0700、文件 0600），界面只显示「已保存」，不会读回；不会写入 `UserDefaults`、日志或错误提示。旧版本留在 Keychain 里的 Key 会在首次启动时自动迁移。
 - 只接受校验证书的 HTTPS / WSS；Workspace ID 经过格式校验，密钥只会发往由它生成的阿里云域名或你明确填写的自定义 `wss://` 地址。
 - 不落盘原始音频。识别和整理后的文字默认保存在本机 `~/Library/Application Support/OpenType/history.json`（不上传），可在「历史」页关闭保存或清空；首页统计只用次数、字数、时长和 Token 数。诊断日志默认关闭，开启后也只记录各阶段耗时。

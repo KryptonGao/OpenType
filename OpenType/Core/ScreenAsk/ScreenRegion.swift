@@ -41,11 +41,24 @@ enum ImageSearchEngine: String, CaseIterable {
     case google = "Google"
     case bing = "Bing"
 
+    private static let temporaryFolder = FileManager.default.temporaryDirectory
+        .appendingPathComponent("OpenType-ImageSearch", isDirectory: true)
+    private static let fileLifetime: TimeInterval = 120
+
     private var uploadURL: URL {
         switch self {
         case .google: URL(string: "https://lens.google.com/v3/upload")!
         case .bing: URL(string: "https://www.bing.com/images/detail/search?iss=sbiupload&FORM=ANCMS1#enterInsights")!
         }
+    }
+
+    private var formHeader: String {
+        let action = uploadURL.absoluteString.replacingOccurrences(of: "&", with: "&amp;")
+        return """
+        <!doctype html><html><head><meta charset="utf-8"><title>\(rawValue) Image Search</title>
+        <meta name="referrer" content="no-referrer"></head><body>
+        <form method="post" enctype="multipart/form-data" action="\(action)">
+        """
     }
 
     func html(imageData: Data) -> String {
@@ -66,11 +79,8 @@ enum ImageSearchEngine: String, CaseIterable {
             prepareFile = ""
         }
 
-        let action = uploadURL.absoluteString.replacingOccurrences(of: "&", with: "&amp;")
         return """
-        <!doctype html><html><head><meta charset="utf-8"><title>\(rawValue) Image Search</title>
-        <meta name="referrer" content="no-referrer"></head><body>
-        <form method="post" enctype="multipart/form-data" action="\(action)">
+        \(formHeader)
         \(input)<button type="submit">\(rawValue) Image Search</button>
         </form><script>
         \(prepareFile)
@@ -84,16 +94,30 @@ enum ImageSearchEngine: String, CaseIterable {
         guard let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
             throw LLMError.badResponse(String(localized: "无法处理所选图片"))
         }
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("OpenType-ImageSearch", isDirectory: true)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
-                                               attributes: [.posixPermissions: 0o700])
-        Self.removeExpiredFiles(in: folder)
-        let url = folder.appendingPathComponent(UUID().uuidString + ".html")
-        try Data(html(imageData: png).utf8).write(to: url, options: .atomic)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-        guard let browser = NSWorkspace.shared.urlForApplication(toOpen: uploadURL) else {
-            try? FileManager.default.removeItem(at: url)
-            throw LLMError.network(String(localized: "无法打开默认浏览器"))
+        let folder = Self.temporaryFolder
+        Self.removeExpiredFiles()
+        guard mkdir(folder.path, 0o700) == 0 || errno == EEXIST else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        let directory = try Self.openPrivateDirectory(at: folder)
+        let name = UUID().uuidString + ".html"
+        let url = folder.appendingPathComponent(name)
+        let fd = openat(directory.fileDescriptor, name, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
+        guard fd >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        let file = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        let browser: URL
+        do {
+            guard flock(fd, LOCK_EX | LOCK_NB) == 0, fchmod(fd, 0o600) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+            try file.write(contentsOf: Data(html(imageData: png).utf8))
+            guard let application = NSWorkspace.shared.urlForApplication(toOpen: uploadURL) else {
+                throw LLMError.network(String(localized: "无法打开默认浏览器"))
+            }
+            browser = application
+        } catch {
+            Self.removeFile(named: name, in: directory, matching: file)
+            throw error
         }
         let configuration = NSWorkspace.OpenConfiguration()
         NSWorkspace.shared.open([url], withApplicationAt: browser, configuration: configuration) { _, error in
@@ -107,16 +131,63 @@ enum ImageSearchEngine: String, CaseIterable {
             }
         }
         Task {
-            try? await Task.sleep(for: .seconds(120))
-            try? FileManager.default.removeItem(at: url)
+            // Keep the exclusive lock through the browser's handoff window, including across app instances.
+            try? await Task.sleep(for: .seconds(Self.fileLifetime))
+            Self.removeFile(named: name, in: directory, matching: file)
         }
     }
 
-    static func removeExpiredFiles(in folder: URL) {
-        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
-        for file in files where file.pathExtension == "html" {
-            let date = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
-            if date < Date().addingTimeInterval(-120) { try? FileManager.default.removeItem(at: file) }
+    static func cleanUpOnLaunch() {
+        removeExpiredFiles()
+        Task {
+            // After a quick restart, give recent files their full handoff window before sweeping again.
+            try? await Task.sleep(for: .seconds(fileLifetime))
+            removeExpiredFiles()
         }
+    }
+
+    static func removeExpiredFiles(in folder: URL = temporaryFolder, now: Date = .now) {
+        guard let directory = try? openPrivateDirectory(at: folder),
+              let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return }
+        let cutoff = now.addingTimeInterval(-fileLifetime)
+        let headers = allCases.map { Data(($0.formHeader + "\n").utf8) }
+        let headerLength = headers.map(\.count).max() ?? 0
+        for name in names where name.hasSuffix(".html") {
+            let stem = String(name.dropLast(".html".count))
+            guard UUID(uuidString: stem)?.uuidString == stem else { continue }
+            let fd = openat(directory.fileDescriptor, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
+            guard fd >= 0 else { continue }
+            let file = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+            var info = stat()
+            guard flock(fd, LOCK_EX | LOCK_NB) == 0,
+                  fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG,
+                  info.st_uid == geteuid(), info.st_nlink == 1 else { continue }
+            let modified = Date(timeIntervalSince1970: Double(info.st_mtimespec.tv_sec) + Double(info.st_mtimespec.tv_nsec) / 1e9)
+            // Check the generated form header without reading the embedded screenshot, including for files from older builds.
+            guard modified < cutoff, let prefix = try? file.read(upToCount: headerLength),
+                  headers.contains(where: { prefix.starts(with: $0) }) else { continue }
+            removeFile(named: name, in: directory, matching: file)
+        }
+    }
+
+    private static func openPrivateDirectory(at folder: URL) throws -> FileHandle {
+        let fd = Darwin.open(folder.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        guard fd >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        let directory = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_uid == geteuid(), info.st_mode & 0o7777 == 0o700 else {
+            throw CocoaError(.fileWriteNoPermission)
+        }
+        return directory
+    }
+
+    private static func removeFile(named name: String, in directory: FileHandle, matching file: FileHandle) {
+        var opened = stat()
+        var entry = stat()
+        let directoryFD = directory.fileDescriptor
+        guard fstat(file.fileDescriptor, &opened) == 0,
+              fstatat(directoryFD, name, &entry, AT_SYMLINK_NOFOLLOW) == 0,
+              entry.st_dev == opened.st_dev, entry.st_ino == opened.st_ino else { return }
+        _ = unlinkat(directoryFD, name, 0)
     }
 }

@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.shared = self
         _ = AppLanguage.atLaunch
+        ImageSearchEngine.cleanUpOnLaunch()
         let coordinator = AppContainer.coordinator
         updateDockVisibility(showDockIcon: coordinator.settingsStore.showDockIcon)
         coordinator.start()

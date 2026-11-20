@@ -255,6 +255,106 @@ struct ScreenAskControllerTests {
     }
 }
 
+struct ImageSearchCleanupTests {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func makeFolder() throws -> URL {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false,
+                                               attributes: [.posixPermissions: 0o700])
+        return folder
+    }
+
+    private func writeForm(in folder: URL, engine: ImageSearchEngine = .google, age: TimeInterval = 121,
+                           name: String = UUID().uuidString + ".html") throws -> URL {
+        let file = folder.appendingPathComponent(name)
+        try engine.html(imageData: Data([1, 2, 3])).write(to: file, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.modificationDate: now.addingTimeInterval(-age)], ofItemAtPath: file.path)
+        return file
+    }
+
+    @Test func removesExpiredFormsButKeepsRecentAndLockedForms() throws {
+        let folder = try makeFolder()
+        let manager = FileManager.default
+        defer { try? manager.removeItem(at: folder) }
+        let google = try writeForm(in: folder)
+        let bing = try writeForm(in: folder, engine: .bing)
+        let recent = try writeForm(in: folder, age: 120)
+        let future = try writeForm(in: folder, age: -60)
+        let active = try writeForm(in: folder)
+        let file = try FileHandle(forWritingTo: active)
+        defer { try? file.close() }
+        try #require(flock(file.fileDescriptor, LOCK_EX | LOCK_NB) == 0)
+
+        ImageSearchEngine.removeExpiredFiles(in: folder, now: now)
+
+        #expect(!manager.fileExists(atPath: google.path))
+        #expect(!manager.fileExists(atPath: bing.path))
+        #expect(manager.fileExists(atPath: recent.path))
+        #expect(manager.fileExists(atPath: future.path))
+        #expect(manager.fileExists(atPath: active.path))
+
+        try #require(flock(file.fileDescriptor, LOCK_UN) == 0)
+        ImageSearchEngine.removeExpiredFiles(in: folder, now: now)
+        #expect(!manager.fileExists(atPath: active.path))
+
+        ImageSearchEngine.removeExpiredFiles(in: folder, now: now.addingTimeInterval(1))
+        #expect(!manager.fileExists(atPath: recent.path))
+        #expect(manager.fileExists(atPath: future.path))
+    }
+
+    @Test func leavesUnrelatedEntriesAndLinkedFilesAlone() throws {
+        let folder = try makeFolder()
+        let outside = try makeFolder()
+        let manager = FileManager.default
+        defer {
+            try? manager.removeItem(at: folder)
+            try? manager.removeItem(at: outside)
+        }
+        let target = try writeForm(in: outside)
+        let symlink = folder.appendingPathComponent(UUID().uuidString + ".html")
+        try manager.createSymbolicLink(at: symlink, withDestinationURL: target)
+        let hardLink = folder.appendingPathComponent(UUID().uuidString + ".html")
+        try manager.linkItem(at: target, to: hardLink)
+        let directory = folder.appendingPathComponent(UUID().uuidString + ".html", isDirectory: true)
+        try manager.createDirectory(at: directory, withIntermediateDirectories: false)
+        let nestedForm = try writeForm(in: directory)
+        let wrongName = try writeForm(in: folder, name: "other.html")
+        let wrongExtension = try writeForm(in: folder, name: UUID().uuidString + ".txt")
+        let unrelated = try writeForm(in: folder)
+        try Data("unrelated".utf8).write(to: unrelated)
+        try manager.setAttributes([.modificationDate: now.addingTimeInterval(-121)], ofItemAtPath: unrelated.path)
+
+        ImageSearchEngine.removeExpiredFiles(in: folder, now: now)
+
+        for entry in [target, symlink, hardLink, nestedForm, wrongName, wrongExtension, unrelated] {
+            #expect(manager.fileExists(atPath: entry.path))
+        }
+    }
+
+    @Test func skipsMissingLinkedAndNonPrivateFolders() throws {
+        let folder = try makeFolder()
+        let manager = FileManager.default
+        defer { try? manager.removeItem(at: folder) }
+        let privateFolder = folder.appendingPathComponent("private", isDirectory: true)
+        try manager.createDirectory(at: privateFolder, withIntermediateDirectories: false,
+                                    attributes: [.posixPermissions: 0o700])
+        let expired = try writeForm(in: privateFolder)
+        let linked = folder.appendingPathComponent("linked", isDirectory: true)
+        try manager.createSymbolicLink(at: linked, withDestinationURL: privateFolder)
+        let missing = folder.appendingPathComponent("missing", isDirectory: true)
+
+        ImageSearchEngine.removeExpiredFiles(in: missing, now: now)
+        ImageSearchEngine.removeExpiredFiles(in: linked, now: now)
+        #expect(!manager.fileExists(atPath: missing.path))
+        #expect(manager.fileExists(atPath: expired.path))
+
+        try manager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: privateFolder.path)
+        ImageSearchEngine.removeExpiredFiles(in: privateFolder, now: now)
+        #expect(manager.fileExists(atPath: expired.path))
+    }
+}
+
 @MainActor
 struct ScreenAskWebSearchTests {
     private func makeSettings() throws -> SettingsStore {

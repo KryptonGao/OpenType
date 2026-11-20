@@ -151,7 +151,8 @@ DeepSeek only, with its own separate API key. Off by default; turn it on under �
 
 ## Privacy and security
 
-- Recordings are sent to the speech recognition service you choose (Alibaba Cloud Bailian real-time streaming, or DeepSeek, which receives the whole recording after you finish); transcribed text is sent to the LLM service you configured. There are no other network requests.
+- Recordings are sent to the speech recognition service you choose (Alibaba Cloud Bailian real-time streaming, or DeepSeek, which receives the whole recording after you finish). Transcribed text is sent to the LLM service you configured.
+- Screen Ask sends the selected image and question to your configured AI service (DeepSeek `deepseek-flash` when Web Search is active). Screenshots aren’t saved in History. The separate Image Search action creates a temporary local HTML file containing the screenshot and opens it in your default browser to upload the image to Google Lens or Bing.
 - API keys are stored as plaintext JSON in `~/.opentype/credentials.json` (directory 0700, file 0600). The UI only shows “Saved” and never reads a key back; keys are never written to `UserDefaults`, logs or error messages. Keys left in the Keychain by older versions are migrated automatically on first launch.
 - Only certificate-validated HTTPS / WSS is accepted. The Workspace ID is format-checked, and keys are only ever sent to the Alibaba Cloud domain derived from it or to a custom `wss://` address you entered explicitly.
 - Raw audio is never written to disk. Recognized and cleaned-up text is saved on your Mac by default at `~/Library/Application Support/OpenType/history.json` (never uploaded); you can turn saving off or clear it on the History page. The Home statistics use only counts, character counts, durations and token counts. Diagnostic logging is off by default, and even when enabled it records only the timing of each stage.

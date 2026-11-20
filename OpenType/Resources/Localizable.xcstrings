@@ -21250,36 +21250,36 @@
         }
       }
     },
-    "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到所选搜索引擎。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。": {
+    "需要屏幕录制权限。提交时，选区图片和问题会发给所配置的 AI 服务（联网搜索生效时发给 DeepSeek）。截图不存入历史。「图片搜索」会在本机创建临时文件，由默认浏览器将图片上传至所选搜索引擎。关闭「保存文字」后，新的历史记录只含统计。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要屏幕录制权限。选取区域后，只有发送问题时才会将选区图片发送给所选 AI 服务；点击「图片搜索」会将选区图片上传到所选搜索引擎。截图不会保存；问题与回答的文字会记入「历史」（在历史页关闭「保存文字」后只记录统计）。"
+            "value": "需要屏幕录制权限。提交时，选区图片和问题会发给所配置的 AI 服务（联网搜索生效时发给 DeepSeek）。截图不存入历史。「图片搜索」会在本机创建临时文件，由默认浏览器将图片上传至所选搜索引擎。关闭「保存文字」后，新的历史记录只含统计。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Screen Recording permission is required. The selected image is sent to your AI service only when you submit a question. Clicking Image Search uploads it to the selected search engine. Screenshots are never saved; the text of questions and answers is recorded in History (with “Save text” turned off on the History page, only statistics are kept)."
+            "value": "Screen Recording permission is required. Submitting sends the selected image and question to your configured AI service (DeepSeek when Web Search is active). Screenshots aren’t saved in History. Image Search creates a temporary local file, and your default browser uploads the image to the selected search engine. Turn off “Save text” to record only statistics in new History entries."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要螢幕錄製權限。選取區域後，只有送出問題時才會將選區圖片傳送給所選 AI 服務；點擊「圖片搜尋」會將選區圖片上傳至所選搜尋引擎。截圖不會儲存；問題與回答的文字會記入「歷史」（在歷史頁關閉「儲存文字」後只記錄統計）。"
+            "value": "需要螢幕錄製權限。送出時，選取的圖片和問題會傳送至設定的 AI 服務（網路搜尋啟用時傳送至 DeepSeek）。截圖不會存入歷史。「圖片搜尋」會在本機建立暫存檔，由預設瀏覽器將圖片上傳至選取的搜尋引擎。關閉「儲存文字」後，新的歷史記錄只含統計資料。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "画面収録の許可が必要です。質問を送信するときにのみ、選択した画像が AI サービスへ送信されます。「画像検索」をクリックすると 選択した検索エンジンに画像がアップロードされます。スクリーンショットは保存されません。質問と回答のテキストは「履歴」に記録されます（履歴ページで「テキストを保存」をオフにすると統計のみ記録されます）。"
+            "value": "画面収録の許可が必要です。質問を送信すると、選択した画像と質問が設定済みの AI サービス（ウェブ検索が有効な場合は DeepSeek）に送られます。スクリーンショットは履歴に保存されません。「画像検索」はローカルに一時ファイルを作成し、既定のブラウザから選択した検索エンジンに画像をアップロードします。「テキストを保存」をオフにすると、新しい履歴には統計のみが記録されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "화면 기록 권한이 필요합니다. 질문을 전송할 때만 선택한 이미지가 AI 서비스로 전송됩니다. '이미지 검색'을 클릭하면 선택한 검색 엔진에 이미지가 업로드됩니다. 스크린샷은 저장되지 않으며, 질문과 답변의 텍스트는 '기록'에 남습니다('기록' 페이지에서 '텍스트 저장'을 끄면 통계만 기록됩니다)."
+            "value": "화면 기록 권한이 필요합니다. 질문을 제출하면 선택한 이미지와 질문이 설정한 AI 서비스(웹 검색이 활성화된 경우 DeepSeek)로 전송됩니다. 스크린샷은 기록에 저장되지 않습니다. ‘이미지 검색’은 로컬 임시 파일을 만들고 기본 브라우저를 통해 선택한 검색 엔진에 이미지를 업로드합니다. ‘텍스트 저장’을 끄면 새 기록에는 통계만 저장됩니다."
           }
         }
       }
